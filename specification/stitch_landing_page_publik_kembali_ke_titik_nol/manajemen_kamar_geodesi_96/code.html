@@ -1,0 +1,446 @@
+<!DOCTYPE html><html class="light" lang="id"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Manajemen Kamar | Titik Nol Geodesi 96</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-image: 
+                radial-gradient(circle at 2px 2px, rgba(74, 101, 78, 0.05) 1px, transparent 0);
+            background-size: 40px 40px;
+        }
+        .topo-bg {
+            background-color: #faf9f6;
+            background-image: url("https://www.transparenttextures.com/patterns/cubes.png"); /* Subtle texture fallback */
+            position: relative;
+        }
+        .topo-bg::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(250, 249, 246, 0.8) 0%, rgba(250, 249, 246, 0.4) 100%);
+            pointer-events: none;
+        }
+        .crosshair {
+            position: relative;
+        }
+        .crosshair::before, .crosshair::after {
+            content: '';
+            position: absolute;
+            background-color: #727972;
+            opacity: 0.3;
+        }
+        .crosshair-tr::before { width: 20px; height: 1px; top: 0; right: 0; }
+        .crosshair-tr::after { width: 1px; height: 20px; top: 0; right: 0; }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(194, 200, 192, 0.3);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-surface": "#1a1c1a",
+                      "secondary-container": "#c9e8cb",
+                      "topo-gray": "#F4F5F2",
+                      "inverse-primary": "#adcfb4",
+                      "secondary-fixed-dim": "#b0ceb2",
+                      "surface-tint": "#466550",
+                      "on-surface-variant": "#424843",
+                      "on-primary-container": "#99baa1",
+                      "on-primary-fixed-variant": "#2f4d39",
+                      "surface-variant": "#e3e3df",
+                      "background": "#faf9f6",
+                      "surface": "#faf9f6",
+                      "surface-container": "#eeeeea",
+                      "primary-container": "#2d4b37",
+                      "on-error-container": "#93000a",
+                      "surface-dim": "#dadad7",
+                      "anniversary-gold": "#C5A059",
+                      "error-container": "#ffdad6",
+                      "tertiary-container": "#613a3f",
+                      "on-tertiary": "#ffffff",
+                      "on-tertiary-fixed": "#311217",
+                      "primary": "#163422",
+                      "memorial-slate": "#4A5568",
+                      "secondary": "#4a654e",
+                      "surface-bright": "#faf9f6",
+                      "surface-container-lowest": "#ffffff",
+                      "primary-fixed-dim": "#adcfb4",
+                      "on-secondary": "#ffffff",
+                      "tertiary-fixed-dim": "#efb9be",
+                      "surface-container-low": "#f4f4f0",
+                      "status-error": "#F56565",
+                      "on-tertiary-container": "#daa5ab",
+                      "status-success": "#48BB78",
+                      "surface-container-highest": "#e3e3df",
+                      "outline": "#727972",
+                      "outline-variant": "#c2c8c0",
+                      "tertiary": "#472429",
+                      "on-error": "#ffffff",
+                      "inverse-surface": "#2f312f",
+                      "secondary-fixed": "#cceace",
+                      "error": "#ba1a1a",
+                      "on-secondary-fixed-variant": "#334d38",
+                      "surface-container-high": "#e8e8e5",
+                      "inverse-on-surface": "#f1f1ed",
+                      "on-secondary-fixed": "#07200f",
+                      "on-tertiary-fixed-variant": "#633c41",
+                      "on-background": "#1a1c1a",
+                      "tertiary-fixed": "#ffd9dc",
+                      "on-primary-fixed": "#022110",
+                      "on-secondary-container": "#4e6952",
+                      "on-primary": "#ffffff",
+                      "status-pending": "#ECC94B",
+                      "primary-fixed": "#c8ebd0"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "gutter": "1.5rem",
+                      "margin-mobile": "1rem",
+                      "container-max": "1200px",
+                      "section-gap": "4rem",
+                      "stack-sm": "0.5rem",
+                      "stack-md": "1rem"
+              },
+              "fontFamily": {
+                      "headline-md": ["Plus Jakarta Sans"],
+                      "label-caps": ["JetBrains Mono"],
+                      "headline-lg": ["Plus Jakarta Sans"],
+                      "display-hero": ["Plus Jakarta Sans"],
+                      "body-md": ["Inter"],
+                      "body-lg": ["Inter"]
+              },
+              "fontSize": {
+                      "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                      "label-caps": ["12px", {"lineHeight": "1.0", "letterSpacing": "0.1em", "fontWeight": "500"}],
+                      "headline-lg": ["32px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                      "display-hero": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                      "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                      "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}]
+              }
+            },
+          },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface topo-bg min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<header class="bg-surface/80 dark:bg-on-background/80 backdrop-blur-md sticky top-0 z-50 border-b border-outline-variant/30 shadow-sm">
+<div class="max-w-container-max mx-auto flex justify-between items-center px-gutter py-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">precision_manufacturing</span>
+<span class="text-headline-md font-headline-md font-bold text-primary tracking-tight">Titik Nol Geodesi 96</span>
+</div>
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-caps text-label-caps" href="#">Dashboard</a>
+<a class="hover:text-primary transition-colors font-label-caps text-label-caps text-primary font-bold border-b-2 border-primary pb-1" href="#">Directory</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-caps text-label-caps" href="#">Memory Book</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-caps text-label-caps" href="#">Documentation</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-caps text-label-caps" href="#">Map</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant" href="#">Analytics</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container rounded-full transition-all">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<div class="w-10 h-10 rounded-full border border-outline-variant overflow-hidden">
+<img alt="User Alumni Avatar" class="w-full h-full object-cover" data-alt="A professional headshot of a middle-aged Indonesian man with a warm, nostalgic expression, suitable for an alumni portal. He is wearing a clean, casual linen shirt against a soft-focus architectural background. The lighting is bright and airy, consistent with a clean light-mode UI design and a professional communal atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBcnuEqYUKxms7YrE6CsrDVO72iKnB6TAFR7rwnVFjzscxzBm16TUeLt8Boz-YMzcczDe2nmXgk1az64ntfr3lBqYBTrqmGQ4EjsjnBXUwMpdmmkrP4fOy8xhLfsoG7zild3Rcn6dvk2R8hS3QjhaTi2rFR53Zrl-3GMc5lCduIp0lrmo31vMXBXkulrHaBSQLX5vdM_yzIFBFxusqE3CASuGp4BwYjHXxReWEF037QYkNH8TNrCM1kPV_bGPYt9dp9hbkb6e8iRDA">
+</div>
+</div>
+</div>
+</header>
+<main class="flex-grow max-w-container-max mx-auto px-gutter py-12 w-full relative z-10">
+<!-- Header Section -->
+<div class="mb-12 crosshair crosshair-tr">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-primary mb-2">Manajemen Kamar &amp; Penginapan</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">
+                        Pengaturan akomodasi alumni di <span class="text-primary font-semibold">Kampung Wisata Tembi</span> untuk menginap di hari pertama reuni. Memastikan kenyamanan paseduluran.
+                    </p>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center gap-2 bg-surface-container text-primary font-label-caps text-label-caps px-6 py-3 rounded-lg border border-outline-variant hover:bg-surface-variant transition-all">
+<span class="material-symbols-outlined text-lg" data-icon="print">print</span>
+                        Cetak Rooming List
+                    </button>
+<button class="flex items-center gap-2 bg-primary text-on-primary font-label-caps text-label-caps px-6 py-3 rounded-lg hover:bg-primary-container transition-all shadow-md">
+<span class="material-symbols-outlined text-lg" data-icon="add">add</span>
+                        Tambah Kamar Baru
+                    </button>
+</div>
+</div>
+</div>
+<!-- Summary Stats Bento -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+<div class="glass-card p-6 rounded-xl border border-outline-variant/30 flex flex-col">
+<span class="text-label-caps font-label-caps text-on-surface-variant mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-lg" data-icon="bed">bed</span>
+                    Total Kamar
+                </span>
+<span class="text-headline-lg font-headline-lg text-primary">32</span>
+<span class="text-body-md font-body-md text-on-surface-variant mt-2">Kapasitas 96 Orang</span>
+</div>
+<div class="glass-card p-6 rounded-xl border border-outline-variant/30 flex flex-col">
+<span class="text-label-caps font-label-caps text-on-surface-variant mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-status-success text-lg" data-icon="group">group</span>
+                    Kapasitas Terisi
+                </span>
+<span class="text-headline-lg font-headline-lg text-primary">78<span class="text-headline-md text-on-surface-variant/50">/96</span></span>
+<div class="w-full bg-surface-container rounded-full h-1.5 mt-4 overflow-hidden">
+<div class="bg-status-success h-full" style="width: 81%"></div>
+</div>
+</div>
+<div class="glass-card p-6 rounded-xl border border-outline-variant/30 flex flex-col">
+<span class="text-label-caps font-label-caps text-on-surface-variant mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-anniversary-gold text-lg" data-icon="meeting_room">meeting_room</span>
+                    Kamar Tersedia
+                </span>
+<span class="text-headline-lg font-headline-lg text-primary">4</span>
+<span class="text-body-md font-body-md text-on-surface-variant mt-2">Siap huni</span>
+</div>
+<div class="glass-card p-6 rounded-xl bg-primary-container border border-primary text-on-primary flex flex-col">
+<span class="text-label-caps font-label-caps text-on-primary-container mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-lg" data-icon="warning">warning</span>
+                    Alumni Belum Terbagi
+                </span>
+<span class="text-headline-lg font-headline-lg">14</span>
+<button class="mt-4 text-label-caps font-label-caps underline hover:text-on-primary-container transition-all text-left">Tampilkan List</button>
+</div>
+</div>
+<!-- Filters & Search -->
+<div class="flex flex-col md:flex-row gap-4 mb-8 items-center bg-surface-container-low p-4 rounded-xl border border-outline-variant/20">
+<div class="w-full md:w-1/3 relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline" data-icon="search">search</span>
+<input class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-outline-variant bg-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all text-sm font-body-md" placeholder="Cari nama alumni atau kamar..." type="text">
+</div>
+<div class="flex gap-4 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+<select class="rounded-lg border border-outline-variant bg-surface px-4 py-2.5 text-sm font-body-md min-w-[140px] focus:ring-primary">
+<option>Semua Tipe</option>
+<option>Twin Share</option>
+<option>Triple Share</option>
+</select>
+<select class="rounded-lg border border-outline-variant bg-surface px-4 py-2.5 text-sm font-body-md min-w-[140px] focus:ring-primary">
+<option>Semua Status</option>
+<option>Tersedia</option>
+<option>Penuh</option>
+</select>
+<button class="flex items-center gap-2 px-4 py-2.5 text-sm font-label-caps text-primary hover:bg-surface-variant rounded-lg transition-all">
+<span class="material-symbols-outlined text-lg" data-icon="filter_list">filter_list</span>
+                    More Filters
+                </button>
+</div>
+</div>
+<!-- Room List Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+<!-- Room Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl border border-secondary/20 overflow-hidden shadow-sm hover:shadow-md transition-all group">
+<div class="p-6">
+<div class="flex justify-between items-start mb-4">
+<div>
+<span class="text-label-caps font-label-caps text-primary bg-secondary-container px-2 py-1 rounded text-[10px] mb-2 inline-block">TWIN SHARE</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Joglo 01</h3>
+</div>
+<div class="text-right">
+<span class="text-status-success font-bold text-lg">2/2</span>
+<p class="text-[10px] font-label-caps text-on-surface-variant">PENUH</p>
+</div>
+</div>
+<div class="space-y-4 mb-6">
+<div class="flex items-center gap-3 p-2 rounded-lg bg-surface hover:bg-surface-container transition-colors">
+<img class="w-8 h-8 rounded-full border border-outline-variant" data-alt="Close up portrait of a middle-aged professional man with glasses and a friendly demeanor, set against a natural, sun-drenched outdoor background. The lighting is warm and golden, reflecting a nostalgic and professional aesthetic for an alumni directory." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBtDJ2ouj_fAkZfP059c6nVtRxq8fmADaUjTun-bIpJySRwWn5jt27kD5tUhk2kNoUNz1znx7xvkSbqRROvj2DSyKxk9A_2COXAYfkBkoGK57Rh1_INGnucQTKm21gXZCvQmU_H938kVB4Z1HeCjvkd3DEdTxAv4ujnDmVUL_JQjSgQPM0VEFJG-XvYmJ5aHGA0zdYcW93EY2S-X6eausenrzo08q8kIYPYvxtP3YLtYnrePO4XnRo34ClJAPB_02RByOtAd1Wt2S0">
+<div>
+<p class="text-sm font-semibold text-primary">Bambang "Bams" Heru</p>
+<p class="text-[10px] font-label-caps text-on-surface-variant">LOKASI: JAKARTA</p>
+</div>
+</div>
+<div class="flex items-center gap-3 p-2 rounded-lg bg-surface hover:bg-surface-container transition-colors">
+<img class="w-8 h-8 rounded-full border border-outline-variant" data-alt="Portrait of a distinguished man in his late 40s with a kind expression, wearing a neutral-toned polo shirt. The scene is shot in a garden with soft-focus greenery in the background, creating a calm and welcoming communal vibe consistent with an alumni reunion." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAq1-GfMWArKiMrkvz9NzMz9zJhHzj--5zVKsHQo5RRXgx8pkByKYN13k_gpIaAyK9I4cYKXVNtdagpgYbRKPc-d2AEOiVB_sDzP6wAxBytNG8W6xe27_W7mcyv2xMT5KMehOLXXjkpmaviQMEGYJsIkfonXw-ty0AIoJLkG6Yp7HGthxUhtah_mJ7oOrQDfvSjfUuuGn9dXnpxtPZV77ONT8OR-oziMPimiCeSJkALcLJTvBZvjy5FdtNbXhDgpcKhr6w_0iMcmd4">
+<div>
+<p class="text-sm font-semibold text-primary">Adi Wijaya</p>
+<p class="text-[10px] font-label-caps text-on-surface-variant">LOKASI: SEMARANG</p>
+</div>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 text-center py-2 text-xs font-label-caps bg-surface border border-outline-variant rounded-lg text-on-surface hover:bg-surface-container transition-all">EDIT PENGHUNI</button>
+<button class="flex-1 text-center py-2 text-xs font-label-caps bg-primary text-on-primary rounded-lg hover:bg-primary-container transition-all">LIHAT DETAIL</button>
+</div>
+</div>
+</div>
+<!-- Room Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl border border-secondary/20 overflow-hidden shadow-sm hover:shadow-md transition-all group">
+<div class="p-6">
+<div class="flex justify-between items-start mb-4">
+<div>
+<span class="text-label-caps font-label-caps text-tertiary bg-tertiary-fixed px-2 py-1 rounded text-[10px] mb-2 inline-block">TRIPLE SHARE</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Tembi 05</h3>
+</div>
+<div class="text-right">
+<span class="text-status-pending font-bold text-lg">2/3</span>
+<p class="text-[10px] font-label-caps text-on-surface-variant">TERSEDIA 1</p>
+</div>
+</div>
+<div class="space-y-4 mb-6">
+<div class="flex items-center gap-3 p-2 rounded-lg bg-surface hover:bg-surface-container transition-colors">
+<img class="w-8 h-8 rounded-full border border-outline-variant" data-alt="Headshot of an Indonesian woman with a professional yet warm smile, wearing a subtle earth-toned hijab. The lighting is bright and clear, set against a modern office backdrop with a soft green color palette, emphasizing a communal and professional alumni identity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDOm6adQwkFAE6EqLcDlmrb0UyBtoOUl6eN7bem5w9pTF0pb_B3esYQbP89m969Bzl6JB210hwN6vQGOLKUwm7Rw1Q624t3V4IY0wRuUFCZ762xclwT9J_gMBUM9OG_GzbJP8qWhaPTuS70n9QMEydd7BazJimCCz_rjXFmLxwtxwsB-_pn3m4RfsRo-O-YFnAn7cTaawCuXdSJxsnUyQ1U-qoprBoAqpRuvaW2Dfl7r_7SAQPLox9LYp8AeKEmuPZ3JGL79fjvxqM">
+<div>
+<p class="text-sm font-semibold text-primary">Siti Aminah</p>
+<p class="text-[10px] font-label-caps text-on-surface-variant">LOKASI: BANDUNG</p>
+</div>
+</div>
+<div class="flex items-center gap-3 p-2 rounded-lg bg-surface hover:bg-surface-container transition-colors">
+<img class="w-8 h-8 rounded-full border border-outline-variant" data-alt="Portrait of a poised professional woman in her late 40s, smiling warmly. She is wearing a modern blazer over a traditional patterned blouse. The background is a sophisticated gallery space with soft overhead lighting, echoing the nostalgic and refined corporate theme." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAulMBJI89c1rFyMboLkLOhi27qnWEJ5gvbbDLX-Ga2LBgdubsPzI9OgGfRwcT5IkI8XF-UEK-iU1csDNWqlpOiE09qJZJY6_fEjfO4UhwZWcTtYKsqy-r9l2NgCAhYFsQYCKYCbzMzdPCsmzgzvV1_yOzd5VtiEM3pdXIpzhGBdNe-rddUM6VzmFlIa6ZdvoTfb3YT8J-tZeZROr80Wc7JnQfNdq_LeOeK1wHycn2_q3CYO2mStiLVM74nh6oYlpxacCOVYotx8Pc">
+<div>
+<p class="text-sm font-semibold text-primary">Rina Kusuma</p>
+<p class="text-[10px] font-label-caps text-on-surface-variant">LOKASI: SURABAYA</p>
+</div>
+</div>
+<div class="flex items-center gap-3 p-2 rounded-lg border-2 border-dashed border-outline-variant/30 text-outline-variant justify-center py-4 bg-surface-container-low cursor-pointer hover:bg-secondary-container/20 transition-all">
+<span class="material-symbols-outlined" data-icon="person_add">person_add</span>
+<span class="text-[10px] font-label-caps ml-2">TAMBAH PENGHUNI</span>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 text-center py-2 text-xs font-label-caps bg-surface border border-outline-variant rounded-lg text-on-surface hover:bg-surface-container transition-all">EDIT PENGHUNI</button>
+<button class="flex-1 text-center py-2 text-xs font-label-caps bg-primary text-on-primary rounded-lg hover:bg-primary-container transition-all">LIHAT DETAIL</button>
+</div>
+</div>
+</div>
+<!-- Room Card 3 -->
+<div class="bg-surface-container-lowest rounded-xl border border-secondary/20 overflow-hidden shadow-sm hover:shadow-md transition-all group" style="transform: translateY(0px);">
+<div class="p-6">
+<div class="flex justify-between items-start mb-4">
+<div>
+<span class="text-label-caps font-label-caps text-primary bg-secondary-container px-2 py-1 rounded text-[10px] mb-2 inline-block">TWIN SHARE</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Limasan 03</h3>
+</div>
+<div class="text-right">
+<span class="text-status-success font-bold text-lg">2/2</span>
+<p class="text-[10px] font-label-caps text-on-surface-variant">PENUH</p>
+</div>
+</div>
+<div class="space-y-4 mb-6">
+<div class="flex items-center gap-3 p-2 rounded-lg bg-surface hover:bg-surface-container transition-colors">
+<img class="w-8 h-8 rounded-full border border-outline-variant" data-alt="Portrait of a mature man with a friendly, experienced face, wearing a crisp white dress shirt. The background is a subtly textured office wall in a soft sage green, reflecting a professional and heritage-focused aesthetic. The mood is calm, trustworthy, and communal." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDkh_5Pyw2F3yTs5fgF8EpZTB-9q8GGMhU1QxQY9DEorgOLn0qN3aHP3RA6C-BNKcGbQqFBxSdWCNFC3bk3ahmkf4fWhfG1PgfQxUNlz-Z7wTtg5_Ub8Q0dTo0Q5mDjprD16eHYKRRh0CHaGieZWcW2wzCv6uU9RXFW39CCtlmbsHegC12dqaH5CLPpIXfEHUjnuIJjB2lT5HSGV-ARkhaD5dbz7r1TkgkJRwqhNPnXJ6gAnkYLBjedWWqTC-6GwbbAaMqR12ez7Gw">
+<div>
+<p class="text-sm font-semibold text-primary">Hendri "Kuncoro"</p>
+<p class="text-[10px] font-label-caps text-on-surface-variant">LOKASI: YOGYAKARTA</p>
+</div>
+</div>
+<div class="flex items-center gap-3 p-2 rounded-lg bg-surface hover:bg-surface-container transition-colors">
+<img class="w-8 h-8 rounded-full border border-outline-variant" data-alt="A portrait of an Indonesian professional man in his late 40s, smiling thoughtfully. He is dressed in a dark green batik shirt, standing in a brightly lit modern hall with wooden accents. The visual style is high-end, clean, and nostalgic, consistent with an alumni event setting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQbWezv0c5rzDxazFrDaTe5Pah3l9nCiuXXU4-q23bvvloHXsqrBEcfvnPyCIcD2V52OolrWyWqO0FtepCUwwsMuBeuhlOB9SRkXrDjMEELZGeIpl3Lz5lFat90SVikzVhpvkgPGeSB_Hu1Z3BNsUsyjBKXOgolLh-UWPjrZ2-EaYanha14EtW0I0ATZcTFSE0534LRvr68nGdgeNMJHUWilT7ZJEKEl1GAB2uD3KZGf3SA5kcOJ862s6ehsjpdJJ7kYGFYC6kVQc">
+<div>
+<p class="text-sm font-semibold text-primary">Taufik Hidayat</p>
+<p class="text-[10px] font-label-caps text-on-surface-variant">LOKASI: MALANG</p>
+</div>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 text-center py-2 text-xs font-label-caps bg-surface border border-outline-variant rounded-lg text-on-surface hover:bg-surface-container transition-all">EDIT PENGHUNI</button>
+<button class="flex-1 text-center py-2 text-xs font-label-caps bg-primary text-on-primary rounded-lg hover:bg-primary-container transition-all">LIHAT DETAIL</button>
+</div>
+</div>
+</div>
+<!-- Room Card 4 -->
+<div class="bg-surface-container-lowest rounded-xl border border-secondary/20 overflow-hidden shadow-sm hover:shadow-md transition-all group">
+<div class="p-6">
+<div class="flex justify-between items-start mb-4">
+<div>
+<span class="text-label-caps font-label-caps text-tertiary bg-tertiary-fixed px-2 py-1 rounded text-[10px] mb-2 inline-block">TRIPLE SHARE</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Joglo 02</h3>
+</div>
+<div class="text-right">
+<span class="text-status-pending font-bold text-lg">0/3</span>
+<p class="text-[10px] font-label-caps text-on-surface-variant">KOSONG</p>
+</div>
+</div>
+<div class="flex flex-col items-center justify-center py-12 mb-6 border-2 border-dashed border-outline-variant/30 rounded-xl bg-surface-container-low text-on-surface-variant">
+<span class="material-symbols-outlined text-4xl mb-2 opacity-30" data-icon="bed">bed</span>
+<p class="text-sm font-body-md">Kamar belum memiliki penghuni</p>
+<button class="mt-4 text-xs font-label-caps text-primary hover:underline">Assign Alumni</button>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 text-center py-2 text-xs font-label-caps bg-surface border border-outline-variant rounded-lg text-on-surface hover:bg-surface-container transition-all">EDIT PENGHUNI</button>
+<button class="flex-1 text-center py-2 text-xs font-label-caps bg-primary text-on-primary rounded-lg hover:bg-primary-container transition-all">LIHAT DETAIL</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Pagination (Simulated) -->
+<div class="mt-12 flex items-center justify-between border-t border-outline-variant/30 pt-8">
+<span class="text-sm font-body-md text-on-surface-variant">Menampilkan 4 dari 32 kamar</span>
+<div class="flex gap-2">
+<button class="p-2 border border-outline-variant rounded-lg hover:bg-surface-container transition-all">
+<span class="material-symbols-outlined" data-icon="chevron_left">chevron_left</span>
+</button>
+<button class="w-10 h-10 bg-primary text-on-primary font-bold rounded-lg flex items-center justify-center">1</button>
+<button class="w-10 h-10 border border-outline-variant hover:bg-surface-container rounded-lg flex items-center justify-center transition-all">2</button>
+<button class="w-10 h-10 border border-outline-variant hover:bg-surface-container rounded-lg flex items-center justify-center transition-all">3</button>
+<button class="p-2 border border-outline-variant rounded-lg hover:bg-surface-container transition-all">
+<span class="material-symbols-outlined" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-primary dark:bg-on-primary-fixed border-t border-on-primary/10">
+<div class="flex flex-col md:flex-row justify-between items-center gap-stack-md px-gutter py-section-gap max-w-container-max mx-auto text-on-primary dark:text-primary-fixed">
+<div class="flex flex-col items-center md:items-start gap-4">
+<span class="font-headline-md text-headline-md text-on-primary">Geodesi 96</span>
+<p class="font-body-md text-body-md text-on-primary/80 max-w-xs text-center md:text-left">Ngalibrasi 30 Taon Paseduluran - Alumni Teknik Geodesi UGM 1996.</p>
+</div>
+<div class="flex flex-wrap justify-center gap-8 font-label-caps text-label-caps">
+<a class="text-on-primary/80 hover:text-anniversary-gold transition-colors" href="#">Kontak Panitia</a>
+<a class="text-on-primary/80 hover:text-anniversary-gold transition-colors" href="#">Kebijakan Privasi</a>
+<a class="text-on-primary/80 hover:text-anniversary-gold transition-colors" href="#">Syarat &amp; Ketentuan</a>
+</div>
+<div class="text-on-primary/60 text-sm font-label-caps">
+                © 2026 Geodesi 96 - 30 Tahun Kembali ke Titik Nol
+            </div>
+</div>
+</footer>
+<script>
+        // Micro-interactions and visual effects
+        document.addEventListener('DOMContentLoaded', () => {
+            // Hover effect for cards
+            const cards = document.querySelectorAll('.bg-surface-container-lowest');
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', () => {
+                    card.style.transform = 'translateY(-4px)';
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'translateY(0)';
+                });
+            });
+            
+            // Search input focus effect
+            const searchInputs = document.querySelectorAll('input[type="text"]');
+            searchInputs.forEach(input => {
+                input.addEventListener('focus', () => {
+                    input.parentElement.classList.add('ring-2', 'ring-primary/20');
+                });
+                input.addEventListener('blur', () => {
+                    input.parentElement.classList.remove('ring-2', 'ring-primary/20');
+                });
+            });
+        });
+    </script>
+
+
+</body></html>

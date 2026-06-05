@@ -1,0 +1,495 @@
+<!DOCTYPE html><html lang="id"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>WhatsApp Analytics | Titik Nol Geodesi 96</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+        body {
+            background-color: #faf9f6; /* Ivory surface */
+            background-image: radial-gradient(circle at 2px 2px, rgba(114, 121, 114, 0.05) 1px, transparent 0);
+            background-size: 24px 24px;
+        }
+        .topo-bg {
+            mask-image: linear-gradient(to bottom, black 50%, transparent);
+            opacity: 0.07;
+            pointer-events: none;
+        }
+        .glass-nav {
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+        .word-cloud-item:hover {
+            transform: scale(1.1);
+            color: #163422;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c2c8c0;
+            border-radius: 10px;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-dim": "#dadad7",
+                      "on-tertiary": "#ffffff",
+                      "on-secondary": "#ffffff",
+                      "memorial-slate": "#4A5568",
+                      "secondary-fixed": "#cceace",
+                      "surface-container-lowest": "#ffffff",
+                      "status-success": "#48BB78",
+                      "primary-fixed-dim": "#adcfb4",
+                      "primary-fixed": "#c8ebd0",
+                      "background": "#faf9f6",
+                      "on-secondary-fixed-variant": "#334d38",
+                      "on-background": "#1a1c1a",
+                      "on-primary-fixed": "#022110",
+                      "on-tertiary-fixed-variant": "#633c41",
+                      "on-secondary-fixed": "#07200f",
+                      "surface-container": "#eeeeea",
+                      "error-container": "#ffdad6",
+                      "on-primary": "#ffffff",
+                      "on-error-container": "#93000a",
+                      "outline-variant": "#c2c8c0",
+                      "outline": "#727972",
+                      "inverse-on-surface": "#f1f1ed",
+                      "tertiary-fixed": "#ffd9dc",
+                      "surface-tint": "#466550",
+                      "surface": "#faf9f6",
+                      "anniversary-gold": "#C5A059",
+                      "primary-container": "#2d4b37",
+                      "on-surface": "#1a1c1a",
+                      "tertiary-container": "#613a3f",
+                      "error": "#ba1a1a",
+                      "on-primary-container": "#99baa1",
+                      "secondary": "#4a654e",
+                      "status-pending": "#ECC94B",
+                      "on-secondary-container": "#4e6952",
+                      "topo-gray": "#F4F5F2",
+                      "secondary-fixed-dim": "#b0ceb2",
+                      "surface-container-low": "#f4f4f0",
+                      "inverse-surface": "#2f312f",
+                      "tertiary": "#472429",
+                      "primary": "#163422",
+                      "surface-variant": "#e3e3df",
+                      "inverse-primary": "#adcfb4",
+                      "on-primary-fixed-variant": "#2f4d39",
+                      "on-surface-variant": "#424843",
+                      "surface-bright": "#faf9f6",
+                      "on-tertiary-container": "#daa5ab",
+                      "tertiary-fixed-dim": "#efb9be",
+                      "surface-container-high": "#e8e8e5",
+                      "on-error": "#ffffff",
+                      "on-tertiary-fixed": "#311217",
+                      "status-error": "#F56565",
+                      "secondary-container": "#c9e8cb",
+                      "surface-container-highest": "#e3e3df"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "gutter": "1.5rem",
+                      "stack-sm": "0.5rem",
+                      "margin-mobile": "1rem",
+                      "stack-md": "1rem",
+                      "container-max": "1200px",
+                      "section-gap": "4rem"
+              },
+              "fontFamily": {
+                      "body-lg": ["Inter"],
+                      "label-caps": ["JetBrains Mono"],
+                      "headline-lg-mobile": ["Plus Jakarta Sans"],
+                      "display-hero": ["Plus Jakarta Sans"],
+                      "body-md": ["Inter"],
+                      "headline-md": ["Plus Jakarta Sans"],
+                      "headline-lg": ["Plus Jakarta Sans"]
+              },
+              "fontSize": {
+                      "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                      "label-caps": ["12px", {"lineHeight": "1.0", "letterSpacing": "0.1em", "fontWeight": "500"}],
+                      "headline-lg-mobile": ["28px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                      "display-hero": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                      "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                      "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                      "headline-lg": ["32px", {"lineHeight": "1.2", "fontWeight": "700"}]
+              }
+            },
+          },
+        }
+      </script>
+</head>
+<body class="bg-background text-on-surface font-body-md overflow-x-hidden">
+<!-- Top Navigation Bar -->
+<header class="bg-surface/80 dark:bg-on-background/80 backdrop-blur-md sticky top-0 z-50 border-b border-outline-variant/30 shadow-sm">
+<div class="max-w-container-max mx-auto flex justify-between items-center px-gutter py-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">precision_manufacturing</span>
+<span class="text-headline-md font-headline-md font-bold text-primary tracking-tight">Titik Nol Geodesi 96</span>
+</div>
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-caps text-label-caps" href="#">Dashboard</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-caps text-label-caps" href="#">Directory</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-caps text-label-caps" href="#">Memory Book</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-caps text-label-caps" href="#">Documentation</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-caps text-label-caps" href="#">Map</a>
+<a class="text-primary font-bold border-b-2 border-primary pb-1 font-label-caps text-label-caps" href="#">Analytics</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container rounded-full transition-all">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<div class="w-10 h-10 rounded-full border border-outline-variant overflow-hidden">
+<img alt="User Alumni Avatar" class="w-full h-full object-cover" data-alt="A professional headshot of a middle-aged Indonesian man with a warm, nostalgic expression, suitable for an alumni portal. He is wearing a clean, casual linen shirt against a soft-focus architectural background. The lighting is bright and airy, consistent with a clean light-mode UI design and a professional communal atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBcnuEqYUKxms7YrE6CsrDVO72iKnB6TAFR7rwnVFjzscxzBm16TUeLt8Boz-YMzcczDe2nmXgk1az64ntfr3lBqYBTrqmGQ4EjsjnBXUwMpdmmkrP4fOy8xhLfsoG7zild3Rcn6dvk2R8hS3QjhaTi2rFR53Zrl-3GMc5lCduIp0lrmo31vMXBXkulrHaBSQLX5vdM_yzIFBFxusqE3CASuGp4BwYjHXxReWEF037QYkNH8TNrCM1kPV_bGPYt9dp9hbkb6e8iRDA">
+</div>
+</div>
+</div>
+</header>
+<main class="max-w-container-max mx-auto px-gutter py-12 relative">
+<!-- Topo Texture -->
+<div class="absolute inset-0 topo-bg -z-10 bg-[url('https://www.transparenttextures.com/patterns/topography.png')]"></div>
+<!-- Hero Section -->
+<section class="mb-section-gap">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+<div>
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-primary">forum</span>
+<span class="text-label-caps font-label-caps text-secondary">WHATSAPP GROUP INSIGHTS</span>
+</div>
+<h1 class="text-display-hero font-display-hero text-primary mb-4">Nostalgia Digital Kita</h1>
+<p class="text-body-lg font-body-lg text-on-surface-variant max-w-2xl">
+                        Menelusuri jejak percakapan 30 tahun paseduluran. Dari diskusi teknis geodesi hingga guyonan tengah malam di grup WhatsApp.
+                    </p>
+</div>
+<div class="bg-secondary-container p-4 rounded-xl border border-secondary/20 shadow-sm flex items-center gap-4">
+<div class="text-right">
+<div class="text-label-caps font-label-caps text-on-secondary-container">TOTAL PESAN</div>
+<div class="text-headline-md font-headline-md text-primary">482,901</div>
+</div>
+<div class="h-10 w-[1px] bg-secondary/20"></div>
+<div class="text-right">
+<div class="text-label-caps font-label-caps text-on-secondary-container">SEJAK</div>
+<div class="text-headline-md font-headline-md text-primary">2014</div>
+</div>
+</div>
+</div>
+<!-- Nostalgia Word Cloud -->
+<div class="bg-surface border border-outline-variant/30 rounded-xl p-8 shadow-sm relative overflow-hidden group">
+<div class="absolute top-4 left-4 z-10 flex items-center gap-2 bg-white/80 px-3 py-1 rounded-full border border-outline-variant/50">
+<span class="material-symbols-outlined text-sm text-primary">cloud</span>
+<span class="text-label-caps font-label-caps text-primary">Nostalgia Word Cloud</span>
+</div>
+<div class="flex flex-wrap justify-center items-center gap-x-12 gap-y-8 min-h-[300px] py-12">
+<span class="text-display-hero font-display-hero text-primary opacity-90 word-cloud-item transition-all cursor-default">Geodesi</span>
+<span class="text-headline-lg font-headline-lg text-secondary opacity-80 word-cloud-item transition-all cursor-default">Titik Nol</span>
+<span class="text-headline-md font-headline-md text-anniversary-gold opacity-70 word-cloud-item transition-all cursor-default">Reuni</span>
+<span class="text-display-hero font-display-hero text-primary-container opacity-90 word-cloud-item transition-all cursor-default">Kopi</span>
+<span class="text-headline-lg font-headline-lg text-on-surface-variant opacity-60 word-cloud-item transition-all cursor-default">Ngalibrasi</span>
+<span class="text-headline-md font-headline-md text-primary opacity-70 word-cloud-item transition-all cursor-default">Proyek</span>
+<span class="text-headline-lg font-headline-lg text-secondary opacity-80 word-cloud-item transition-all cursor-default">Jogja</span>
+<span class="text-display-hero font-display-hero text-anniversary-gold opacity-90 word-cloud-item transition-all cursor-default">Paseduluran</span>
+<span class="text-headline-md font-headline-md text-primary opacity-60 word-cloud-item transition-all cursor-default">Total Station</span>
+<span class="text-headline-lg font-headline-lg text-secondary-container text-primary opacity-80 word-cloud-item transition-all cursor-default">Guyon</span>
+<span class="text-headline-md font-headline-md text-on-surface-variant opacity-50 word-cloud-item transition-all cursor-default">Leveling</span>
+</div>
+<div class="absolute bottom-4 right-4 text-label-caps font-label-caps text-outline italic">Kata yang paling sering muncul dalam chat</div>
+</div>
+</section>
+<!-- Hall of Fame Section -->
+<section class="mb-section-gap">
+<div class="flex items-center gap-3 mb-8">
+<div class="h-8 w-1 bg-anniversary-gold" style="transition: height 1.5s cubic-bezier(0.16, 1, 0.3, 1);"></div>
+<h2 class="text-headline-lg font-headline-lg text-primary">WA Hall of Fame</h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Top Active Member -->
+<div class="bg-white border border-outline-variant/50 rounded-xl p-6 hover:shadow-lg transition-all border-b-4 border-b-primary group">
+<div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+</div>
+<h3 class="text-label-caps font-label-caps text-secondary mb-1">Top Active Member</h3>
+<p class="text-headline-md font-headline-md text-primary mb-4">Mas Bambang G.</p>
+<div class="flex items-center gap-2 text-on-surface-variant text-sm">
+<span class="material-symbols-outlined text-sm">chat</span>
+<span class="">12.4k Pesan</span>
+</div>
+</div>
+<!-- Silent Reader -->
+<div class="bg-white border border-outline-variant/50 rounded-xl p-6 hover:shadow-lg transition-all border-b-4 border-b-secondary group">
+<div class="w-12 h-12 bg-secondary/10 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">visibility_off</span>
+</div>
+<h3 class="text-label-caps font-label-caps text-secondary mb-1">Silent Reader</h3>
+<p class="text-headline-md font-headline-md text-primary mb-4">Mbak Shanti</p>
+<div class="flex items-center gap-2 text-on-surface-variant text-sm">
+<span class="material-symbols-outlined text-sm">done_all</span>
+<span class="">Selalu Menyimak</span>
+</div>
+</div>
+<!-- Nocturnal Chatter -->
+<div class="bg-white border border-outline-variant/50 rounded-xl p-6 hover:shadow-lg transition-all border-b-4 border-b-anniversary-gold group">
+<div class="w-12 h-12 bg-anniversary-gold/10 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-anniversary-gold" style="font-variation-settings: 'FILL' 1;">bedtime</span>
+</div>
+<h3 class="text-label-caps font-label-caps text-secondary mb-1">Nocturnal Chatter</h3>
+<p class="text-headline-md font-headline-md text-primary mb-4">Pak Handoko</p>
+<div class="flex items-center gap-2 text-on-surface-variant text-sm">
+<span class="material-symbols-outlined text-sm">schedule</span>
+<span class="">Aktif jam 02:00 AM</span>
+</div>
+</div>
+<!-- Emoji Champion -->
+<div class="bg-white border border-outline-variant/50 rounded-xl p-6 hover:shadow-lg transition-all border-b-4 border-b-primary-container group">
+<div class="w-12 h-12 bg-primary-container/10 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">mood</span>
+</div>
+<h3 class="text-label-caps font-label-caps text-secondary mb-1">Emoji Champion</h3>
+<p class="text-headline-md font-headline-md text-primary mb-4">Mas Dwi R.</p>
+<div class="flex items-center gap-2 text-on-surface-variant text-sm">
+<span class="material-symbols-outlined text-sm">celebration</span>
+<span class="">8.2k 😂 Digunakan</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Charts Section -->
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-section-gap">
+<!-- Busiest Years Chart -->
+<div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-8">
+<div class="flex justify-between items-center mb-8">
+<h3 class="text-headline-md font-headline-md text-primary">Tahun Paling Berisik</h3>
+<span class="text-label-caps font-label-caps text-secondary">Volume Chat Tahunan</span>
+</div>
+<div class="flex items-end justify-between gap-2 h-64">
+<div class="flex flex-col items-center gap-2 w-full">
+<div class="bg-outline-variant w-full rounded-t-lg transition-all duration-700 h-[30%]" style="transition: height 1.5s cubic-bezier(0.16, 1, 0.3, 1);"></div>
+<span class="text-label-caps font-label-caps">2018</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full">
+<div class="bg-outline-variant w-full rounded-t-lg transition-all duration-700 h-[45%]" style="transition: height 1.5s cubic-bezier(0.16, 1, 0.3, 1);"></div>
+<span class="text-label-caps font-label-caps">2019</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full">
+<div class="bg-primary-container w-full rounded-t-lg transition-all duration-700 h-[95%] group relative" style="transition: height 1.5s cubic-bezier(0.16, 1, 0.3, 1);">
+<div class="absolute -top-10 left-1/2 -translate-x-1/2 bg-primary text-white text-xs px-2 py-1 rounded hidden group-hover:block whitespace-nowrap" style="transition: height 1.5s cubic-bezier(0.16, 1, 0.3, 1);">Pandemic Peak</div>
+</div>
+<span class="text-label-caps font-label-caps font-bold">2020</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full">
+<div class="bg-primary w-full rounded-t-lg transition-all duration-700 h-[80%]" style="transition: height 1.5s cubic-bezier(0.16, 1, 0.3, 1);"></div>
+<span class="text-label-caps font-label-caps">2021</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full">
+<div class="bg-secondary w-full rounded-t-lg transition-all duration-700 h-[65%]" style="transition: height 1.5s cubic-bezier(0.16, 1, 0.3, 1);"></div>
+<span class="text-label-caps font-label-caps">2022</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full">
+<div class="bg-anniversary-gold w-full rounded-t-lg transition-all duration-700 h-[85%]" style="transition: height 1.5s cubic-bezier(0.16, 1, 0.3, 1);"></div>
+<span class="text-label-caps font-label-caps">2023</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full">
+<div class="bg-primary w-full rounded-t-lg transition-all duration-700 h-[100%]" style="transition: height 1.5s cubic-bezier(0.16, 1, 0.3, 1);"></div>
+<span class="text-label-caps font-label-caps font-bold">2024</span>
+</div>
+</div>
+</div>
+<!-- Peak Activity Hours -->
+<div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-8">
+<div class="flex justify-between items-center mb-8">
+<h3 class="text-headline-md font-headline-md text-primary">Jam-Jam Rawan Guyon</h3>
+<span class="text-label-caps font-label-caps text-secondary">Rerata Aktivitas Harian</span>
+</div>
+<div class="grid grid-cols-6 gap-4">
+<!-- Morning -->
+<div class="space-y-2">
+<div class="h-16 bg-primary/10 rounded flex items-center justify-center">
+<span class="text-label-caps font-label-caps text-primary text-[10px]">06:00</span>
+</div>
+<div class="h-1 bg-primary/20 rounded-full w-1/4"></div>
+<p class="text-[10px] text-on-surface-variant italic">Absen Pagi</p>
+</div>
+<!-- Lunch -->
+<div class="space-y-2">
+<div class="h-16 bg-primary/40 rounded flex items-center justify-center">
+<span class="text-label-caps font-label-caps text-primary text-[10px]">12:00</span>
+</div>
+<div class="h-1 bg-primary/60 rounded-full w-2/3"></div>
+<p class="text-[10px] text-on-surface-variant italic">Menu Makan</p>
+</div>
+<!-- Afternoon -->
+<div class="space-y-2">
+<div class="h-16 bg-primary/20 rounded flex items-center justify-center">
+<span class="text-label-caps font-label-caps text-primary text-[10px]">16:00</span>
+</div>
+<div class="h-1 bg-primary/40 rounded-full w-1/3"></div>
+<p class="text-[10px] text-on-surface-variant italic">OTW Pulang</p>
+</div>
+<!-- Evening -->
+<div class="space-y-2">
+<div class="h-16 bg-primary/80 rounded flex items-center justify-center">
+<span class="text-label-caps font-label-caps text-white text-[10px]">20:00</span>
+</div>
+<div class="h-1 bg-primary rounded-full w-full" style="transition: height 1.5s cubic-bezier(0.16, 1, 0.3, 1);"></div>
+<p class="text-[10px] text-on-surface-variant italic font-bold">Golden Hour</p>
+</div>
+<!-- Late Night -->
+<div class="space-y-2">
+<div class="h-16 bg-anniversary-gold/60 rounded flex items-center justify-center">
+<span class="text-label-caps font-label-caps text-primary text-[10px]">23:00</span>
+</div>
+<div class="h-1 bg-anniversary-gold rounded-full w-3/4" style="transition: height 1.5s cubic-bezier(0.16, 1, 0.3, 1);"></div>
+<p class="text-[10px] text-on-surface-variant italic">Curhat</p>
+</div>
+<!-- Dawn -->
+<div class="space-y-2">
+<div class="h-16 bg-memorial-slate/10 rounded flex items-center justify-center">
+<span class="text-label-caps font-label-caps text-primary text-[10px]">03:00</span>
+</div>
+<div class="h-1 bg-memorial-slate/30 rounded-full w-1/6"></div>
+<p class="text-[10px] text-on-surface-variant italic">Sepi</p>
+</div>
+</div>
+<div class="mt-8 pt-8 border-t border-outline-variant/20">
+<div class="flex items-center gap-4">
+<div class="p-3 bg-secondary-container rounded-lg">
+<span class="material-symbols-outlined text-primary">lightbulb</span>
+</div>
+<div>
+<p class="text-body-md font-body-md text-primary"><strong>Waktu Terbaik Broadcast Reuni:</strong></p>
+<p class="text-body-md text-on-surface-variant">Kamis Malam, sekitar jam 20:30 WIB saat semua sudah di rumah.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Fun Facts Cards -->
+<section class="mb-section-gap">
+<h3 class="text-headline-md font-headline-md text-primary mb-8 text-center">Fakta-Fakta Tak Terduga</h3>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<div class="bg-white p-6 rounded-xl shadow-sm border border-outline-variant/30 relative overflow-hidden group hover:-translate-y-1 transition-transform">
+<div class="absolute -right-4 -top-4 opacity-5 group-hover:rotate-12 transition-transform">
+<span class="material-symbols-outlined text-8xl">image</span>
+</div>
+<div class="text-display-hero font-display-hero text-primary mb-2">18K+</div>
+<div class="text-label-caps font-label-caps text-secondary mb-4 uppercase">Foto Dikirimkan</div>
+<p class="text-on-surface-variant">Dari foto survey lama sampai foto cucu, galeri grup kita adalah kapsul waktu.</p>
+</div>
+<div class="bg-white p-6 rounded-xl shadow-sm border border-outline-variant/30 relative overflow-hidden group hover:-translate-y-1 transition-transform">
+<div class="absolute -right-4 -top-4 opacity-5 group-hover:rotate-12 transition-transform">
+<span class="material-symbols-outlined text-8xl">link</span>
+</div>
+<div class="text-display-hero font-display-hero text-anniversary-gold mb-2">4,209</div>
+<div class="text-label-caps font-label-caps text-secondary mb-4 uppercase">Tautan Berita</div>
+<p class="text-on-surface-variant">Mulai dari berita geodesi internasional sampai info promo kopi kekinian.</p>
+</div>
+<div class="bg-white p-6 rounded-xl shadow-sm border border-outline-variant/30 relative overflow-hidden group hover:-translate-y-1 transition-transform">
+<div class="absolute -right-4 -top-4 opacity-5 group-hover:rotate-12 transition-transform">
+<span class="material-symbols-outlined text-8xl">voicemail</span>
+</div>
+<div class="text-display-hero font-display-hero text-primary-container mb-2">912</div>
+<div class="text-label-caps font-label-caps text-secondary mb-4 uppercase">Voice Notes</div>
+<p class="text-on-surface-variant">Rekaman tawa dan lagu-lagu nostalgia yang sering dikirim saat karaokean.</p>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container-lowest border-t border-outline-variant/30 py-12">
+    <div class="max-w-container-max mx-auto px-gutter">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+            <!-- Brand Section -->
+            <div class="md:col-span-1">
+                <div class="flex items-center gap-3 mb-6">
+                    <span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">precision_manufacturing</span>
+                    <span class="font-headline-md text-primary font-bold tracking-tight">Geodesi 96</span>
+                </div>
+                <p class="text-body-md text-on-surface-variant leading-relaxed">
+                    © 2026 Reuni Geodesi 96.<br>
+                    Ngalibrasi 30 Taon Paseduluran.
+                </p>
+            </div>
+
+            <!-- Quick Links -->
+            <div class="md:col-span-1">
+                <h4 class="text-label-caps font-label-caps text-secondary mb-6">Tautan Cepat</h4>
+                <ul class="space-y-4">
+                    <li class=""><a href="#" class="text-on-surface-variant hover:text-primary transition-colors">Kontak Panitia</a></li>
+                    <li class=""><a href="#" class="text-on-surface-variant hover:text-primary transition-colors">Kebijakan Privasi</a></li>
+                    <li class=""><a href="#" class="text-on-surface-variant hover:text-primary transition-colors">Syarat &amp; Ketentuan</a></li>
+                </ul>
+            </div>
+
+            <!-- Coordinates -->
+            <div class="md:col-span-1">
+                <h4 class="text-label-caps font-label-caps text-secondary mb-6">Koordinat Reuni</h4>
+                <div class="flex items-center gap-3 text-primary">
+                    <span class="material-symbols-outlined text-3xl">my_location</span>
+                    <div>
+                        <div class="font-bold text-lg">7.7702° S</div>
+                        <div class="font-bold text-lg">110.3778° E</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CTA Section -->
+            <div class="md:col-span-1 flex flex-col md:items-end justify-start">
+                <a href="#" class="bg-primary text-on-primary px-6 py-3 rounded-lg font-label-caps text-label-caps tracking-widest hover:bg-primary-container transition-all text-center inline-block">
+                    KEMBALI KE TITIK NOL
+                </a>
+            </div>
+        </div>
+
+        <!-- Bottom Line -->
+        <div class="pt-8 border-t border-outline-variant/20 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p class="text-label-caps font-label-caps text-outline text-[10px]">DIBANGUN UNTUK PASEDULURAN GEODESI UGM 96</p>
+            <div class="flex gap-6">
+                <span class="material-symbols-outlined text-outline text-xl">history_edu</span>
+                <span class="material-symbols-outlined text-outline text-xl">architecture</span>
+                <span class="material-symbols-outlined text-outline text-xl">language</span>
+            </div>
+        </div>
+    </div>
+</footer>
+<script>
+        // Simple animation for the "Charts" on load
+        window.addEventListener('load', () => {
+            const bars = document.querySelectorAll('.bg-outline-variant, .bg-primary-container, .bg-primary, .bg-secondary, .bg-anniversary-gold');
+            bars.forEach(bar => {
+                const targetHeight = bar.style.height;
+                bar.style.height = '0px';
+                setTimeout(() => {
+                    bar.style.transition = 'height 1.5s cubic-bezier(0.16, 1, 0.3, 1)';
+                    bar.style.height = targetHeight;
+                }, 200);
+            });
+        });
+
+        // Interactive Word Cloud effect
+        const wordCloudItems = document.querySelectorAll('.word-cloud-item');
+        wordCloudItems.forEach(item => {
+            item.addEventListener('mouseover', () => {
+                const colors = ['#163422', '#4a654e', '#C5A059', '#2d4b37'];
+                const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                item.style.color = randomColor;
+            });
+        });
+    </script>
+
+
+</body></html>

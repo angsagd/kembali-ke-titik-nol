@@ -1,0 +1,450 @@
+<!DOCTYPE html><html lang="id"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Dashboard Alumni | Titik Nol Geodesi 96</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-background": "#1a1c1a",
+                        "memorial-slate": "#4A5568",
+                        "secondary-fixed": "#cceace",
+                        "anniversary-gold": "#C5A059",
+                        "topo-gray": "#F4F5F2",
+                        "surface-container-high": "#e8e8e5",
+                        "primary": "#163422",
+                        "on-primary-fixed": "#022110",
+                        "on-surface": "#1a1c1a",
+                        "surface": "#faf9f6",
+                        "inverse-surface": "#2f312f",
+                        "on-tertiary-fixed": "#311217",
+                        "on-secondary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "status-error": "#F56565",
+                        "status-success": "#48BB78",
+                        "surface-tint": "#466550",
+                        "tertiary-container": "#613a3f",
+                        "on-tertiary-fixed-variant": "#633c41",
+                        "on-tertiary": "#ffffff",
+                        "surface-variant": "#e3e3df",
+                        "on-primary-fixed-variant": "#2f4d39",
+                        "inverse-primary": "#adcfb4",
+                        "surface-container": "#eeeeea",
+                        "primary-fixed": "#c8ebd0",
+                        "primary-container": "#2d4b37",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed-dim": "#b0ceb2",
+                        "outline-variant": "#c2c8c0",
+                        "on-error-container": "#93000a",
+                        "surface-container-highest": "#e3e3df",
+                        "on-secondary-fixed": "#07200f",
+                        "on-secondary-fixed-variant": "#334d38",
+                        "on-primary-container": "#99baa1",
+                        "on-tertiary-container": "#daa5ab",
+                        "surface-dim": "#dadad7",
+                        "status-pending": "#ECC94B",
+                        "on-surface-variant": "#424843",
+                        "on-error": "#ffffff",
+                        "inverse-on-surface": "#f1f1ed",
+                        "background": "#faf9f6",
+                        "surface-bright": "#faf9f6",
+                        "error-container": "#ffdad6",
+                        "on-secondary-container": "#4e6952",
+                        "surface-container-low": "#f4f4f0",
+                        "error": "#ba1a1a",
+                        "tertiary": "#472429",
+                        "tertiary-fixed": "#ffd9dc",
+                        "secondary": "#4a654e",
+                        "tertiary-fixed-dim": "#efb9be",
+                        "secondary-container": "#c9e8cb",
+                        "primary-fixed-dim": "#adcfb4",
+                        "outline": "#727972"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "container-max": "1200px",
+                        "stack-sm": "0.5rem",
+                        "section-gap": "4rem",
+                        "stack-md": "1rem",
+                        "gutter": "1.5rem",
+                        "margin-mobile": "1rem"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "display-hero": ["Plus Jakarta Sans"],
+                        "label-caps": ["JetBrains Mono"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "display-hero": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                        "label-caps": ["12px", {"lineHeight": "1.0", "letterSpacing": "0.1em", "fontWeight": "500"}],
+                        "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                        "headline-lg-mobile": ["28px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                        "headline-lg": ["32px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                        "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .topo-pattern {
+            background-image: radial-gradient(circle at 2px 2px, rgba(22, 52, 34, 0.05) 1px, transparent 0);
+            background-size: 24px 24px;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md overflow-x-hidden">
+<!-- TopNavBar -->
+<header class="bg-surface/80 dark:bg-on-background/80 backdrop-blur-md sticky top-0 z-50 border-b border-outline-variant/30 shadow-sm">
+<div class="max-w-container-max mx-auto flex justify-between items-center px-gutter py-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">precision_manufacturing</span>
+<span class="text-headline-md font-headline-md font-bold text-primary tracking-tight">Titik Nol Geodesi 96</span>
+</div>
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-caps text-label-caps" href="#">Dashboard</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-caps text-label-caps" href="#">Directory</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-caps text-label-caps" href="#">Memory Book</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-caps text-label-caps" href="#">Documentation</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-caps text-label-caps" href="#">Map</a>
+<a class="text-primary font-bold border-b-2 border-primary pb-1 font-label-caps text-label-caps" href="#">Analytics</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container rounded-full transition-all">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<div class="w-10 h-10 rounded-full border border-outline-variant overflow-hidden">
+<img alt="User Alumni Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBcnuEqYUKxms7YrE6CsrDVO72iKnB6TAFR7rwnVFjzscxzBm16TUeLt8Boz-YMzcczDe2nmXgk1az64ntfr3lBqYBTrqmGQ4EjsjnBXUwMpdmmkrP4fOy8xhLfsoG7zild3Rcn6dvk2R8hS3QjhaTi2rFR53Zrl-3GMc5lCduIp0lrmo31vMXBXkulrHaBSQLX5vdM_yzIFBFxusqE3CASuGp4BwYjHXxReWEF037QYkNH8TNrCM1kPV_bGPYt9dp9hbkb6e8iRDA">
+</div>
+</div>
+</div>
+</header>
+<main class="max-w-container-max mx-auto px-gutter py-stack-md mt-6">
+<!-- Welcome Banner -->
+<section class="relative overflow-hidden rounded-xl bg-primary-container min-h-[320px] flex items-center mb-section-gap">
+<div class="absolute inset-0 z-0 opacity-10">
+<img alt="Main Artwork Background" class="w-full h-full object-cover grayscale brightness-50" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCUYwKn9V6lbP0r-ZwinnqmgvqrVXPGdqY3SFdTjrSwMfw5Jp_elCH0aituaNYiaOeAZcMb_44VrJJp4A_qL_1FxiqEbeA2QUXe884vrIpq1KzU7WNN_TmGe6h0K1CBHp1ARd0J7SXKHjs1mFnyYpjguY0hgSbfJp00-JBXA3BfTwmBlyNrF2motZMOcx612_5sJR50Bxu4SbxkXnezmV2CZfwwH3JBkc0Q9AlyK_hpqox6NFr8ybcGmhOAjZT-2_MX9JCJ3ATGFA">
+</div>
+<div class="relative z-10 px-12 py-12 text-on-primary">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">location_on</span>
+<span class="font-label-caps text-label-caps uppercase tracking-widest text-on-primary-container">Koordinat: 0° 0' 0" 96</span>
+</div>
+<h1 class="font-display-hero text-display-hero mb-2">Halo, Andi!</h1>
+<p class="font-body-lg text-body-lg text-on-primary-container max-w-2xl">Selamat datang kembali di titik awal. Sudah 30 tahun perjalanan terlewati, dan kini saatnya ngalibrasi paseduluran kita di reuni akbar.</p>
+<div class="mt-8 flex gap-4">
+<button class="bg-surface px-6 py-3 rounded-lg text-primary font-bold hover:shadow-lg transition-all flex items-center gap-2">
+<span class="material-symbols-outlined">event</span> Rundown Acara
+                    </button>
+<button class="border border-on-primary-container text-on-primary px-6 py-3 rounded-lg font-bold hover:bg-on-primary/10 transition-all">
+                        Panduan Lokasi
+                    </button>
+</div>
+</div>
+<div class="absolute right-0 bottom-0 p-8 opacity-20 hidden lg:block">
+<img alt="Decorative Sticker" class="w-64 h-64 rotate-12" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBTkJPoW5YQspRx82fp7qhsQwpivUHQ69SF38oAcmOBtCcvebBMlU9lfieCC_56ECSzbh9U6YlVbmqcod7vhbVZUaIiZ7U_M-Nu7As6Ex4GvFstHqFILjLpZt61MeKizEJhGIGAwLq3wlFt7igHcSECaCFsMUee2NX2xRPlX2caizjuTREmgtpUdLc5YGKC-TkdI4eEufPerHM2WkwaVQWiecf-t0lTlwItGuqxd3IBv7MKLXuNPED54xX7RJCqUjbXXli8k28V-UQ">
+</div>
+</section>
+<!-- Quick Status Cards -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-stack-md mb-section-gap">
+<!-- RSVP Status -->
+<div class="bg-white border border-secondary/20 p-6 rounded-xl hover:shadow-md transition-all flex flex-col justify-between group">
+<div class="flex justify-between items-start">
+<div>
+<p class="font-label-caps text-label-caps text-memorial-slate mb-1">STATUS RSVP</p>
+<h3 class="font-headline-md text-headline-md text-primary">Konfirmasi Kehadiran</h3>
+</div>
+<span class="bg-status-success/10 text-status-success px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Hadir</span>
+</div>
+<div class="mt-6 flex items-center justify-between">
+<div class="flex -space-x-2">
+<img alt="Friend 1" class="w-8 h-8 rounded-full border-2 border-white" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAbX_EtdNTP92LYkOsGCP-HN6JOUPdemz5QXPKXzKYrCJ6Ud4_ev7Cshnu6c2l4_4JaHSU1-nEMeFrnpTaMKzc5SD4nff-RfXfv9RoDdhhw7-m_NVoi-M8GKPFIFeJrN5GzG_MxWwrwv--fuiWutLepOqkoATICu8SE1rPf8pzA2gu3R0O4kSV63VhevB0lmFQ3KggTnjrCokrQDm7V-EprUNmwWns2khDtZs-AFVfHcPTFDiWWC2heWhcUmf_NSgdEjHpSCL2LPCI">
+<img alt="Friend 2" class="w-8 h-8 rounded-full border-2 border-white" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBg2LjHqVY-xK2nFXsidD5H6XStGOeyFUbU1dd30cNU2qwqu5HowEvw9rH9dbEUBQ_XbDCPsjxtYcou_UGxlmF1IYyaN53AF0gIG1AicI0XB3BLMviav35aJ191SzTbEg9s2BQQKIYSpnhSCgIRMevpJYij1AnAjSuBODjsWGIVgL7xWd1j5vFD6lo6rHm9s2ckOm_fzOH6KUTQtCl85VqYNirWHLmNMRseeDiX13VGeTmduKxHcpdofd82fXK8kEt6at2I_Mj7iAU">
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-[10px] font-bold border-2 border-white">+12</div>
+</div>
+<button class="text-primary font-bold flex items-center gap-1 group-hover:gap-2 transition-all text-sm">
+                        Update RSVP <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Pembayaran -->
+<div class="bg-white border border-secondary/20 p-6 rounded-xl hover:shadow-md transition-all flex flex-col justify-between group">
+<div class="flex justify-between items-start">
+<div>
+<p class="font-label-caps text-label-caps text-memorial-slate mb-1">KONTRIBUSI</p>
+<h3 class="font-headline-md text-headline-md text-primary">Status Pembayaran</h3>
+</div>
+<span class="bg-status-success/10 text-status-success px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Lunas</span>
+</div>
+<div class="mt-6">
+<div class="flex justify-between items-baseline mb-2">
+<span class="text-label-caps font-label-caps text-on-surface-variant">NOMINAL</span>
+<span class="text-headline-md font-bold text-primary">Rp 2.500.000</span>
+</div>
+<div class="w-full bg-surface-container h-1.5 rounded-full overflow-hidden">
+<div class="bg-status-success h-full w-full"></div>
+</div>
+</div>
+</div>
+<!-- Informasi Kamar -->
+<div class="bg-white border border-secondary/20 p-6 rounded-xl hover:shadow-md transition-all flex flex-col justify-between group">
+<div class="flex justify-between items-start">
+<div>
+<p class="font-label-caps text-label-caps text-memorial-slate mb-1">AKOMODASI</p>
+<h3 class="font-headline-md text-headline-md text-primary">Penempatan Kamar</h3>
+</div>
+<div class="bg-primary-fixed text-on-primary-fixed p-2 rounded-lg">
+<span class="material-symbols-outlined">bed</span>
+</div>
+</div>
+<div class="mt-6">
+<p class="text-label-caps font-label-caps text-on-surface-variant mb-1">KODYA / ROOM</p>
+<p class="font-headline-md font-bold text-primary mb-2">Joglo 05 - Lt. 2</p>
+<p class="text-xs text-memorial-slate flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">group</span> Roommate: Budi, Iwan, Totok
+                    </p>
+</div>
+</div>
+</section>
+<!-- Main Content Area -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<!-- Left Column (Main) -->
+<div class="lg:col-span-8 space-y-section-gap">
+<!-- Berita Terkini -->
+<section>
+<div class="flex justify-between items-center mb-6">
+<h2 class="font-headline-lg text-headline-lg text-primary flex items-center gap-2">
+<span class="w-1.5 h-8 bg-anniversary-gold rounded-full"></span>
+                            Berita Terkini
+                        </h2>
+<a class="text-primary font-bold flex items-center gap-1 hover:underline" href="#">Semua Berita <span class="material-symbols-outlined text-sm">open_in_new</span></a>
+</div>
+<div class="space-y-4">
+<div class="flex gap-6 p-4 rounded-xl border border-outline-variant/30 hover:bg-surface-container-low transition-all cursor-pointer group">
+<div class="w-32 h-32 rounded-lg bg-surface-container overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover transition-transform group-hover:scale-105" data-alt="A vibrant wide shot of a professional tech conference with warm stage lighting and alumni silhouettes. The atmosphere is energetic and celebratory with a corporate modern aesthetic dominated by deep greens and natural wood textures." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAktkEL-XkYuXshXMNxuF1bHfKcq_KvHSxz_K9vS6nvC-it5R3wrUiqo3fDNlIIMoEjWVfZF4qhxrCDti9rrAOtyE2fvhIP_xN5J6RMrgVBjqZvxqGHgsu9EZujsB4pMFKoHHlXMs4k9bD7fPmxphD0lC41QhqGhIU7M4hFm47WsRiquwa_D0voRr2aCPbUN9sqDZvnA47ONdVbrBaB1nFazUPHhh4ldJFgBp5wBedtAIC8a57DDuKDs5Ky058J0sTJSpltJJNKL3w">
+</div>
+<div>
+<div class="flex gap-2 mb-2">
+<span class="bg-primary/5 text-primary text-[10px] font-bold px-2 py-0.5 rounded border border-primary/20">EVENT</span>
+<span class="text-memorial-slate text-[10px] font-label-caps">15 MAY 2026</span>
+</div>
+<h4 class="font-headline-md text-headline-md text-on-surface mb-2 group-hover:text-primary transition-colors">Finalisasi Rundown Malam Gala Dinner di Ballroom Merapi</h4>
+<p class="text-on-surface-variant text-sm line-clamp-2">Panitia Sie Acara telah mengonfirmasi kehadiran bintang tamu spesial yang akan memeriahkan malam puncah reuni kita nanti...</p>
+</div>
+</div>
+<div class="flex gap-6 p-4 rounded-xl border border-outline-variant/30 hover:bg-surface-container-low transition-all cursor-pointer group">
+<div class="w-32 h-32 rounded-lg bg-surface-container overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover transition-transform group-hover:scale-105" data-alt="Close-up of friends laughing during a sunny outdoor gathering. The scene captures a nostalgic and warm communal feeling with soft golden hour lighting. The visual style is crisp and modern with a focus on human connection and legacy." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA3asO-wJjsaol8wK3Woqd9OJj30On2C5nRCWQYKJ14EH1eReHcfoDohIXYDXkRT2z7LYgBBroFnj0PAibaKzruygpTRsawhE7uqHdM4UR64BjD9bbNio0_Mt4oIEm5V41eyWubHZdH8p2P4M6K1xDMAb1NSLGld4IigIQ-1lK8U6ax-fA4dUza-4AvdoY_4gCE-7B58S85kK_8SuH9P_FYpqZYQjc5PAn-aEZfRNdTAQlNUgRXkzldYM-hjzXi--4GckumHlsbnpg">
+</div>
+<div>
+<div class="flex gap-2 mb-2">
+<span class="bg-anniversary-gold/5 text-anniversary-gold text-[10px] font-bold px-2 py-0.5 rounded border border-anniversary-gold/20">LOGISTIK</span>
+<span class="text-memorial-slate text-[10px] font-label-caps">12 MAY 2026</span>
+</div>
+<h4 class="font-headline-md text-headline-md text-on-surface mb-2 group-hover:text-primary transition-colors">Info Pengambilan Goodie Bag &amp; Atribut Reuni</h4>
+<p class="text-on-surface-variant text-sm line-clamp-2">Bagi rekan-rekan yang berdomisili di Jogja, pengambilan starter kit sudah bisa dilakukan di Sekretariat Geodesi mulai Senin besok...</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Dokumentasi Terbaru -->
+<section>
+<div class="flex justify-between items-center mb-6">
+<h2 class="font-headline-lg text-headline-lg text-primary flex items-center gap-2">
+<span class="w-1.5 h-8 bg-secondary rounded-full"></span>
+                            Dokumentasi Terbaru
+                        </h2>
+<a class="text-primary font-bold flex items-center gap-1 hover:underline" href="#">Galeri Foto <span class="material-symbols-outlined text-sm">grid_view</span></a>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+<div class="aspect-square rounded-xl overflow-hidden group relative cursor-pointer">
+<img class="w-full h-full object-cover transition-transform group-hover:scale-110" data-alt="Nostalgic vintage photo of a university group trip with film grain texture. The lighting is natural and bright, evoking memories of university days in the late 90s. The color palette is earthy with deep forest green accents." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCX3OjgdZ35wH6bFZHwLGbQKGI0meaSdx6Pu9kQ3Z6nfQ58cjaqtPOKrLGNJ9UxtuUkXvMhS5kvoj3nxPPGHr9PsMH2OXDkhSPvhfBwB239fKcRFXbazNE_LRPoVuNomCnSCta4CwzlR-6PdQ_f5SAmOh_R8Clvhyhld2WfNCzhtkPfcNp7SeS4dYFLstMsrIfathhJAiu_fnd-kXT-m1HzSOP7-yYY_7hWiBlNkpGvCE8BAfynQMCELy0bk-lePQUgg3pYQ08HU2c">
+<div class="absolute inset-0 bg-primary/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-3xl">visibility</span>
+</div>
+</div>
+<div class="aspect-square rounded-xl overflow-hidden group relative cursor-pointer">
+<img class="w-full h-full object-cover transition-transform group-hover:scale-110" data-alt="Candid shot of a large group of people sharing a meal outdoors under a large tree. Warm afternoon light creates long shadows. The style is modern with a focus on communal gathering and nostalgic heritage." src="https://lh3.googleusercontent.com/aida-public/AB6AXuADVQq480Q2kmdiHxQfY-2EZO1v1NJdO-vgyGuYOFYOFBPIELWcYbGRL2LRqLellpYTmm_7r4yKpRAFyTtaLobuVgJyQ6b6JgIy8KpqYWP2FRIWv22eoCeh7_Q2TQPaJGqDofbR0434KLm6T2SeSqoUh9m-wmMa8jDE5VF-UlzMnEFIMC1AcKiDQWzLSXS99AcgsQ7dDZxc4JIHZLUyNW9n5t-5IBRekKOkZafQBETbbp14ItAplIiTt5Ner4xJMgj5mTaRuPj_x20">
+<div class="absolute inset-0 bg-primary/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-3xl">play_circle</span>
+</div>
+</div>
+<div class="aspect-square rounded-xl overflow-hidden group relative cursor-pointer">
+<img class="w-full h-full object-cover transition-transform group-hover:scale-110" data-alt="Close up of a geodetic surveying instrument (theodolite) on a tripod in a grassy field. Professional equipment aesthetic with high-precision details. Soft daylight and natural greens dominate the frame." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDzx_y6A7cD_ooaOizOHyqjSmI8QVSWrt__YendUZEP7bfi8Hfy-iTl3IwHK6bxcBVolby9On-tES5Kbpw0FpplR_KEK-YLLWdh2Oz4EXBxB2jx5tI80MZ8Y3ySA9YxzGTpSUOfY2soETTqA2sM88uk4JV5c6NE0MvyDq6fQO_Q7QUXxTb-gF1PC0xNpGYh3QzogmwiHK109y4hprzXmM6HCRyReE215IAPvCr-ZFB0u5GRdx-15zHBVtsPF9Qeo01xQg_8wrmU108">
+<div class="absolute inset-0 bg-primary/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-3xl">visibility</span>
+</div>
+</div>
+<div class="aspect-square rounded-xl overflow-hidden group relative cursor-pointer">
+<div class="w-full h-full bg-primary-container flex flex-col items-center justify-center p-4 text-center">
+<span class="material-symbols-outlined text-on-primary text-4xl mb-2">add_a_photo</span>
+<p class="text-on-primary text-[10px] font-bold uppercase tracking-widest leading-tight">Unggah Foto Kenangan</p>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column (Sidebar) -->
+<aside class="lg:col-span-4 space-y-8">
+<!-- Countdown -->
+<div class="bg-primary text-on-primary p-8 rounded-2xl relative overflow-hidden text-center">
+<div class="absolute top-0 right-0 p-4 opacity-10">
+<span class="material-symbols-outlined text-6xl">timelapse</span>
+</div>
+<p class="font-label-caps text-label-caps tracking-[0.2em] mb-4 text-on-primary-container">COUNTDOWN REUNI</p>
+<div class="flex justify-center gap-4 items-baseline">
+<span class="text-6xl font-extrabold tracking-tighter">81</span>
+<span class="text-xl font-medium opacity-70">hari lagi</span>
+</div>
+<div class="mt-6 border-t border-on-primary/10 pt-6">
+<p class="text-sm font-label-caps opacity-60">UPDATE TANGGAL: 4-JUN-26</p>
+</div>
+</div>
+<!-- WhatsApp Hall of Fame -->
+<div class="bg-white border border-secondary/20 p-6 rounded-2xl overflow-hidden relative">
+<div class="absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 opacity-5">
+<img alt="Sticker Decor" class="w-full h-full rotate-45" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBTkJPoW5YQspRx82fp7qhsQwpivUHQ69SF38oAcmOBtCcvebBMlU9lfieCC_56ECSzbh9U6YlVbmqcod7vhbVZUaIiZ7U_M-Nu7As6Ex4GvFstHqFILjLpZt61MeKizEJhGIGAwLq3wlFt7igHcSECaCFsMUee2NX2xRPlX2caizjuTREmgtpUdLc5YGKC-TkdI4eEufPerHM2WkwaVQWiecf-t0lTlwItGuqxd3IBv7MKLXuNPED54xX7RJCqUjbXXli8k28V-UQ">
+</div>
+<h3 class="font-headline-md text-headline-md text-primary mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-status-success">chat_bubble</span>
+                        WA Hall of Fame
+                    </h3>
+<div class="space-y-6">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-status-success/10 flex items-center justify-center text-status-success">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+</div>
+<div>
+<p class="text-[10px] font-label-caps text-memorial-slate">TOP ACTIVE MEMBER</p>
+<p class="font-bold text-on-surface">Mas Agus 'The Orator'</p>
+<p class="text-[10px] text-status-success font-bold">452 messages/week</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-anniversary-gold/10 flex items-center justify-center text-anniversary-gold">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dark_mode</span>
+</div>
+<div>
+<p class="text-[10px] font-label-caps text-memorial-slate">NOCTURNAL CHATTER</p>
+<p class="font-bold text-on-surface">Irfan 'Midnight Rider'</p>
+<p class="text-[10px] text-anniversary-gold font-bold">Last active: 03:45 AM</p>
+</div>
+</div>
+</div>
+<div class="mt-8 bg-surface-container-low p-4 rounded-xl border border-dashed border-outline-variant">
+<div class="flex justify-between items-center mb-2">
+<span class="text-xs font-bold text-memorial-slate">Group Activity Pulse</span>
+<span class="text-xs text-status-success font-bold">+12% High</span>
+</div>
+<div class="flex gap-1 h-8 items-end">
+<div class="bg-primary/20 w-full h-1/2 rounded-sm"></div>
+<div class="bg-primary/20 w-full h-2/3 rounded-sm"></div>
+<div class="bg-primary/40 w-full h-full rounded-sm"></div>
+<div class="bg-primary w-full h-3/4 rounded-sm"></div>
+<div class="bg-primary/60 w-full h-5/6 rounded-sm"></div>
+<div class="bg-primary w-full h-full rounded-sm"></div>
+</div>
+</div>
+</div>
+<!-- Peta Persebaran -->
+<div class="bg-white border border-secondary/20 p-6 rounded-2xl group cursor-pointer overflow-hidden">
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-headline-md text-headline-md text-primary">Peta Persebaran</h3>
+<span class="material-symbols-outlined text-primary group-hover:rotate-45 transition-transform">map</span>
+</div>
+<div class="aspect-video bg-surface-container rounded-lg relative overflow-hidden">
+<img class="w-full h-full object-cover grayscale opacity-50" data-alt="A stylized minimalist topographic map of Indonesia with soft green gradients and clean white outlines. Points of interest are marked with subtle golden coordinate pins. The lighting is flat and modern, professional cartographic style." data-location="Indonesia" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDxR8zJrGPJrqd_dHC7a9qghr5fglJbS69pZOrS07Jgn1GVfa2q5_3_kMwo-Yh-e2tvD4Sb43E8LzL32-WxDN9a3QlZhHCg-tduTnxRR1tCwmO31SRjQgHcoHOs8DK0oWuwnD2F8KVLL3vXLct8Slm1wMwCVqytUvrQxcq_CdUDFFf-q1eM8vbZ6XuFn6gJHiJPIJH8VUWz5WA_c8Ezaip_L2LBbzNAqswouVlA-2JOvINoux-4DWGgcvlmTNTHVTh5Cz7EnODnFjY">
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="bg-primary text-on-primary px-4 py-2 rounded-full text-xs font-bold shadow-lg">120 Alumni Terdaftar</div>
+</div>
+</div>
+<div class="mt-4 grid grid-cols-2 gap-2">
+<div class="p-2 bg-surface rounded text-center">
+<p class="text-[10px] font-label-caps text-memorial-slate">JABODETABEK</p>
+<p class="font-bold text-primary">45%</p>
+</div>
+<div class="p-2 bg-surface rounded text-center">
+<p class="text-[10px] font-label-caps text-memorial-slate">JOGJA/JATENG</p>
+<p class="font-bold text-primary">30%</p>
+</div>
+</div>
+</div>
+</aside>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container-lowest border-t border-outline-variant/20 py-12">
+<div class="max-w-container-max mx-auto px-gutter grid grid-cols-1 md:grid-cols-2 items-center gap-stack-md">
+<div>
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-primary text-2xl" style="font-variation-settings: 'FILL' 1;">precision_manufacturing</span>
+<span class="font-headline-md text-primary font-bold">Geodesi 96</span>
+</div>
+<p class="text-body-md font-body-md text-memorial-slate mb-6">
+                    © 2026 Reuni Geodesi 96. Ngalibrasi 30 Taon Paseduluran.
+                </p>
+<div class="flex gap-4">
+<a class="text-on-surface-variant hover:text-primary hover:underline transition-all text-label-caps font-label-caps" href="#">Privacy Policy</a>
+<a class="text-on-surface-variant hover:text-primary hover:underline transition-all text-label-caps font-label-caps" href="#">Contact Committee</a>
+<a class="text-on-surface-variant hover:text-primary hover:underline transition-all text-label-caps font-label-caps" href="#">Alumni Portal</a>
+<a class="text-on-surface-variant hover:text-primary hover:underline transition-all text-label-caps font-label-caps" href="#">Support</a>
+</div>
+</div>
+<div class="flex flex-col md:items-end gap-4">
+<div class="flex items-center gap-4 text-primary">
+<span class="material-symbols-outlined text-4xl">my_location</span>
+<div class="text-right">
+<div class="text-label-caps font-label-caps">KOORDINAT REUNI</div>
+<div class="font-headline-md font-bold">7.7702° S, 110.3778° E</div>
+</div>
+</div>
+<div class="bg-primary px-6 py-3 rounded-lg text-white font-label-caps text-label-caps tracking-widest cursor-pointer hover:bg-primary-container transition-all">
+                    KEMBALI KE TITIK NOL
+                </div>
+</div>
+</div>
+</footer>
+<!-- FAB for Quick RSVP Action -->
+<button class="fixed bottom-8 right-8 bg-primary text-on-primary w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-transform z-40 group">
+<span class="material-symbols-outlined text-2xl group-hover:rotate-12">how_to_reg</span>
+<span class="absolute right-full mr-4 bg-white text-primary px-3 py-1 rounded text-xs font-bold whitespace-nowrap shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-primary/10">Quick RSVP</span>
+</button>
+<script>
+        // Subtle interaction: Dynamic topographic pulse on the welcome banner
+        const banner = document.querySelector('section.relative');
+        if (banner) {
+            banner.addEventListener('mousemove', (e) => {
+                const { left, top, width, height } = banner.getBoundingClientRect();
+                const x = ((e.clientX - left) / width) * 100;
+                const y = ((e.clientY - top) / height) * 100;
+                banner.style.setProperty('--mouse-x', `${x}%`);
+                banner.style.setProperty('--mouse-y', `${y}%`);
+            });
+        }
+    </script>
+
+
+</body></html>
