@@ -19,7 +19,7 @@ test('alumni contact seeder creates users and alumni profiles', function () {
     expect(Schema::hasColumn('alumni', 'student_number'))->toBeTrue();
 
     $firstContact = $contacts[0];
-    $whatsappNumber = preg_replace('/[^0-9+]/', '', $firstContact['wanumber']);
+    $whatsappNumber = User::normalizeWhatsappNumber($firstContact['wanumber']);
     $password = 'tgd'.substr($whatsappNumber, -4);
 
     $response = $this->post(route('login.store'), [

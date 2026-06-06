@@ -7,6 +7,7 @@
 /storage/*.key
 /storage/pail
 /vendor
+/specification
 .env
 .env.backup
 .env.production
@@ -22,4 +23,3 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
-/specification

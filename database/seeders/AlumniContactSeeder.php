@@ -26,7 +26,7 @@ class AlumniContactSeeder extends Seeder
         );
 
         collect($contacts)->each(function (array $contact) use ($alumniRole): void {
-            $whatsappNumber = preg_replace('/[^0-9+]/', '', (string) $contact['wanumber']);
+            $whatsappNumber = User::normalizeWhatsappNumber((string) $contact['wanumber']);
             $password = 'tgd'.substr($whatsappNumber, -4);
 
             $user = User::query()->updateOrCreate(

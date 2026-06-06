@@ -42,7 +42,7 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::createUsersUsing(CreateNewUser::class);
 
         Fortify::authenticateUsing(function (Request $request): ?User {
-            $whatsappNumber = preg_replace('/[^0-9+]/', '', (string) $request->input('whatsapp_number'));
+            $whatsappNumber = User::normalizeWhatsappNumber((string) $request->input('whatsapp_number'));
 
             $user = User::query()
                 ->where('whatsapp_number', $whatsappNumber)

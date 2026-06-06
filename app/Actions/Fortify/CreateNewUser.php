@@ -20,6 +20,8 @@ class CreateNewUser implements CreatesNewUsers
      */
     public function create(array $input): User
     {
+        $input['whatsapp_number'] = User::normalizeWhatsappNumber($input['whatsapp_number']);
+
         Validator::make($input, [
             ...$this->profileRules(),
             'password' => $this->passwordRules(),

@@ -1,6 +1,7 @@
 <?php
 
 use App\Concerns\ProfileValidationRules;
+use App\Models\User;
 /* @chisel-email-verification */
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 /* @end-chisel-email-verification */
@@ -34,6 +35,7 @@ new #[Title('Profile settings')] class extends Component {
     public function updateProfileInformation(): void
     {
         $user = Auth::user();
+        $this->whatsapp_number = User::normalizeWhatsappNumber($this->whatsapp_number);
 
         $validated = $this->validate($this->profileRules($user->id));
 

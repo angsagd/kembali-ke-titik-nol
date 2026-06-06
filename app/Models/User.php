@@ -80,6 +80,20 @@ class User extends Authenticatable implements PasskeyUser
     }
 
     /**
+     * Normalize a WhatsApp number to digits only.
+     */
+    public static function normalizeWhatsappNumber(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $normalized = preg_replace('/[^0-9]/', '', $value);
+
+        return $normalized === '' ? null : $normalized;
+    }
+
+    /**
      * Normalize WhatsApp numbers before persisting them.
      *
      * @return Attribute<string|null, string|null>
@@ -89,7 +103,7 @@ class User extends Authenticatable implements PasskeyUser
         return Attribute::make(
             set: fn (?string $value): ?string => $value === null
                 ? null
-                : preg_replace('/[^0-9+]/', '', $value),
+                : self::normalizeWhatsappNumber($value),
         );
     }
 
