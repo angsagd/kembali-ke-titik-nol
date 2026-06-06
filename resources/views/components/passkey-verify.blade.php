@@ -3,7 +3,7 @@
     'submitRoute' => 'passkey.login',
     'label' => __('Sign in with a passkey'),
     'loadingLabel' => __('Authenticating...'),
-    'separator' => __('Or continue with email'),
+    'separator' => __('Or continue with WhatsApp'),
 ])
 
 @assets

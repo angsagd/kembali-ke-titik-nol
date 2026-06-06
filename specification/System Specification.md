@@ -234,6 +234,7 @@ Data alumni terdiri atas:
 #### Data Identitas
 
 * Nama lengkap
+* Nomor Induk Mahasiswa (NIM) masa kuliah
 * Nama panggilan waktu kuliah
 * Nomor WhatsApp
 * Email
@@ -2992,6 +2993,7 @@ Menyimpan profil alumni.
 | -------------------- | ----------- | --------------------- | ------------------------------- |
 | id                   | bigInteger  | primary key           | ID alumni                       |
 | user_id              | bigInteger  | unique, foreign key   | Relasi ke users                 |
+| student_number       | string(50)  | nullable, unique      | NIM masa kuliah                 |
 | full_name            | string(150) | not null              | Nama lengkap                    |
 | nickname             | string(100) | nullable              | Nama panggilan waktu kuliah     |
 | email                | string(150) | nullable              | Email                           |
@@ -3480,6 +3482,7 @@ Index yang disarankan:
 #### alumni
 
 * user_id
+* student_number
 * full_name
 * nickname
 * current_city_id
@@ -3553,6 +3556,7 @@ Unique constraint yang disarankan:
 #### alumni
 
 * user_id
+* student_number
 
 #### rsvps
 

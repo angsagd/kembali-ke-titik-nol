@@ -30,6 +30,17 @@
                 placeholder="email@example.com"
             />
 
+            <!-- WhatsApp Number -->
+            <flux:input
+                name="whatsapp_number"
+                :label="__('Nomor WhatsApp')"
+                :value="old('whatsapp_number')"
+                type="tel"
+                required
+                autocomplete="tel"
+                placeholder="6281234567890"
+            />
+
             <!-- Password -->
             <flux:input
                 name="password"

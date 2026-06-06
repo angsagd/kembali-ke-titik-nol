@@ -18,6 +18,7 @@ trait ProfileValidationRules
         return [
             'name' => $this->nameRules(),
             'email' => $this->emailRules($userId),
+            'whatsapp_number' => $this->whatsappNumberRules($userId),
         ];
     }
 
@@ -43,6 +44,24 @@ trait ProfileValidationRules
             'string',
             'email',
             'max:255',
+            $userId === null
+                ? Rule::unique(User::class)
+                : Rule::unique(User::class)->ignore($userId),
+        ];
+    }
+
+    /**
+     * Get the validation rules used to validate user WhatsApp numbers.
+     *
+     * @return array<int, ValidationRule|array<mixed>|string>
+     */
+    protected function whatsappNumberRules(?int $userId = null): array
+    {
+        return [
+            'required',
+            'string',
+            'max:30',
+            'regex:/^\+?[0-9\s().-]+$/',
             $userId === null
                 ? Rule::unique(User::class)
                 : Rule::unique(User::class)->ignore($userId),

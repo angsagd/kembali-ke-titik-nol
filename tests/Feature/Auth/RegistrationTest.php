@@ -16,6 +16,7 @@ test('new users can register', function () {
     $response = $this->post(route('register.store'), [
         'name' => 'John Doe',
         'email' => 'test@example.com',
+        'whatsapp_number' => '6281234567890',
         'password' => 'password',
         'password_confirmation' => 'password',
     ]);
