@@ -19,7 +19,9 @@ class CountryFactory extends Factory
     {
         return [
             'name' => fake()->unique()->country(),
-            'iso_code' => fake()->unique()->countryCode(),
+            'code' => fake()->unique()->countryCode(),
+            'latitude' => fake()->latitude(),
+            'longitude' => fake()->longitude(),
         ];
     }
 }

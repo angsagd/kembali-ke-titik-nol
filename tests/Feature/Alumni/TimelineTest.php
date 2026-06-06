@@ -41,7 +41,7 @@ test('alumni users can view their timeline page', function () {
 
 test('alumni users can create update and delete their own timeline entries', function () {
     $profile = Alumni::factory()->create();
-    $country = Country::factory()->create(['name' => 'Indonesia', 'iso_code' => 'ID']);
+    $country = Country::factory()->create(['name' => 'Indonesia', 'code' => 'ID']);
     $city = City::factory()->create(['country_id' => $country->id, 'name' => 'Yogyakarta']);
 
     $this->actingAs($profile->user);
@@ -101,4 +101,24 @@ test('alumni users cannot mutate another alumni timeline entry', function () {
         ->toThrow(ModelNotFoundException::class);
 
     expect($timeline->fresh())->not->toBeNull();
+});
+
+test('alumni timeline rejects city outside selected country', function () {
+    $profile = Alumni::factory()->create();
+    $indonesia = Country::factory()->create(['name' => 'Indonesia', 'code' => 'ID']);
+    $malaysia = Country::factory()->create(['name' => 'Malaysia', 'code' => 'MY']);
+    $kualaLumpur = City::factory()->create(['country_id' => $malaysia->id, 'name' => 'Kuala Lumpur']);
+
+    $this->actingAs($profile->user);
+
+    Livewire::test('pages::alumni.timeline.index')
+        ->set('year', 2001)
+        ->set('country_id', $indonesia->id)
+        ->set('city_id', $kualaLumpur->id)
+        ->call('saveTimeline')
+        ->assertHasErrors([
+            'city_id' => 'exists',
+        ]);
+
+    expect(AlumniTimeline::query()->where('alumni_id', $profile->id)->exists())->toBeFalse();
 });

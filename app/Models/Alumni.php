@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
@@ -90,5 +92,57 @@ class Alumni extends Model
             ->orderBy('year')
             ->orderByRaw('month is null')
             ->orderBy('month');
+    }
+
+    /**
+     * Get the reunion payment for the alumni profile.
+     *
+     * @return HasOne<Payment, $this>
+     */
+    public function payment(): HasOne
+    {
+        return $this->hasOne(Payment::class);
+    }
+
+    /**
+     * Get the donation for the alumni profile.
+     *
+     * @return HasOne<Donation, $this>
+     */
+    public function donation(): HasOne
+    {
+        return $this->hasOne(Donation::class);
+    }
+
+    /**
+     * Get the room assignment for the alumni profile.
+     *
+     * @return HasOne<RoomAssignment, $this>
+     */
+    public function roomAssignment(): HasOne
+    {
+        return $this->hasOne(RoomAssignment::class);
+    }
+
+    /**
+     * Get media items uploaded by this alumni profile.
+     *
+     * @return HasMany<MediaItem, $this>
+     */
+    public function uploadedMediaItems(): HasMany
+    {
+        return $this->hasMany(MediaItem::class, 'uploaded_by_alumni_id');
+    }
+
+    /**
+     * Get media items where this alumni profile is tagged.
+     *
+     * @return BelongsToMany<MediaItem, $this>
+     */
+    public function taggedMediaItems(): BelongsToMany
+    {
+        return $this->belongsToMany(MediaItem::class, 'media_item_tags')
+            ->withPivot('tagged_by_alumni_id')
+            ->withTimestamps();
     }
 }

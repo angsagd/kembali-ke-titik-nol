@@ -15,7 +15,9 @@ class LocationSeeder extends Seeder
     {
         $countries = [
             'Indonesia' => [
-                'iso_code' => 'ID',
+                'code' => 'ID',
+                'latitude' => -2.5489000,
+                'longitude' => 118.0149000,
                 'cities' => [
                     ['name' => 'Yogyakarta', 'latitude' => -7.7956000, 'longitude' => 110.3695000],
                     ['name' => 'Jakarta', 'latitude' => -6.2088000, 'longitude' => 106.8456000],
@@ -35,26 +37,34 @@ class LocationSeeder extends Seeder
                 ],
             ],
             'Malaysia' => [
-                'iso_code' => 'MY',
+                'code' => 'MY',
+                'latitude' => 4.2105000,
+                'longitude' => 101.9758000,
                 'cities' => [
                     ['name' => 'Kuala Lumpur', 'latitude' => 3.1390000, 'longitude' => 101.6869000],
                 ],
             ],
             'Singapore' => [
-                'iso_code' => 'SG',
+                'code' => 'SG',
+                'latitude' => 1.3521000,
+                'longitude' => 103.8198000,
                 'cities' => [
                     ['name' => 'Singapore', 'latitude' => 1.3521000, 'longitude' => 103.8198000],
                 ],
             ],
             'Australia' => [
-                'iso_code' => 'AU',
+                'code' => 'AU',
+                'latitude' => -25.2744000,
+                'longitude' => 133.7751000,
                 'cities' => [
                     ['name' => 'Sydney', 'latitude' => -33.8688000, 'longitude' => 151.2093000],
                     ['name' => 'Melbourne', 'latitude' => -37.8136000, 'longitude' => 144.9631000],
                 ],
             ],
             'United States' => [
-                'iso_code' => 'US',
+                'code' => 'US',
+                'latitude' => 37.0902000,
+                'longitude' => -95.7129000,
                 'cities' => [
                     ['name' => 'Houston', 'latitude' => 29.7604000, 'longitude' => -95.3698000],
                     ['name' => 'San Francisco', 'latitude' => 37.7749000, 'longitude' => -122.4194000],
@@ -65,7 +75,11 @@ class LocationSeeder extends Seeder
         collect($countries)->each(function (array $data, string $countryName): void {
             $country = Country::query()->updateOrCreate(
                 ['name' => $countryName],
-                ['iso_code' => $data['iso_code']],
+                [
+                    'code' => $data['code'],
+                    'latitude' => $data['latitude'],
+                    'longitude' => $data['longitude'],
+                ],
             );
 
             collect($data['cities'])->each(fn (array $city): City => City::query()->updateOrCreate(

@@ -34,7 +34,7 @@ test('administrator users can browse and search alumni', function () {
         'student_number' => 'D096001',
         'rsvp_status' => 'pending',
     ]);
-    $country = Country::factory()->create(['name' => 'Indonesia', 'iso_code' => 'ID']);
+    $country = Country::factory()->create(['name' => 'Indonesia', 'code' => 'ID']);
     $city = City::factory()->create(['country_id' => $country->id, 'name' => 'Yogyakarta']);
 
     AlumniTimeline::factory()->create([
@@ -71,7 +71,7 @@ test('administrator users can browse and search alumni', function () {
 });
 
 test('administrator users can update core alumni data', function () {
-    $country = Country::factory()->create(['name' => 'Indonesia', 'iso_code' => 'ID']);
+    $country = Country::factory()->create(['name' => 'Indonesia', 'code' => 'ID']);
     $city = City::factory()->create(['country_id' => $country->id, 'name' => 'Yogyakarta']);
     $administratorRole = Role::factory()->create([
         'name' => 'administrator',
@@ -148,4 +148,35 @@ test('administrator alumni update validates unique identifiers', function () {
             'student_number' => 'unique',
             'whatsapp_number' => 'unique',
         ]);
+});
+
+test('administrator alumni update rejects city outside selected country', function () {
+    $indonesia = Country::factory()->create(['name' => 'Indonesia', 'code' => 'ID']);
+    $malaysia = Country::factory()->create(['name' => 'Malaysia', 'code' => 'MY']);
+    $kualaLumpur = City::factory()->create(['country_id' => $malaysia->id, 'name' => 'Kuala Lumpur']);
+    $administratorRole = Role::factory()->create([
+        'name' => 'administrator',
+        'description' => 'Administrator sistem',
+    ]);
+
+    $administrator = User::factory()->create(['role_id' => $administratorRole->id]);
+    $profile = Alumni::factory()->create([
+        'current_country_id' => null,
+        'current_city_id' => null,
+    ]);
+
+    $this->actingAs($administrator);
+
+    Livewire::test('pages::admin.alumni.show', ['alumni' => $profile])
+        ->set('current_country_id', $indonesia->id)
+        ->set('current_city_id', $kualaLumpur->id)
+        ->call('updateAlumni')
+        ->assertHasErrors([
+            'current_city_id' => 'exists',
+        ]);
+
+    $profile->refresh();
+
+    expect($profile->current_country_id)->toBeNull();
+    expect($profile->current_city_id)->toBeNull();
 });

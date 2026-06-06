@@ -71,7 +71,11 @@ new #[Title('Timeline Lokasi')] class extends Component {
             'month' => ['nullable', 'integer', 'between:1,12'],
             'year' => ['required', 'integer', 'between:1996,2100'],
             'country_id' => ['nullable', Rule::exists(Country::class, 'id')],
-            'city_id' => ['nullable', Rule::exists(City::class, 'id')],
+            'city_id' => [
+                'nullable',
+                Rule::exists(City::class, 'id')
+                    ->where(fn ($query) => $query->where('country_id', $this->country_id ?? 0)),
+            ],
             'notes' => ['nullable', 'string', 'max:255'],
         ]);
 

@@ -24,7 +24,33 @@
                         <flux:sidebar.item icon="map" :href="route('alumni.timeline.index')" :current="request()->routeIs('alumni.timeline.*')" wire:navigate>
                             {{ __('Timeline Lokasi') }}
                         </flux:sidebar.item>
+
+                        <flux:sidebar.item icon="check-circle" :href="route('alumni.rsvp')" :current="request()->routeIs('alumni.rsvp')" wire:navigate>
+                            {{ __('RSVP') }}
+                        </flux:sidebar.item>
+
+                        <flux:sidebar.item icon="home" :href="route('alumni.room')" :current="request()->routeIs('alumni.room')" wire:navigate>
+                            {{ __('Kamar Saya') }}
+                        </flux:sidebar.item>
+
+                        <flux:sidebar.item icon="banknotes" :href="route('alumni.finance')" :current="request()->routeIs('alumni.finance')" wire:navigate>
+                            {{ __('Pembayaran') }}
+                        </flux:sidebar.item>
+
+                        <flux:sidebar.item icon="photo" :href="route('documentation.index')" :current="request()->routeIs('documentation.*')" wire:navigate>
+                            {{ __('Dokumentasi') }}
+                        </flux:sidebar.item>
+
+                        <flux:sidebar.item icon="newspaper" :href="route('news.index')" :current="request()->routeIs('news.*')" wire:navigate>
+                            {{ __('Berita') }}
+                        </flux:sidebar.item>
                     @endcan
+
+                    @if (! auth()->user()->alumni()->exists())
+                        <flux:sidebar.item icon="newspaper" :href="route('news.index')" :current="request()->routeIs('news.*')" wire:navigate>
+                            {{ __('Berita') }}
+                        </flux:sidebar.item>
+                    @endif
 
                     @can('view-alumni-directory')
                         <flux:sidebar.item icon="users" :href="route('alumni.directory.index')" :current="request()->routeIs('alumni.directory.*')" wire:navigate>
@@ -42,20 +68,38 @@
                         <flux:sidebar.item icon="users" :href="route('admin.alumni.index')" :current="request()->routeIs('admin.alumni.*')" wire:navigate>
                             {{ __('Manajemen Alumni') }}
                         </flux:sidebar.item>
+
+                        <flux:sidebar.item icon="clipboard-document-check" :href="route('admin.rsvp.index')" :current="request()->routeIs('admin.rsvp.*')" wire:navigate>
+                            {{ __('Monitoring RSVP') }}
+                        </flux:sidebar.item>
+
+                        <flux:sidebar.item icon="building-office-2" :href="route('admin.rooming.index')" :current="request()->routeIs('admin.rooming.*')" wire:navigate>
+                            {{ __('Rooming') }}
+                        </flux:sidebar.item>
+
+                        <flux:sidebar.item icon="photo" :href="route('admin.documentation.index')" :current="request()->routeIs('admin.documentation.*')" wire:navigate>
+                            {{ __('Dokumentasi') }}
+                        </flux:sidebar.item>
+
+                        <flux:sidebar.item icon="newspaper" :href="route('admin.news.index')" :current="request()->routeIs('admin.news.*')" wire:navigate>
+                            {{ __('Berita') }}
+                        </flux:sidebar.item>
+
+                        @can('view-audit-logs')
+                            <flux:sidebar.item icon="clipboard-document-list" :href="route('admin.audit-logs.index')" :current="request()->routeIs('admin.audit-logs.*')" wire:navigate>
+                                {{ __('Audit Log') }}
+                            </flux:sidebar.item>
+                        @endcan
                     </flux:sidebar.group>
                 @endcan
-            </flux:sidebar.nav>
 
-            <flux:spacer />
-
-            <flux:sidebar.nav>
-                <flux:sidebar.item icon="folder-git-2" href="https://github.com/laravel/livewire-starter-kit" target="_blank">
-                    {{ __('Repository') }}
-                </flux:sidebar.item>
-
-                <flux:sidebar.item icon="book-open-text" href="https://laravel.com/docs/starter-kits#livewire" target="_blank">
-                    {{ __('Documentation') }}
-                </flux:sidebar.item>
+                @can('manage-finance')
+                    <flux:sidebar.group :heading="__('Keuangan')" class="grid">
+                        <flux:sidebar.item icon="banknotes" :href="route('finance.index')" :current="request()->routeIs('finance.*')" wire:navigate>
+                            {{ __('Pembayaran & Donasi') }}
+                        </flux:sidebar.item>
+                    </flux:sidebar.group>
+                @endcan
             </flux:sidebar.nav>
 
             <x-desktop-user-menu class="hidden lg:block" :name="auth()->user()->name" />
@@ -101,7 +145,33 @@
                             <flux:menu.item :href="route('alumni.timeline.index')" icon="map" wire:navigate>
                                 {{ __('Timeline Lokasi') }}
                             </flux:menu.item>
+
+                            <flux:menu.item :href="route('alumni.rsvp')" icon="check-circle" wire:navigate>
+                                {{ __('RSVP') }}
+                            </flux:menu.item>
+
+                            <flux:menu.item :href="route('alumni.room')" icon="home" wire:navigate>
+                                {{ __('Kamar Saya') }}
+                            </flux:menu.item>
+
+                            <flux:menu.item :href="route('alumni.finance')" icon="banknotes" wire:navigate>
+                                {{ __('Pembayaran') }}
+                            </flux:menu.item>
+
+                            <flux:menu.item :href="route('documentation.index')" icon="photo" wire:navigate>
+                                {{ __('Dokumentasi') }}
+                            </flux:menu.item>
+
+                            <flux:menu.item :href="route('news.index')" icon="newspaper" wire:navigate>
+                                {{ __('Berita') }}
+                            </flux:menu.item>
                         @endcan
+
+                        @if (! auth()->user()->alumni()->exists())
+                            <flux:menu.item :href="route('news.index')" icon="newspaper" wire:navigate>
+                                {{ __('Berita') }}
+                            </flux:menu.item>
+                        @endif
 
                         @can('view-alumni-directory')
                             <flux:menu.item :href="route('alumni.directory.index')" icon="users" wire:navigate>
@@ -113,9 +183,43 @@
                             </flux:menu.item>
                         @endcan
 
+                        @can('manage-alumni')
+                            <flux:menu.item :href="route('admin.alumni.index')" icon="users" wire:navigate>
+                                {{ __('Manajemen Alumni') }}
+                            </flux:menu.item>
+
+                            <flux:menu.item :href="route('admin.rsvp.index')" icon="clipboard-document-check" wire:navigate>
+                                {{ __('Monitoring RSVP') }}
+                            </flux:menu.item>
+
+                            <flux:menu.item :href="route('admin.rooming.index')" icon="building-office-2" wire:navigate>
+                                {{ __('Rooming') }}
+                            </flux:menu.item>
+
+                            <flux:menu.item :href="route('admin.documentation.index')" icon="photo" wire:navigate>
+                                {{ __('Dokumentasi') }}
+                            </flux:menu.item>
+
+                            <flux:menu.item :href="route('admin.news.index')" icon="newspaper" wire:navigate>
+                                {{ __('Berita') }}
+                            </flux:menu.item>
+
+                            @can('view-audit-logs')
+                                <flux:menu.item :href="route('admin.audit-logs.index')" icon="clipboard-document-list" wire:navigate>
+                                    {{ __('Audit Log') }}
+                                </flux:menu.item>
+                            @endcan
+                        @endcan
+
                         <flux:menu.item :href="route('profile.edit')" icon="cog" wire:navigate>
                             {{ __('Settings') }}
                         </flux:menu.item>
+
+                        @can('manage-finance')
+                            <flux:menu.item :href="route('finance.index')" icon="banknotes" wire:navigate>
+                                {{ __('Pembayaran & Donasi') }}
+                            </flux:menu.item>
+                        @endcan
                     </flux:menu.radio.group>
 
                     <flux:menu.separator />

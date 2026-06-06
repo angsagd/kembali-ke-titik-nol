@@ -120,7 +120,11 @@ new #[Title('Profil Alumni')] class extends Component {
             'company' => ['nullable', 'string', 'max:150'],
             'job_title' => ['nullable', 'string', 'max:150'],
             'current_country_id' => ['nullable', Rule::exists(Country::class, 'id')],
-            'current_city_id' => ['nullable', Rule::exists(City::class, 'id')],
+            'current_city_id' => [
+                'nullable',
+                Rule::exists(City::class, 'id')
+                    ->where(fn ($query) => $query->where('country_id', $this->current_country_id ?? 0)),
+            ],
             'short_story' => ['nullable', 'string', 'max:5000'],
             'memorable_story' => ['nullable', 'string', 'max:5000'],
             'message_to_friends' => ['nullable', 'string', 'max:5000'],

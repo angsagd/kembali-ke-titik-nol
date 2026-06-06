@@ -13,6 +13,8 @@ test('location seeder creates countries and cities for alumni profiles', functio
         ->where('name', 'Yogyakarta')
         ->firstOrFail();
 
-    expect($indonesia->iso_code)->toBe('ID');
+    expect($indonesia->code)->toBe('ID');
+    expect($indonesia->latitude)->not->toBeNull();
+    expect($indonesia->longitude)->not->toBeNull();
     expect($yogyakarta->country->is($indonesia))->toBeTrue();
 });

@@ -9,20 +9,18 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
-use Laravel\Fortify\Contracts\PasskeyUser;
-use Laravel\Fortify\PasskeyAuthenticatable;
-use Laravel\Fortify\TwoFactorAuthenticatable;
 
 #[Fillable(['role_id', 'name', 'email', 'whatsapp_number', 'password', 'is_active', 'last_login_at'])]
-#[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
-class User extends Authenticatable implements PasskeyUser
+#[Hidden(['password', 'remember_token'])]
+class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
+    use HasFactory, Notifiable;
 
     /**
      * Get the attributes that should be cast.
@@ -32,7 +30,6 @@ class User extends Authenticatable implements PasskeyUser
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
@@ -60,6 +57,26 @@ class User extends Authenticatable implements PasskeyUser
     }
 
     /**
+     * Get news items authored by the user.
+     *
+     * @return HasMany<News, $this>
+     */
+    public function news(): HasMany
+    {
+        return $this->hasMany(News::class, 'author_id');
+    }
+
+    /**
+     * Get audit log entries performed by the user.
+     *
+     * @return HasMany<AuditLog, $this>
+     */
+    public function auditLogs(): HasMany
+    {
+        return $this->hasMany(AuditLog::class);
+    }
+
+    /**
      * Determine if the user has one of the given roles.
      *
      * @param  array<int, string>|string  $roles
@@ -77,6 +94,22 @@ class User extends Authenticatable implements PasskeyUser
     public function canManageAlumni(): bool
     {
         return $this->hasRole(['superadmin', 'administrator']);
+    }
+
+    /**
+     * Determine if the user can manage payments and donations.
+     */
+    public function canManageFinance(): bool
+    {
+        return $this->hasRole(['superadmin', 'bendahara']);
+    }
+
+    /**
+     * Determine if the user can view audit logs.
+     */
+    public function canViewAuditLogs(): bool
+    {
+        return $this->hasRole('superadmin');
     }
 
     /**

@@ -30,6 +30,7 @@
                         <a class="font-mono text-xs font-semibold uppercase tracking-[0.22em] text-ktn-forest underline decoration-2 underline-offset-8" href="#tentang">Tentang</a>
                         <a class="font-mono text-xs font-semibold uppercase tracking-[0.22em] text-ktn-muted transition hover:text-ktn-forest" href="#rundown">Rundown</a>
                         <a class="font-mono text-xs font-semibold uppercase tracking-[0.22em] text-ktn-muted transition hover:text-ktn-forest" href="#galeri">Galeri</a>
+                        <a class="font-mono text-xs font-semibold uppercase tracking-[0.22em] text-ktn-muted transition hover:text-ktn-forest" href="{{ route('public.gallery') }}">Publik</a>
                         <a class="font-mono text-xs font-semibold uppercase tracking-[0.22em] text-ktn-muted transition hover:text-ktn-forest" href="#donatur">Donatur</a>
                     </div>
 
@@ -186,23 +187,63 @@
 
                 <section id="galeri" class="scroll-mt-24 bg-ktn-topo px-4 py-16 sm:px-6 lg:px-8">
                     <div class="mx-auto max-w-7xl">
-                        <div class="text-center">
-                            <p class="font-mono text-xs font-semibold uppercase tracking-[0.22em] text-ktn-forest">Arsip</p>
-                            <h2 class="mt-3 font-display text-3xl font-bold text-ktn-forest sm:text-4xl">Galeri Nostalgia</h2>
+                        @php
+                            $publicMediaItems = \App\Models\MediaItem::query()
+                                ->with('uploader')
+                                ->where('visibility', 'public')
+                                ->latest()
+                                ->limit(3)
+                                ->get();
+                            $publicPhotoCount = \App\Models\MediaItem::query()->where('visibility', 'public')->where('type', 'photo')->count();
+                            $publicVideoCount = \App\Models\MediaItem::query()->where('visibility', 'public')->where('type', 'video')->count();
+                        @endphp
+
+                        <div class="flex flex-col justify-between gap-5 text-center lg:flex-row lg:items-end lg:text-left">
+                            <div>
+                                <p class="font-mono text-xs font-semibold uppercase tracking-[0.22em] text-ktn-forest">Arsip</p>
+                                <h2 class="mt-3 font-display text-3xl font-bold text-ktn-forest sm:text-4xl">Galeri Nostalgia</h2>
+                                <p class="mt-3 max-w-2xl leading-7 text-ktn-muted">Dokumentasi yang telah disetujui sebagai publik untuk memperlihatkan momen reuni dan kenangan Geodesi 96.</p>
+                            </div>
+                            <a href="{{ route('public.gallery') }}" class="inline-flex items-center justify-center rounded-lg bg-ktn-forest px-5 py-3 text-sm font-bold text-white transition hover:bg-ktn-forest-strong">
+                                Lihat Galeri Publik
+                            </a>
                         </div>
 
-                        <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                            <div class="min-h-52 rounded-xl bg-ktn-forest p-5 text-white">
-                                <div class="topo-grid h-full rounded-lg border border-white/15"></div>
-                            </div>
-                            <div class="min-h-52 rounded-xl border border-ktn-sage/20 bg-white p-6 sm:col-span-2">
-                                <div class="flex h-full flex-col justify-between">
-                                    <p class="max-w-md text-lg leading-8 text-ktn-muted">Dokumentasi publik akan menampilkan foto pilihan dari masa kuliah, persiapan reuni, dan acara puncak.</p>
-                                    <span class="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-ktn-forest">Galeri Publik</span>
+                        <div class="mt-10 grid gap-4 lg:grid-cols-[18rem_1fr]">
+                            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+                                <div class="rounded-xl bg-ktn-forest p-6 text-white">
+                                    <div class="font-display text-4xl font-extrabold">{{ $publicPhotoCount }}</div>
+                                    <div class="mt-2 font-mono text-xs font-semibold uppercase tracking-[0.18em] text-ktn-sage-light">Foto Publik</div>
+                                </div>
+                                <div class="rounded-xl border border-ktn-sage/20 bg-white p-6">
+                                    <div class="font-display text-4xl font-extrabold text-ktn-forest">{{ $publicVideoCount }}</div>
+                                    <div class="mt-2 font-mono text-xs font-semibold uppercase tracking-[0.18em] text-ktn-muted">Video Publik</div>
                                 </div>
                             </div>
-                            <div class="min-h-52 rounded-xl bg-ktn-sage/25 p-6">
-                                <div class="grid h-full place-items-center rounded-lg border border-ktn-forest/20 text-center font-mono text-xs font-semibold uppercase tracking-[0.18em] text-ktn-forest">Upload Kenangan</div>
+
+                            <div class="grid gap-4 md:grid-cols-3">
+                                @forelse ($publicMediaItems as $mediaItem)
+                                    <article class="overflow-hidden rounded-xl border border-ktn-sage/20 bg-white shadow-sm">
+                                        <div class="aspect-video bg-ktn-forest/10">
+                                            @if ($mediaItem->isPhoto() && $mediaItem->displayUrl())
+                                                <img src="{{ $mediaItem->displayUrl() }}" alt="{{ $mediaItem->title ?: 'Foto dokumentasi' }}" class="size-full object-cover">
+                                            @else
+                                                <div class="grid size-full place-items-center bg-ktn-forest text-center text-white">
+                                                    <span class="font-mono text-xs font-semibold uppercase tracking-[0.18em]">Video</span>
+                                                </div>
+                                            @endif
+                                        </div>
+                                        <div class="space-y-2 p-5">
+                                            <h3 class="font-display text-lg font-bold text-ktn-forest">{{ $mediaItem->title ?: 'Dokumentasi Publik' }}</h3>
+                                            <p class="text-sm text-ktn-muted">{{ $mediaItem->uploader?->full_name }}</p>
+                                        </div>
+                                    </article>
+                                @empty
+                                    <div class="rounded-xl border border-ktn-sage/20 bg-white p-8 text-center md:col-span-3">
+                                        <h3 class="font-display text-xl font-bold text-ktn-forest">Belum ada dokumentasi publik</h3>
+                                        <p class="mt-2 text-ktn-muted">Foto dan video publik akan tampil setelah dikurasi panitia.</p>
+                                    </div>
+                                @endforelse
                             </div>
                         </div>
                     </div>

@@ -40,7 +40,7 @@ test('alumni users can view their self service profile page', function () {
 });
 
 test('alumni users can update their own profile and rsvp', function () {
-    $country = Country::factory()->create(['name' => 'Indonesia', 'iso_code' => 'ID']);
+    $country = Country::factory()->create(['name' => 'Indonesia', 'code' => 'ID']);
     $city = City::factory()->create(['country_id' => $country->id, 'name' => 'Makassar']);
     $profile = Alumni::factory()->create([
         'full_name' => 'Nama Lama',
@@ -103,4 +103,29 @@ test('alumni profile update validates unique identifiers', function () {
             'student_number' => 'unique',
             'whatsapp_number' => 'unique',
         ]);
+});
+
+test('alumni profile update rejects city outside selected country', function () {
+    $indonesia = Country::factory()->create(['name' => 'Indonesia', 'code' => 'ID']);
+    $malaysia = Country::factory()->create(['name' => 'Malaysia', 'code' => 'MY']);
+    $kualaLumpur = City::factory()->create(['country_id' => $malaysia->id, 'name' => 'Kuala Lumpur']);
+    $profile = Alumni::factory()->create([
+        'current_country_id' => null,
+        'current_city_id' => null,
+    ]);
+
+    $this->actingAs($profile->user);
+
+    Livewire::test('pages::alumni.profile')
+        ->set('current_country_id', $indonesia->id)
+        ->set('current_city_id', $kualaLumpur->id)
+        ->call('updateProfile')
+        ->assertHasErrors([
+            'current_city_id' => 'exists',
+        ]);
+
+    $profile->refresh();
+
+    expect($profile->current_country_id)->toBeNull();
+    expect($profile->current_city_id)->toBeNull();
 });

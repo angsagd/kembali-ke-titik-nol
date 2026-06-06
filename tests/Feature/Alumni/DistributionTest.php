@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Alumni;
+use App\Models\AlumniTimeline;
 use App\Models\City;
 use App\Models\Country;
 use App\Models\Role;
@@ -26,7 +27,7 @@ test('users without alumni profile cannot access alumni distribution', function 
 
 test('alumni users can view distribution statistics', function () {
     $viewer = Alumni::factory()->create();
-    $country = Country::factory()->create(['name' => 'Indonesia', 'iso_code' => 'ID']);
+    $country = Country::factory()->create(['name' => 'Indonesia', 'code' => 'ID']);
     $city = City::factory()->create(['country_id' => $country->id, 'name' => 'Yogyakarta']);
 
     Alumni::factory()->create([
@@ -43,6 +44,20 @@ test('alumni users can view distribution statistics', function () {
         'current_city_id' => $city->id,
         'rsvp_status' => 'pending',
     ]);
+    AlumniTimeline::factory()->create([
+        'alumni_id' => $viewer->id,
+        'year' => 1996,
+        'month' => 8,
+        'country_id' => $country->id,
+        'city_id' => $city->id,
+        'notes' => 'Mulai kuliah.',
+    ]);
+    AlumniTimeline::factory()->create([
+        'year' => 2001,
+        'month' => null,
+        'country_id' => $country->id,
+        'city_id' => $city->id,
+    ]);
 
     $this->actingAs($viewer->user)
         ->get(route('alumni.distribution.index'))
@@ -51,7 +66,12 @@ test('alumni users can view distribution statistics', function () {
         ->assertSee('Total alumni')
         ->assertSee('Status RSVP')
         ->assertSee('Indonesia')
-        ->assertSee('Yogyakarta');
+        ->assertSee('Yogyakarta')
+        ->assertSee('Catatan timeline')
+        ->assertSee('Lintasan Tahun')
+        ->assertSee('Titik Historis Teratas')
+        ->assertSee('1996')
+        ->assertSee('2001');
 });
 
 test('administrator users can view distribution statistics', function () {

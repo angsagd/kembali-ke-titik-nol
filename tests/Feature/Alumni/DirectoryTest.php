@@ -27,7 +27,7 @@ test('users without alumni profile cannot access alumni directory', function () 
 
 test('alumni users can browse and search private directory', function () {
     $viewer = Alumni::factory()->create();
-    $country = Country::factory()->create(['name' => 'Indonesia', 'iso_code' => 'ID']);
+    $country = Country::factory()->create(['name' => 'Indonesia', 'code' => 'ID']);
     $city = City::factory()->create(['country_id' => $country->id, 'name' => 'Makassar']);
 
     Alumni::factory()->create([
@@ -56,7 +56,7 @@ test('alumni users can browse and search private directory', function () {
 
 test('alumni users can read another alumni profile', function () {
     $viewer = Alumni::factory()->create();
-    $country = Country::factory()->create(['name' => 'Indonesia', 'iso_code' => 'ID']);
+    $country = Country::factory()->create(['name' => 'Indonesia', 'code' => 'ID']);
     $city = City::factory()->create(['country_id' => $country->id, 'name' => 'Yogyakarta']);
     $profile = Alumni::factory()->create([
         'full_name' => 'Citra Lestari',
