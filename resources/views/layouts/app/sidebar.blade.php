@@ -20,11 +20,19 @@
                         <flux:sidebar.item icon="identification" :href="route('alumni.profile')" :current="request()->routeIs('alumni.profile')" wire:navigate>
                             {{ __('Profil Alumni') }}
                         </flux:sidebar.item>
+
+                        <flux:sidebar.item icon="map" :href="route('alumni.timeline.index')" :current="request()->routeIs('alumni.timeline.*')" wire:navigate>
+                            {{ __('Timeline Lokasi') }}
+                        </flux:sidebar.item>
                     @endcan
 
                     @can('view-alumni-directory')
                         <flux:sidebar.item icon="users" :href="route('alumni.directory.index')" :current="request()->routeIs('alumni.directory.*')" wire:navigate>
                             {{ __('Direktori Alumni') }}
+                        </flux:sidebar.item>
+
+                        <flux:sidebar.item icon="map" :href="route('alumni.distribution.index')" :current="request()->routeIs('alumni.distribution.*')" wire:navigate>
+                            {{ __('Persebaran Alumni') }}
                         </flux:sidebar.item>
                     @endcan
                 </flux:sidebar.group>
@@ -89,11 +97,19 @@
                             <flux:menu.item :href="route('alumni.profile')" icon="identification" wire:navigate>
                                 {{ __('Profil Alumni') }}
                             </flux:menu.item>
+
+                            <flux:menu.item :href="route('alumni.timeline.index')" icon="map" wire:navigate>
+                                {{ __('Timeline Lokasi') }}
+                            </flux:menu.item>
                         @endcan
 
                         @can('view-alumni-directory')
                             <flux:menu.item :href="route('alumni.directory.index')" icon="users" wire:navigate>
                                 {{ __('Direktori Alumni') }}
+                            </flux:menu.item>
+
+                            <flux:menu.item :href="route('alumni.distribution.index')" icon="map" wire:navigate>
+                                {{ __('Persebaran Alumni') }}
                             </flux:menu.item>
                         @endcan
 

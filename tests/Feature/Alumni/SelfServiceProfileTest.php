@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Alumni;
+use App\Models\City;
+use App\Models\Country;
 use App\Models\Role;
 use App\Models\User;
 use Livewire\Livewire;
@@ -38,6 +40,8 @@ test('alumni users can view their self service profile page', function () {
 });
 
 test('alumni users can update their own profile and rsvp', function () {
+    $country = Country::factory()->create(['name' => 'Indonesia', 'iso_code' => 'ID']);
+    $city = City::factory()->create(['country_id' => $country->id, 'name' => 'Makassar']);
     $profile = Alumni::factory()->create([
         'full_name' => 'Nama Lama',
         'student_number' => 'D096010',
@@ -57,6 +61,8 @@ test('alumni users can update their own profile and rsvp', function () {
         ->set('rsvp_status', 'attending')
         ->set('company', 'PT Titik Nol')
         ->set('job_title', 'Surveyor')
+        ->set('current_country_id', $country->id)
+        ->set('current_city_id', $city->id)
         ->set('short_story', 'Sekarang tinggal di Makassar.')
         ->set('memorable_story', 'Kenangan praktikum lapangan.')
         ->set('message_to_friends', 'Sampai jumpa di reuni.')
@@ -69,6 +75,8 @@ test('alumni users can update their own profile and rsvp', function () {
     expect($profile->full_name)->toBe('Nama Baru');
     expect($profile->student_number)->toBe('D096777');
     expect($profile->rsvp_status)->toBe('attending');
+    expect($profile->current_country_id)->toBe($country->id);
+    expect($profile->current_city_id)->toBe($city->id);
     expect($profile->short_story)->toBe('Sekarang tinggal di Makassar.');
     expect($profile->is_profile_completed)->toBeTrue();
     expect($profile->user->name)->toBe('Nama Baru');

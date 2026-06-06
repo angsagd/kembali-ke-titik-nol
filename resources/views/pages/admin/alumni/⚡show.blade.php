@@ -1,10 +1,14 @@
 <?php
 
 use App\Models\Alumni;
+use App\Models\City;
+use App\Models\Country;
 use App\Models\User;
 use Flux\Flux;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -29,6 +33,10 @@ new #[Title('Detail Alumni')] class extends Component {
 
     public ?string $job_title = null;
 
+    public ?int $current_country_id = null;
+
+    public ?int $current_city_id = null;
+
     public ?string $special_notes = null;
 
     public bool $is_profile_completed = false;
@@ -50,8 +58,63 @@ new #[Title('Detail Alumni')] class extends Component {
         $this->rsvp_status = $this->alumni->rsvp_status;
         $this->company = $this->alumni->company;
         $this->job_title = $this->alumni->job_title;
+        $this->current_country_id = $this->alumni->current_country_id;
+        $this->current_city_id = $this->alumni->current_city_id;
         $this->special_notes = $this->alumni->special_notes;
         $this->is_profile_completed = $this->alumni->is_profile_completed;
+    }
+
+    public function updatedCurrentCountryId(): void
+    {
+        $this->current_city_id = null;
+    }
+
+    #[Computed]
+    public function countries(): Collection
+    {
+        return Country::query()
+            ->orderBy('name')
+            ->get(['id', 'name']);
+    }
+
+    #[Computed]
+    public function cities(): Collection
+    {
+        return City::query()
+            ->when($this->current_country_id, fn ($query) => $query->where('country_id', $this->current_country_id))
+            ->orderBy('name')
+            ->get(['id', 'name']);
+    }
+
+    #[Computed]
+    public function timelines(): Collection
+    {
+        return $this->alumni
+            ->timelines()
+            ->with(['city', 'country'])
+            ->get();
+    }
+
+    public function monthName(?int $month): ?string
+    {
+        if ($month === null) {
+            return null;
+        }
+
+        return [
+            1 => __('Januari'),
+            2 => __('Februari'),
+            3 => __('Maret'),
+            4 => __('April'),
+            5 => __('Mei'),
+            6 => __('Juni'),
+            7 => __('Juli'),
+            8 => __('Agustus'),
+            9 => __('September'),
+            10 => __('Oktober'),
+            11 => __('November'),
+            12 => __('Desember'),
+        ][$month] ?? null;
     }
 
     /**
@@ -87,6 +150,8 @@ new #[Title('Detail Alumni')] class extends Component {
             'rsvp_status' => ['required', Rule::in(['pending', 'attending', 'not_attending'])],
             'company' => ['nullable', 'string', 'max:150'],
             'job_title' => ['nullable', 'string', 'max:150'],
+            'current_country_id' => ['nullable', Rule::exists(Country::class, 'id')],
+            'current_city_id' => ['nullable', Rule::exists(City::class, 'id')],
             'special_notes' => ['nullable', 'string', 'max:5000'],
             'is_profile_completed' => ['boolean'],
         ]);
@@ -101,6 +166,8 @@ new #[Title('Detail Alumni')] class extends Component {
                 'rsvp_status' => $validated['rsvp_status'],
                 'company' => $validated['company'],
                 'job_title' => $validated['job_title'],
+                'current_country_id' => $validated['current_country_id'],
+                'current_city_id' => $validated['current_city_id'],
                 'special_notes' => $validated['special_notes'],
                 'is_profile_completed' => $validated['is_profile_completed'],
             ]);
@@ -162,6 +229,20 @@ new #[Title('Detail Alumni')] class extends Component {
                     <flux:input wire:model="company" :label="__('Instansi / Perusahaan')" />
                     <flux:input wire:model="job_title" :label="__('Jabatan / Pekerjaan')" />
 
+                    <flux:select wire:model.live="current_country_id" :label="__('Negara domisili')">
+                        <flux:select.option value="">{{ __('Belum diisi') }}</flux:select.option>
+                        @foreach ($this->countries as $country)
+                            <flux:select.option :value="$country->id">{{ $country->name }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+
+                    <flux:select wire:model="current_city_id" :label="__('Kota domisili')" wire:key="admin-city-{{ $current_country_id ?: 'none' }}">
+                        <flux:select.option value="">{{ __('Belum diisi') }}</flux:select.option>
+                        @foreach ($this->cities as $city)
+                            <flux:select.option :value="$city->id">{{ $city->name }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+
                     <flux:select wire:model="alumni_status" :label="__('Status alumni')">
                         <flux:select.option value="active">{{ __('Aktif') }}</flux:select.option>
                         <flux:select.option value="deceased">{{ __('Wafat') }}</flux:select.option>
@@ -213,6 +294,14 @@ new #[Title('Detail Alumni')] class extends Component {
                         <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Jabatan / Pekerjaan') }}</dt>
                         <dd class="font-medium">{{ $alumni->job_title ?: '-' }}</dd>
                     </div>
+                    <div>
+                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Kota domisili') }}</dt>
+                        <dd class="font-medium">{{ $alumni->currentCity?->name ?: '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Negara domisili') }}</dt>
+                        <dd class="font-medium">{{ $alumni->currentCountry?->name ?: '-' }}</dd>
+                    </div>
                 </dl>
             </div>
 
@@ -232,6 +321,46 @@ new #[Title('Detail Alumni')] class extends Component {
                         <h3 class="text-sm font-medium text-zinc-500 dark:text-zinc-400">{{ __('Pesan untuk teman') }}</h3>
                         <p class="mt-1 whitespace-pre-line">{{ $alumni->message_to_friends ?: __('Belum diisi.') }}</p>
                     </div>
+                </div>
+            </div>
+
+            <div class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <flux:heading size="lg">{{ __('Timeline Lokasi') }}</flux:heading>
+                        <flux:text>{{ __('Riwayat lokasi yang diisi alumni dari tahun ke tahun.') }}</flux:text>
+                    </div>
+
+                    <flux:badge>{{ $this->timelines->count() }}</flux:badge>
+                </div>
+
+                <div class="mt-5 grid gap-4">
+                    @forelse ($this->timelines as $timeline)
+                        <article wire:key="admin-timeline-{{ $timeline->id }}" class="rounded-md border border-zinc-200 p-4 dark:border-zinc-700">
+                            <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                <div>
+                                    <div class="font-semibold">
+                                        {{ $timeline->month ? $this->monthName($timeline->month).' ' : '' }}{{ $timeline->year }}
+                                    </div>
+                                    <div class="text-sm text-zinc-600 dark:text-zinc-300">
+                                        {{ collect([$timeline->city?->name, $timeline->country?->name])->filter()->join(', ') ?: __('Lokasi belum diisi') }}
+                                    </div>
+                                </div>
+
+                                <flux:badge color="{{ $timeline->location_source === 'manual' ? 'amber' : 'zinc' }}">
+                                    {{ $timeline->location_source === 'manual' ? __('Manual') : __('Geocoded') }}
+                                </flux:badge>
+                            </div>
+
+                            @if ($timeline->notes)
+                                <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">{{ $timeline->notes }}</p>
+                            @endif
+                        </article>
+                    @empty
+                        <div class="rounded-md border border-dashed border-zinc-300 p-6 text-center dark:border-zinc-700">
+                            <flux:text>{{ __('Belum ada riwayat lokasi.') }}</flux:text>
+                        </div>
+                    @endforelse
                 </div>
             </div>
         </div>

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
@@ -56,5 +57,38 @@ class Alumni extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the current city of the alumni profile.
+     *
+     * @return BelongsTo<City, $this>
+     */
+    public function currentCity(): BelongsTo
+    {
+        return $this->belongsTo(City::class, 'current_city_id');
+    }
+
+    /**
+     * Get the current country of the alumni profile.
+     *
+     * @return BelongsTo<Country, $this>
+     */
+    public function currentCountry(): BelongsTo
+    {
+        return $this->belongsTo(Country::class, 'current_country_id');
+    }
+
+    /**
+     * Get the location timeline entries for the alumni profile.
+     *
+     * @return HasMany<AlumniTimeline, $this>
+     */
+    public function timelines(): HasMany
+    {
+        return $this->hasMany(AlumniTimeline::class)
+            ->orderBy('year')
+            ->orderByRaw('month is null')
+            ->orderBy('month');
     }
 }

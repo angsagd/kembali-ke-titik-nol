@@ -33,7 +33,7 @@ new #[Title('Direktori Alumni')] class extends Component {
         $search = trim($this->search);
 
         return Alumni::query()
-            ->with(['user'])
+            ->with(['currentCity', 'currentCountry', 'user'])
             ->when($search !== '', function ($query) use ($search): void {
                 $query->where(function ($query) use ($search): void {
                     $query
@@ -43,6 +43,12 @@ new #[Title('Direktori Alumni')] class extends Component {
                         ->orWhere('email', 'like', "%{$search}%")
                         ->orWhere('company', 'like', "%{$search}%")
                         ->orWhere('job_title', 'like', "%{$search}%")
+                        ->orWhereHas('currentCity', function ($query) use ($search): void {
+                            $query->where('name', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('currentCountry', function ($query) use ($search): void {
+                            $query->where('name', 'like', "%{$search}%");
+                        })
                         ->orWhereHas('user', function ($query) use ($search): void {
                             $query->where('whatsapp_number', 'like', "%{$search}%");
                         });
@@ -70,7 +76,7 @@ new #[Title('Direktori Alumni')] class extends Component {
                 wire:model.live.debounce.300ms="search"
                 icon="magnifying-glass"
                 :label="__('Cari alumni')"
-                :placeholder="__('Nama, panggilan, perusahaan')"
+                :placeholder="__('Nama, kota, negara, perusahaan')"
             />
 
             <flux:select wire:model.live="status" :label="__('Status')">
@@ -105,6 +111,12 @@ new #[Title('Direktori Alumni')] class extends Component {
                     <div>
                         <dt class="text-zinc-500 dark:text-zinc-400">{{ __('Jabatan / Pekerjaan') }}</dt>
                         <dd class="font-medium">{{ $profile->job_title ?: '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-zinc-500 dark:text-zinc-400">{{ __('Domisili') }}</dt>
+                        <dd class="font-medium">
+                            {{ collect([$profile->currentCity?->name, $profile->currentCountry?->name])->filter()->join(', ') ?: '-' }}
+                        </dd>
                     </div>
                     <div>
                         <dt class="text-zinc-500 dark:text-zinc-400">{{ __('RSVP') }}</dt>

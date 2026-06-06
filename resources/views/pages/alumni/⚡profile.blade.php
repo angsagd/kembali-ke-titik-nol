@@ -1,11 +1,15 @@
 <?php
 
 use App\Models\Alumni;
+use App\Models\City;
+use App\Models\Country;
 use App\Models\User;
 use Flux\Flux;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -27,6 +31,10 @@ new #[Title('Profil Alumni')] class extends Component {
     public ?string $company = null;
 
     public ?string $job_title = null;
+
+    public ?int $current_country_id = null;
+
+    public ?int $current_city_id = null;
 
     public ?string $short_story = null;
 
@@ -53,9 +61,33 @@ new #[Title('Profil Alumni')] class extends Component {
         $this->rsvp_status = $this->alumni->rsvp_status;
         $this->company = $this->alumni->company;
         $this->job_title = $this->alumni->job_title;
+        $this->current_country_id = $this->alumni->current_country_id;
+        $this->current_city_id = $this->alumni->current_city_id;
         $this->short_story = $this->alumni->short_story;
         $this->memorable_story = $this->alumni->memorable_story;
         $this->message_to_friends = $this->alumni->message_to_friends;
+    }
+
+    public function updatedCurrentCountryId(): void
+    {
+        $this->current_city_id = null;
+    }
+
+    #[Computed]
+    public function countries(): Collection
+    {
+        return Country::query()
+            ->orderBy('name')
+            ->get(['id', 'name']);
+    }
+
+    #[Computed]
+    public function cities(): Collection
+    {
+        return City::query()
+            ->when($this->current_country_id, fn ($query) => $query->where('country_id', $this->current_country_id))
+            ->orderBy('name')
+            ->get(['id', 'name']);
     }
 
     public function updateProfile(): void
@@ -87,6 +119,8 @@ new #[Title('Profil Alumni')] class extends Component {
             'rsvp_status' => ['required', Rule::in(['pending', 'attending', 'not_attending'])],
             'company' => ['nullable', 'string', 'max:150'],
             'job_title' => ['nullable', 'string', 'max:150'],
+            'current_country_id' => ['nullable', Rule::exists(Country::class, 'id')],
+            'current_city_id' => ['nullable', Rule::exists(City::class, 'id')],
             'short_story' => ['nullable', 'string', 'max:5000'],
             'memorable_story' => ['nullable', 'string', 'max:5000'],
             'message_to_friends' => ['nullable', 'string', 'max:5000'],
@@ -106,6 +140,8 @@ new #[Title('Profil Alumni')] class extends Component {
                 'rsvp_status' => $validated['rsvp_status'],
                 'company' => $validated['company'],
                 'job_title' => $validated['job_title'],
+                'current_country_id' => $validated['current_country_id'],
+                'current_city_id' => $validated['current_city_id'],
                 'short_story' => $validated['short_story'],
                 'memorable_story' => $validated['memorable_story'],
                 'message_to_friends' => $validated['message_to_friends'],
@@ -171,6 +207,20 @@ new #[Title('Profil Alumni')] class extends Component {
                 <flux:input wire:model="email" :label="__('Email')" type="email" />
                 <flux:input wire:model="company" :label="__('Instansi / Perusahaan')" />
                 <flux:input wire:model="job_title" :label="__('Jabatan / Pekerjaan')" />
+
+                <flux:select wire:model.live="current_country_id" :label="__('Negara domisili')">
+                    <flux:select.option value="">{{ __('Belum diisi') }}</flux:select.option>
+                    @foreach ($this->countries as $country)
+                        <flux:select.option :value="$country->id">{{ $country->name }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+
+                <flux:select wire:model="current_city_id" :label="__('Kota domisili')" wire:key="profile-city-{{ $current_country_id ?: 'none' }}">
+                    <flux:select.option value="">{{ __('Belum diisi') }}</flux:select.option>
+                    @foreach ($this->cities as $city)
+                        <flux:select.option :value="$city->id">{{ $city->name }}</flux:select.option>
+                    @endforeach
+                </flux:select>
 
                 <flux:select wire:model="rsvp_status" :label="__('Status RSVP')">
                     <flux:select.option value="pending">{{ __('Belum memastikan') }}</flux:select.option>

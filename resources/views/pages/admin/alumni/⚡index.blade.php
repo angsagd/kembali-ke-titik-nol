@@ -33,7 +33,7 @@ new #[Title('Manajemen Alumni')] class extends Component {
         $search = trim($this->search);
 
         return Alumni::query()
-            ->with(['user.role'])
+            ->with(['currentCity', 'currentCountry', 'user.role'])
             ->when($search !== '', function ($query) use ($search): void {
                 $query->where(function ($query) use ($search): void {
                     $query
@@ -41,6 +41,12 @@ new #[Title('Manajemen Alumni')] class extends Component {
                         ->orWhere('nickname', 'like', "%{$search}%")
                         ->orWhere('student_number', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhereHas('currentCity', function ($query) use ($search): void {
+                            $query->where('name', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('currentCountry', function ($query) use ($search): void {
+                            $query->where('name', 'like', "%{$search}%");
+                        })
                         ->orWhereHas('user', function ($query) use ($search): void {
                             $query->where('whatsapp_number', 'like', "%{$search}%");
                         });
@@ -84,6 +90,7 @@ new #[Title('Manajemen Alumni')] class extends Component {
             <flux:table.column>{{ __('Nama') }}</flux:table.column>
             <flux:table.column>{{ __('NIM') }}</flux:table.column>
             <flux:table.column>{{ __('WhatsApp') }}</flux:table.column>
+            <flux:table.column>{{ __('Domisili') }}</flux:table.column>
             <flux:table.column>{{ __('Status') }}</flux:table.column>
             <flux:table.column>{{ __('RSVP') }}</flux:table.column>
             <flux:table.column align="end">{{ __('Aksi') }}</flux:table.column>
@@ -100,6 +107,7 @@ new #[Title('Manajemen Alumni')] class extends Component {
                     </flux:table.cell>
                     <flux:table.cell>{{ $profile->student_number ?: '-' }}</flux:table.cell>
                     <flux:table.cell>{{ $profile->user?->whatsapp_number ?: '-' }}</flux:table.cell>
+                    <flux:table.cell>{{ collect([$profile->currentCity?->name, $profile->currentCountry?->name])->filter()->join(', ') ?: '-' }}</flux:table.cell>
                     <flux:table.cell>
                         <flux:badge color="{{ $profile->alumni_status === 'active' ? 'green' : 'zinc' }}">
                             {{ $profile->alumni_status === 'active' ? __('Aktif') : __('Wafat') }}
@@ -122,7 +130,7 @@ new #[Title('Manajemen Alumni')] class extends Component {
                 </flux:table.row>
             @empty
                 <flux:table.row>
-                    <flux:table.cell colspan="6">
+                    <flux:table.cell colspan="7">
                         <div class="py-10 text-center">
                             <flux:heading size="lg">{{ __('Tidak ada alumni ditemukan') }}</flux:heading>
                             <flux:text>{{ __('Ubah kata kunci atau filter status untuk melihat data lain.') }}</flux:text>

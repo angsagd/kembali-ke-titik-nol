@@ -11,9 +11,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('can:update-own-alumni-profile')
         ->name('alumni.profile');
 
+    Route::livewire('alumni/timeline', 'pages::alumni.timeline.index')
+        ->middleware('can:update-own-alumni-profile')
+        ->name('alumni.timeline.index');
+
     Route::middleware('can:view-alumni-directory')->group(function () {
         Route::livewire('alumni/directory', 'pages::alumni.directory.index')->name('alumni.directory.index');
         Route::livewire('alumni/directory/{alumni}', 'pages::alumni.directory.show')->name('alumni.directory.show');
+        Route::livewire('alumni/distribution', 'pages::alumni.distribution.index')->name('alumni.distribution.index');
     });
 
     Route::middleware('can:manage-alumni')->group(function () {

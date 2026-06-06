@@ -1,6 +1,9 @@
 <?php
 
 use App\Models\Alumni;
+use App\Models\AlumniTimeline;
+use App\Models\City;
+use App\Models\Country;
 use App\Models\Role;
 use App\Models\User;
 use Livewire\Livewire;
@@ -31,6 +34,17 @@ test('administrator users can browse and search alumni', function () {
         'student_number' => 'D096001',
         'rsvp_status' => 'pending',
     ]);
+    $country = Country::factory()->create(['name' => 'Indonesia', 'iso_code' => 'ID']);
+    $city = City::factory()->create(['country_id' => $country->id, 'name' => 'Yogyakarta']);
+
+    AlumniTimeline::factory()->create([
+        'alumni_id' => $profile->id,
+        'year' => 1996,
+        'month' => 8,
+        'country_id' => $country->id,
+        'city_id' => $city->id,
+        'notes' => 'Mulai kuliah.',
+    ]);
 
     Alumni::factory()->create([
         'full_name' => 'Budi Santoso',
@@ -49,10 +63,16 @@ test('administrator users can browse and search alumni', function () {
         ->get(route('admin.alumni.show', $profile))
         ->assertOk()
         ->assertSee('Detail data alumni')
-        ->assertSee('Ade Chandra');
+        ->assertSee('Ade Chandra')
+        ->assertSee('Timeline Lokasi')
+        ->assertSee('Agustus 1996')
+        ->assertSee('Yogyakarta')
+        ->assertSee('Mulai kuliah.');
 });
 
 test('administrator users can update core alumni data', function () {
+    $country = Country::factory()->create(['name' => 'Indonesia', 'iso_code' => 'ID']);
+    $city = City::factory()->create(['country_id' => $country->id, 'name' => 'Yogyakarta']);
     $administratorRole = Role::factory()->create([
         'name' => 'administrator',
         'description' => 'Administrator sistem',
@@ -80,6 +100,8 @@ test('administrator users can update core alumni data', function () {
         ->set('rsvp_status', 'attending')
         ->set('company', 'PT Titik Nol')
         ->set('job_title', 'Surveyor')
+        ->set('current_country_id', $country->id)
+        ->set('current_city_id', $city->id)
         ->set('special_notes', 'Data dikonfirmasi admin.')
         ->set('is_profile_completed', true)
         ->call('updateAlumni')
@@ -93,6 +115,8 @@ test('administrator users can update core alumni data', function () {
     expect($profile->email)->toBe('baru@example.test');
     expect($profile->rsvp_status)->toBe('attending');
     expect($profile->company)->toBe('PT Titik Nol');
+    expect($profile->current_country_id)->toBe($country->id);
+    expect($profile->current_city_id)->toBe($city->id);
     expect($profile->is_profile_completed)->toBeTrue();
     expect($profile->user->name)->toBe('Nama Baru');
     expect($profile->user->whatsapp_number)->toBe('6281211112222');
