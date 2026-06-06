@@ -15,6 +15,18 @@
                     <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
                         {{ __('Dashboard') }}
                     </flux:sidebar.item>
+
+                    @can('update-own-alumni-profile')
+                        <flux:sidebar.item icon="identification" :href="route('alumni.profile')" :current="request()->routeIs('alumni.profile')" wire:navigate>
+                            {{ __('Profil Alumni') }}
+                        </flux:sidebar.item>
+                    @endcan
+
+                    @can('view-alumni-directory')
+                        <flux:sidebar.item icon="users" :href="route('alumni.directory.index')" :current="request()->routeIs('alumni.directory.*')" wire:navigate>
+                            {{ __('Direktori Alumni') }}
+                        </flux:sidebar.item>
+                    @endcan
                 </flux:sidebar.group>
 
                 @can('manage-alumni')
@@ -73,6 +85,18 @@
                     <flux:menu.separator />
 
                     <flux:menu.radio.group>
+                        @can('update-own-alumni-profile')
+                            <flux:menu.item :href="route('alumni.profile')" icon="identification" wire:navigate>
+                                {{ __('Profil Alumni') }}
+                            </flux:menu.item>
+                        @endcan
+
+                        @can('view-alumni-directory')
+                            <flux:menu.item :href="route('alumni.directory.index')" icon="users" wire:navigate>
+                                {{ __('Direktori Alumni') }}
+                            </flux:menu.item>
+                        @endcan
+
                         <flux:menu.item :href="route('profile.edit')" icon="cog" wire:navigate>
                             {{ __('Settings') }}
                         </flux:menu.item>

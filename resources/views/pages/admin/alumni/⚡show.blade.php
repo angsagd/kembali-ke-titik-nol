@@ -1,15 +1,121 @@
 <?php
 
 use App\Models\Alumni;
+use App\Models\User;
+use Flux\Flux;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Title('Detail Alumni')] class extends Component {
     public Alumni $alumni;
 
+    public string $full_name = '';
+
+    public ?string $nickname = null;
+
+    public ?string $student_number = null;
+
+    public ?string $email = null;
+
+    public string $whatsapp_number = '';
+
+    public string $alumni_status = 'active';
+
+    public string $rsvp_status = 'pending';
+
+    public ?string $company = null;
+
+    public ?string $job_title = null;
+
+    public ?string $special_notes = null;
+
+    public bool $is_profile_completed = false;
+
     public function mount(Alumni $alumni): void
     {
         $this->alumni = $alumni->load(['user.role']);
+        $this->fillForm();
+    }
+
+    public function fillForm(): void
+    {
+        $this->full_name = $this->alumni->full_name;
+        $this->nickname = $this->alumni->nickname;
+        $this->student_number = $this->alumni->student_number;
+        $this->email = $this->alumni->email;
+        $this->whatsapp_number = $this->alumni->user?->whatsapp_number ?? '';
+        $this->alumni_status = $this->alumni->alumni_status;
+        $this->rsvp_status = $this->alumni->rsvp_status;
+        $this->company = $this->alumni->company;
+        $this->job_title = $this->alumni->job_title;
+        $this->special_notes = $this->alumni->special_notes;
+        $this->is_profile_completed = $this->alumni->is_profile_completed;
+    }
+
+    /**
+     * Update the alumni profile and linked user account.
+     */
+    public function updateAlumni(): void
+    {
+        $this->whatsapp_number = User::normalizeWhatsappNumber($this->whatsapp_number) ?? '';
+
+        $validated = $this->validate([
+            'full_name' => ['required', 'string', 'max:150'],
+            'nickname' => ['nullable', 'string', 'max:100'],
+            'student_number' => [
+                'nullable',
+                'string',
+                'max:50',
+                Rule::unique(Alumni::class, 'student_number')->ignore($this->alumni),
+            ],
+            'email' => [
+                'nullable',
+                'string',
+                'email',
+                'max:150',
+                Rule::unique(User::class, 'email')->ignore($this->alumni->user),
+            ],
+            'whatsapp_number' => [
+                'required',
+                'string',
+                'max:30',
+                Rule::unique(User::class, 'whatsapp_number')->ignore($this->alumni->user),
+            ],
+            'alumni_status' => ['required', Rule::in(['active', 'deceased'])],
+            'rsvp_status' => ['required', Rule::in(['pending', 'attending', 'not_attending'])],
+            'company' => ['nullable', 'string', 'max:150'],
+            'job_title' => ['nullable', 'string', 'max:150'],
+            'special_notes' => ['nullable', 'string', 'max:5000'],
+            'is_profile_completed' => ['boolean'],
+        ]);
+
+        DB::transaction(function () use ($validated): void {
+            $this->alumni->update([
+                'full_name' => $validated['full_name'],
+                'nickname' => $validated['nickname'],
+                'student_number' => $validated['student_number'],
+                'email' => $validated['email'],
+                'alumni_status' => $validated['alumni_status'],
+                'rsvp_status' => $validated['rsvp_status'],
+                'company' => $validated['company'],
+                'job_title' => $validated['job_title'],
+                'special_notes' => $validated['special_notes'],
+                'is_profile_completed' => $validated['is_profile_completed'],
+            ]);
+
+            $this->alumni->user?->forceFill([
+                'name' => $validated['full_name'],
+                'whatsapp_number' => $validated['whatsapp_number'],
+                'email' => $validated['email'] ?: $this->alumni->user->email,
+            ])->save();
+        });
+
+        $this->alumni = $this->alumni->fresh(['user.role']);
+        $this->fillForm();
+
+        Flux::toast(variant: 'success', text: __('Data alumni diperbarui.'));
     }
 }; ?>
 
@@ -23,7 +129,7 @@ new #[Title('Detail Alumni')] class extends Component {
             <flux:text>{{ __('Detail data alumni dan akun yang terhubung.') }}</flux:text>
         </div>
 
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2">
             <flux:badge color="{{ $alumni->alumni_status === 'active' ? 'green' : 'zinc' }}">
                 {{ $alumni->alumni_status === 'active' ? __('Aktif') : __('Wafat') }}
             </flux:badge>
@@ -35,6 +141,50 @@ new #[Title('Detail Alumni')] class extends Component {
 
     <div class="grid gap-6 xl:grid-cols-[1fr_22rem]">
         <div class="space-y-6">
+            <form wire:submit="updateAlumni" class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <flux:heading size="lg">{{ __('Edit Data Inti') }}</flux:heading>
+                        <flux:text>{{ __('Perubahan di sini memperbarui profil alumni dan akun login yang terhubung.') }}</flux:text>
+                    </div>
+
+                    <flux:button type="submit" variant="primary" icon="check" wire:loading.attr="disabled">
+                        {{ __('Simpan') }}
+                    </flux:button>
+                </div>
+
+                <div class="mt-5 grid gap-5 lg:grid-cols-2">
+                    <flux:input wire:model="full_name" :label="__('Nama lengkap')" required />
+                    <flux:input wire:model="nickname" :label="__('Nama panggilan')" />
+                    <flux:input wire:model="student_number" :label="__('NIM')" />
+                    <flux:input wire:model="whatsapp_number" :label="__('Nomor WhatsApp')" type="tel" required />
+                    <flux:input wire:model="email" :label="__('Email')" type="email" />
+                    <flux:input wire:model="company" :label="__('Instansi / Perusahaan')" />
+                    <flux:input wire:model="job_title" :label="__('Jabatan / Pekerjaan')" />
+
+                    <flux:select wire:model="alumni_status" :label="__('Status alumni')">
+                        <flux:select.option value="active">{{ __('Aktif') }}</flux:select.option>
+                        <flux:select.option value="deceased">{{ __('Wafat') }}</flux:select.option>
+                    </flux:select>
+
+                    <flux:select wire:model="rsvp_status" :label="__('Status RSVP')">
+                        <flux:select.option value="pending">{{ __('Pending') }}</flux:select.option>
+                        <flux:select.option value="attending">{{ __('Hadir') }}</flux:select.option>
+                        <flux:select.option value="not_attending">{{ __('Tidak hadir') }}</flux:select.option>
+                    </flux:select>
+
+                    <flux:field>
+                        <flux:label>{{ __('Kelengkapan profil') }}</flux:label>
+                        <flux:checkbox wire:model="is_profile_completed" :label="__('Tandai profil sudah lengkap')" />
+                        <flux:error name="is_profile_completed" />
+                    </flux:field>
+                </div>
+
+                <div class="mt-5">
+                    <flux:textarea wire:model="special_notes" :label="__('Catatan admin')" rows="4" />
+                </div>
+            </form>
+
             <div class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
                 <flux:heading size="lg">{{ __('Identitas') }}</flux:heading>
 
@@ -54,6 +204,14 @@ new #[Title('Detail Alumni')] class extends Component {
                     <div>
                         <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Email') }}</dt>
                         <dd class="font-medium">{{ $alumni->email ?: '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Instansi / Perusahaan') }}</dt>
+                        <dd class="font-medium">{{ $alumni->company ?: '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Jabatan / Pekerjaan') }}</dt>
+                        <dd class="font-medium">{{ $alumni->job_title ?: '-' }}</dd>
                     </div>
                 </dl>
             </div>
@@ -111,6 +269,11 @@ new #[Title('Detail Alumni')] class extends Component {
                         default => __('Pending konfirmasi'),
                     } }}
                 </flux:text>
+            </div>
+
+            <div class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
+                <flux:heading size="lg">{{ __('Catatan Admin') }}</flux:heading>
+                <flux:text class="mt-2 whitespace-pre-line">{{ $alumni->special_notes ?: __('Belum ada catatan.') }}</flux:text>
             </div>
         </aside>
     </div>
