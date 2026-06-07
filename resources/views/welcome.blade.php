@@ -6,9 +6,11 @@
 
         <title>Kembali ke Titik Nol - {{ config('app.name', 'Geodesi 96') }}</title>
 
-        <link rel="icon" href="/favicon.ico" sizes="any">
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+        <link rel="icon" type="image/png" sizes="48x48" href="/images/icon/favicon48.png">
+        <link rel="icon" type="image/png" sizes="96x96" href="/images/icon/favicon96.png">
+        <link rel="icon" type="image/png" sizes="192x192" href="/images/icon/favicon192.png">
+        <link rel="apple-touch-icon" sizes="192x192" href="/images/icon/favicon192.png">
+        <link rel="manifest" href="/site.webmanifest">
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800|inter:400,500,600,700|jetbrains-mono:500,600&display=swap" rel="stylesheet" />
 
@@ -20,9 +22,7 @@
             <header class="fixed inset-x-0 top-0 z-50 border-b border-ktn-sage/20 bg-ktn-surface/85 backdrop-blur-xl">
                 <nav class="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-4 sm:px-6 lg:px-8">
                     <a href="#home" class="flex items-center gap-3">
-                        <span class="grid size-9 place-items-center rounded-lg border border-ktn-forest/20 bg-white text-ktn-forest">
-                            <span class="size-4 rounded-full border-2 border-ktn-forest outline outline-1 outline-offset-4 outline-ktn-forest/35"></span>
-                        </span>
+                        <img src="{{ asset('images/icon/favicon96.png') }}" alt="Logo Geodesi 96" class="size-9 rounded-lg border border-ktn-forest/20 bg-white object-contain p-1">
                         <span class="font-display text-lg font-extrabold tracking-tight text-ktn-forest">Geodesi 96</span>
                     </a>
 
@@ -31,6 +31,7 @@
                         <a class="font-mono text-xs font-semibold uppercase tracking-[0.22em] text-ktn-muted transition hover:text-ktn-forest" href="#rundown">Rundown</a>
                         <a class="font-mono text-xs font-semibold uppercase tracking-[0.22em] text-ktn-muted transition hover:text-ktn-forest" href="#galeri">Galeri</a>
                         <a class="font-mono text-xs font-semibold uppercase tracking-[0.22em] text-ktn-muted transition hover:text-ktn-forest" href="{{ route('public.gallery') }}">Publik</a>
+                        <a class="font-mono text-xs font-semibold uppercase tracking-[0.22em] text-ktn-muted transition hover:text-ktn-forest" href="#berita">Berita</a>
                         <a class="font-mono text-xs font-semibold uppercase tracking-[0.22em] text-ktn-muted transition hover:text-ktn-forest" href="#donatur">Donatur</a>
                     </div>
 
@@ -43,8 +44,9 @@
             </header>
 
             <main id="home" class="pt-[73px]">
-                <section class="relative bg-ktn-topo px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-                    <div class="topo-grid absolute inset-0 opacity-70"></div>
+                <section class="relative overflow-hidden bg-ktn-topo px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
+                    <div class="hero-kontur absolute inset-y-0 -left-10 -right-10 opacity-35 mix-blend-multiply"></div>
+                    <div class="absolute inset-0 bg-ktn-surface/45"></div>
                     <div class="absolute left-6 top-28 hidden rotate-[-8deg] rounded-lg border border-ktn-sage/30 bg-white/70 px-4 py-3 font-mono text-xs font-semibold uppercase tracking-[0.18em] text-ktn-sage shadow-sm lg:block">
                         X 0.000<br>Y 0.000
                     </div>
@@ -65,10 +67,10 @@
                             Ngalibrasi 30 Taon Paseduluran. Menghubungkan kenangan, menyatukan langkah, kembali ke kampus tercinta.
                         </p>
 
-                        <div class="mt-10 grid w-full max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-                            @foreach ([['79', 'Hari'], ['13', 'Jam'], ['32', 'Menit'], ['13', 'Detik']] as [$value, $label])
+                        <div class="mt-10 grid w-full max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4" data-countdown-target="2026-08-23T12:00:00+07:00" aria-label="Hitung mundur menuju 23 Agustus 2026 pukul 12.00 GMT+7">
+                            @foreach ([['days', 'Hari'], ['hours', 'Jam'], ['minutes', 'Menit'], ['seconds', 'Detik']] as [$unit, $label])
                                 <div class="rounded-xl border border-ktn-sage/20 bg-white p-5 shadow-sm">
-                                    <div class="font-display text-3xl font-extrabold text-ktn-forest sm:text-4xl">{{ $value }}</div>
+                                    <div class="font-display text-3xl font-extrabold text-ktn-forest sm:text-4xl tabular-nums" data-countdown-unit="{{ $unit }}">0</div>
                                     <div class="mt-2 font-mono text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-ktn-muted">{{ $label }}</div>
                                 </div>
                             @endforeach
@@ -249,8 +251,65 @@
                     </div>
                 </section>
 
-                <section id="donatur" class="scroll-mt-24 bg-white px-4 py-16 sm:px-6 lg:px-8">
+                <section id="berita" class="scroll-mt-24 bg-white px-4 py-16 sm:px-6 lg:px-8">
                     <div class="mx-auto max-w-7xl">
+                        @php
+                            $latestNewsItems = \App\Models\News::query()
+                                ->with('author')
+                                ->where('status', 'published')
+                                ->latest('published_at')
+                                ->limit(3)
+                                ->get();
+                        @endphp
+
+                        <div class="flex flex-col justify-between gap-5 text-center lg:flex-row lg:items-end lg:text-left">
+                            <div>
+                                <p class="font-mono text-xs font-semibold uppercase tracking-[0.22em] text-ktn-forest">Publikasi</p>
+                                <h2 class="mt-3 font-display text-3xl font-bold text-ktn-forest sm:text-4xl">Berita dan Pengumuman</h2>
+                                <p class="mt-3 max-w-2xl leading-7 text-ktn-muted">Informasi resmi panitia untuk persiapan, pelaksanaan, dan pasca kegiatan reuni.</p>
+                            </div>
+                            <a href="{{ route('news.index') }}" class="inline-flex items-center justify-center rounded-lg border border-ktn-forest px-5 py-3 text-sm font-bold text-ktn-forest transition hover:bg-ktn-forest hover:text-white">
+                                Lihat Semua Berita
+                            </a>
+                        </div>
+
+                        <div class="mt-10 grid gap-4 md:grid-cols-3">
+                            @forelse ($latestNewsItems as $news)
+                                <article class="rounded-xl border border-ktn-sage/20 bg-ktn-surface p-6">
+                                    <p class="font-mono text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-ktn-muted">
+                                        {{ $news->published_at?->translatedFormat('d F Y') }}
+                                    </p>
+                                    <h3 class="mt-3 font-display text-xl font-bold text-ktn-forest">{{ $news->title }}</h3>
+                                    <p class="mt-3 leading-7 text-ktn-muted">{{ $news->excerpt ?: str($news->content)->limit(130) }}</p>
+                                    <a href="{{ route('news.show', $news->slug) }}" class="mt-5 inline-flex font-mono text-xs font-semibold uppercase tracking-[0.18em] text-ktn-forest">
+                                        Baca Berita
+                                    </a>
+                                </article>
+                            @empty
+                                <div class="rounded-xl border border-ktn-sage/20 bg-ktn-surface p-8 text-center md:col-span-3">
+                                    <h3 class="font-display text-xl font-bold text-ktn-forest">Belum ada berita publik</h3>
+                                    <p class="mt-2 text-ktn-muted">Pengumuman resmi akan tampil setelah dipublikasikan panitia.</p>
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
+                </section>
+
+                <section id="donatur" class="scroll-mt-24 bg-white px-4 pb-16 sm:px-6 lg:px-8">
+                    <div class="mx-auto max-w-7xl">
+
+                        @php
+                            $publicDonations = \App\Models\Donation::query()
+                                ->with('alumni')
+                                ->where('publication_status', 'show_name')
+                                ->latest()
+                                ->limit(16)
+                                ->get();
+                            $anonymousDonorCount = \App\Models\Donation::query()
+                                ->where('publication_status', 'anonymous')
+                                ->count();
+                        @endphp
+
                         <div class="flex items-center gap-3">
                             <span class="text-ktn-gold">
                                 <svg class="size-6" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21s-7-4.35-7-10a4 4 0 0 1 7-2.65A4 4 0 0 1 19 11c0 5.65-7 10-7 10Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -260,10 +319,16 @@
                         <p class="mt-4 max-w-2xl leading-7 text-ktn-muted">Apresiasi setinggi-tingginya kepada rekan-rekan yang telah memberikan kontribusi untuk kelancaran acara ini.</p>
 
                         <div class="mt-10 grid gap-x-10 gap-y-3 border-t border-ktn-sage/20 pt-8 text-sm text-ktn-ink sm:grid-cols-2 lg:grid-cols-4">
-                            @foreach (['Ahmad Subandrio', 'Eko Prasetyo', 'Indah Permata', 'Mahendra', 'Budi Setiawan', 'Farah Nabila', 'Joko Susilo', 'Novianti', 'Citra Lestari', 'Guntur Pratama', 'Kartika Putri', 'Oki Ramadhan', 'Dedy Kurniawan', 'Hendra Wijaya', 'Luluk Wijaya', 'Puji Astuti'] as $donor)
-                                <span>{{ $donor }}</span>
-                            @endforeach
+                            @forelse ($publicDonations as $donation)
+                                <span>{{ $donation->alumni?->full_name }}</span>
+                            @empty
+                                <span class="text-ktn-muted sm:col-span-2 lg:col-span-4">Daftar donatur publik akan tampil setelah donasi tercatat.</span>
+                            @endforelse
                         </div>
+
+                        @if ($anonymousDonorCount > 0)
+                            <p class="mt-5 text-sm text-ktn-muted">{{ $anonymousDonorCount }} donatur memilih ditampilkan sebagai anonim.</p>
+                        @endif
 
                         <div class="mt-10 flex flex-col justify-between gap-5 rounded-xl bg-ktn-forest p-6 text-white sm:flex-row sm:items-center">
                             <div>

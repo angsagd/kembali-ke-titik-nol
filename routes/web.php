@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
 Route::livewire('galeri', 'pages::public.gallery')->name('public.gallery');
+Route::livewire('news', 'pages::news.index')->name('news.index');
+Route::livewire('news/{news:slug}', 'pages::news.show')->name('news.show');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('dashboard', 'pages::dashboard')->name('dashboard');
@@ -32,9 +34,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('documentation', 'pages::documentation.index')
         ->middleware('can:update-own-alumni-profile')
         ->name('documentation.index');
-
-    Route::livewire('news', 'pages::news.index')->name('news.index');
-    Route::livewire('news/{news:slug}', 'pages::news.show')->name('news.show');
 
     Route::livewire('whatsapp/analytics', 'pages::whatsapp.analytics')
         ->middleware('can:view-whatsapp-analytics')

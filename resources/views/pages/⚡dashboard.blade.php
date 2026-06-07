@@ -558,7 +558,7 @@ new #[Title('Dashboard')] class extends Component {
             <flux:heading size="lg">{{ __('Berita Terbaru') }}</flux:heading>
             @if ($this->latestNews)
                 <flux:text>{{ $this->latestNews->title }}</flux:text>
-                <flux:button variant="ghost" icon="arrow-right" :href="route('news.show', $this->latestNews)" wire:navigate>
+                <flux:button variant="ghost" icon="arrow-right" :href="route('news.show', $this->latestNews->slug)" wire:navigate>
                     {{ __('Baca') }}
                 </flux:button>
             @else

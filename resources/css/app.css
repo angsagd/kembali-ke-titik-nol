@@ -89,8 +89,33 @@ select:focus[data-flux-control] {
     background-size: 24px 24px;
 }
 
+.hero-kontur {
+    background-image: url('/images/brand/kontur.png');
+    background-position: 50% 50%;
+    background-repeat: repeat-x;
+    background-size: auto 115%;
+    animation: hero-kontur-drift 28s ease-in-out infinite alternate;
+    will-change: background-position;
+}
+
 .sticker-shadow {
     filter: drop-shadow(0 20px 24px rgb(23 63 37 / 0.12));
+}
+
+@keyframes hero-kontur-drift {
+    from {
+        background-position: 42% 50%;
+    }
+
+    to {
+        background-position: 58% 50%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hero-kontur {
+        animation: none;
+    }
 }
 
 /* \[:where(&)\]:size-4 {

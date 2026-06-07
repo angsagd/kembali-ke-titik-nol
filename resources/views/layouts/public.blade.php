@@ -6,9 +6,11 @@
 
         <title>{{ $title ?? config('app.name', 'Geodesi 96') }}</title>
 
-        <link rel="icon" href="/favicon.ico" sizes="any">
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+        <link rel="icon" type="image/png" sizes="48x48" href="/images/icon/favicon48.png">
+        <link rel="icon" type="image/png" sizes="96x96" href="/images/icon/favicon96.png">
+        <link rel="icon" type="image/png" sizes="192x192" href="/images/icon/favicon192.png">
+        <link rel="apple-touch-icon" sizes="192x192" href="/images/icon/favicon192.png">
+        <link rel="manifest" href="/site.webmanifest">
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800|inter:400,500,600,700|jetbrains-mono:500,600&display=swap" rel="stylesheet" />
 

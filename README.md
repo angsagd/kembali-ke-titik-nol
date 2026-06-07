@@ -4,8 +4,6 @@ Sistem Manajemen Reuni Alumni Teknik Geodesi UGM Angkatan 1996.
 
 Tema kegiatan: **Kembali ke Titik Nol** - Reuni Geodesi 96 untuk Ngalibrasi 30 Taon Paseduluran.
 
-Dokumen pedoman utama ada di [`specification/System Specification.md`](specification/System%20Specification.md).
-
 ## Stack
 
 - PHP 8.3
