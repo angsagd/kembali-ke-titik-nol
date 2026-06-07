@@ -27,3 +27,15 @@ test('it converts whatsapp export text into aggregate statistics without raw cha
     expect(collect($analysis['statistics'])->where('category', 'word_cloud')->pluck('label')->all())->toContain('geodesi');
     expect(json_encode($analysis['statistics']))->not->toContain('Selamat pagi geodesi');
 });
+
+test('it prefers month day year format used by the alumni whatsapp export', function () {
+    $contents = implode("\n", [
+        '2/6/16, 08:53 - Budi: Long weekend',
+        '5/8/22, 12:45 - Citra: Reuni',
+    ]);
+
+    $analysis = app(WhatsappChatAnalyzer::class)->analyze($contents);
+
+    expect($analysis['import_start_date'])->toBe('2016-02-06');
+    expect($analysis['import_end_date'])->toBe('2022-05-08');
+});

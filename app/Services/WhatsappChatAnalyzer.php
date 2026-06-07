@@ -28,7 +28,8 @@ class WhatsappChatAnalyzer
         $monthCounts = [];
         $hourCounts = [];
         $wordCounts = [];
-        $dates = [];
+        $startDate = null;
+        $endDate = null;
 
         foreach (preg_split('/\R/u', $contents) ?: [] as $line) {
             $message = $this->parseMessageLine($line);
@@ -42,7 +43,8 @@ class WhatsappChatAnalyzer
             $date = $message['date'];
 
             $participantCounts[$sender] = ($participantCounts[$sender] ?? 0) + 1;
-            $dates[] = $date;
+            $startDate = $startDate === null || $date->lt($startDate) ? $date : $startDate;
+            $endDate = $endDate === null || $date->gt($endDate) ? $date : $endDate;
 
             $yearKey = $date->format('Y');
             $monthKey = $date->format('Y-m');
@@ -75,11 +77,9 @@ class WhatsappChatAnalyzer
             ...$this->silentReaderStats(array_keys($participantCounts)),
         ];
 
-        usort($dates, fn (CarbonImmutable $a, CarbonImmutable $b): int => $a <=> $b);
-
         return [
-            'import_start_date' => $dates[0]?->toDateString() ?? null,
-            'import_end_date' => end($dates)?->toDateString() ?: null,
+            'import_start_date' => $startDate?->toDateString(),
+            'import_end_date' => $endDate?->toDateString(),
             'total_messages' => array_sum($participantCounts),
             'total_participants' => count($participantCounts),
             'statistics' => $statistics,
@@ -121,8 +121,8 @@ class WhatsappChatAnalyzer
     {
         $normalizedTime = str_replace('.', ':', $time).($ampm ? ' '.strtoupper($ampm) : '');
         $formats = $ampm
-            ? ['d/m/y h:i A', 'm/d/y h:i A', 'd/m/Y h:i A', 'm/d/Y h:i A']
-            : ['d/m/y H:i', 'm/d/y H:i', 'd/m/Y H:i', 'm/d/Y H:i', 'd/m/y H:i:s', 'm/d/y H:i:s', 'd/m/Y H:i:s', 'm/d/Y H:i:s'];
+            ? ['m/d/y h:i A', 'd/m/y h:i A', 'm/d/Y h:i A', 'd/m/Y h:i A']
+            : ['m/d/y H:i', 'd/m/y H:i', 'm/d/Y H:i', 'd/m/Y H:i', 'm/d/y H:i:s', 'd/m/y H:i:s', 'm/d/Y H:i:s', 'd/m/Y H:i:s'];
 
         foreach ($formats as $format) {
             try {
