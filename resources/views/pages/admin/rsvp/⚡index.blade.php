@@ -1,6 +1,9 @@
 <?php
 
 use App\Models\Alumni;
+use App\Models\ApplicationSetting;
+use App\Models\AuditLog;
+use Flux\Flux;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -16,6 +19,13 @@ new #[Title('Monitoring RSVP')] class extends Component {
 
     #[Url]
     public string $status = 'all';
+
+    public bool $public_rsvp_form_enabled = true;
+
+    public function mount(): void
+    {
+        $this->public_rsvp_form_enabled = ApplicationSetting::boolean(ApplicationSetting::PUBLIC_RSVP_FORM_ENABLED, true);
+    }
 
     public function updatedSearch(): void
     {
@@ -78,6 +88,23 @@ new #[Title('Monitoring RSVP')] class extends Component {
             ->paginate(15);
     }
 
+    public function togglePublicRsvpForm(): void
+    {
+        $oldValue = $this->public_rsvp_form_enabled;
+        $this->public_rsvp_form_enabled = ! $this->public_rsvp_form_enabled;
+
+        $setting = ApplicationSetting::setBoolean(ApplicationSetting::PUBLIC_RSVP_FORM_ENABLED, $this->public_rsvp_form_enabled);
+
+        AuditLog::record(
+            action: 'settings.public_rsvp_form_updated',
+            entity: $setting,
+            oldValues: ['enabled' => $oldValue],
+            newValues: ['enabled' => $this->public_rsvp_form_enabled],
+        );
+
+        Flux::toast(variant: 'success', text: __('Pengaturan form RSVP publik diperbarui.'));
+    }
+
     public function rsvpStatusLabel(?string $status): string
     {
         return match ($status) {
@@ -127,6 +154,32 @@ new #[Title('Monitoring RSVP')] class extends Component {
                     <flux:select.option value="attending">{{ __('Hadir') }}</flux:select.option>
                     <flux:select.option value="not_attending">{{ __('Tidak Hadir') }}</flux:select.option>
                 </flux:select>
+            </div>
+        </div>
+    </div>
+
+    <div class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div class="space-y-1">
+                <flux:heading size="lg">{{ __('Form RSVP Publik') }}</flux:heading>
+                <flux:text class="max-w-2xl">
+                    {{ __('Kontrol apakah alumni dapat mengisi atau mengedit data melalui halaman publik /rsvp tanpa login.') }}
+                </flux:text>
+            </div>
+
+            <div class="flex flex-col gap-3 sm:items-end">
+                <flux:badge color="{{ $public_rsvp_form_enabled ? 'green' : 'red' }}">
+                    {{ $public_rsvp_form_enabled ? __('Dibuka') : __('Ditutup') }}
+                </flux:badge>
+                <flux:button
+                    type="button"
+                    variant="{{ $public_rsvp_form_enabled ? 'danger' : 'primary' }}"
+                    icon="{{ $public_rsvp_form_enabled ? 'lock-closed' : 'lock-open' }}"
+                    wire:click="togglePublicRsvpForm"
+                    wire:loading.attr="disabled"
+                >
+                    {{ $public_rsvp_form_enabled ? __('Tutup Form Publik') : __('Buka Form Publik') }}
+                </flux:button>
             </div>
         </div>
     </div>

@@ -16,7 +16,10 @@ test('authenticated users can visit the dashboard', function () {
     $this->actingAs($user);
 
     $response = $this->get(route('dashboard'));
-    $response->assertOk();
+    $response
+        ->assertOk()
+        ->assertDontSee('class="dark"', false)
+        ->assertDontSee('Flux.applyAppearance', false);
 });
 
 test('alumni users see personal dashboard without donation amount', function () {

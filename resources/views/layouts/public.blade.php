@@ -15,7 +15,6 @@
         <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800|inter:400,500,600,700|jetbrains-mono:500,600&display=swap" rel="stylesheet" />
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
-        @fluxAppearance
     </head>
     <body class="bg-ktn-surface text-ktn-ink font-sans antialiased">
         {{ $slot }}

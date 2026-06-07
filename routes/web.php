@@ -4,6 +4,7 @@ use App\Http\Controllers\Reports\ExportController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
+Route::livewire('rsvp', 'pages::public.rsvp')->name('public.rsvp');
 Route::livewire('galeri', 'pages::public.gallery')->name('public.gallery');
 Route::livewire('news', 'pages::news.index')->name('news.index');
 Route::livewire('news/{news:slug}', 'pages::news.show')->name('news.show');

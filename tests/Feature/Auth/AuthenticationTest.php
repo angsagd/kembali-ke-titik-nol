@@ -7,7 +7,9 @@ test('login screen can be rendered', function () {
 
     $response
         ->assertOk()
-        ->assertSee('Nomor WhatsApp');
+        ->assertSee('Nomor WhatsApp')
+        ->assertDontSee('class="dark"', false)
+        ->assertDontSee('Flux.applyAppearance', false);
 });
 
 test('users can authenticate using the login screen', function () {
