@@ -44,6 +44,10 @@
                         <flux:sidebar.item icon="newspaper" :href="route('news.index')" :current="request()->routeIs('news.*')" wire:navigate>
                             {{ __('Berita') }}
                         </flux:sidebar.item>
+
+                        <flux:sidebar.item icon="chart-bar" :href="route('whatsapp.analytics')" :current="request()->routeIs('whatsapp.analytics')" wire:navigate>
+                            {{ __('WhatsApp Analytics') }}
+                        </flux:sidebar.item>
                     @endcan
 
                     @if (! auth()->user()->alumni()->exists())
@@ -83,6 +87,10 @@
 
                         <flux:sidebar.item icon="newspaper" :href="route('admin.news.index')" :current="request()->routeIs('admin.news.*')" wire:navigate>
                             {{ __('Berita') }}
+                        </flux:sidebar.item>
+
+                        <flux:sidebar.item icon="chat-bubble-left-right" :href="route('admin.whatsapp.index')" :current="request()->routeIs('admin.whatsapp.*')" wire:navigate>
+                            {{ __('WhatsApp Import') }}
                         </flux:sidebar.item>
 
                         @can('view-audit-logs')
@@ -165,6 +173,10 @@
                             <flux:menu.item :href="route('news.index')" icon="newspaper" wire:navigate>
                                 {{ __('Berita') }}
                             </flux:menu.item>
+
+                            <flux:menu.item :href="route('whatsapp.analytics')" icon="chart-bar" wire:navigate>
+                                {{ __('WhatsApp Analytics') }}
+                            </flux:menu.item>
                         @endcan
 
                         @if (! auth()->user()->alumni()->exists())
@@ -202,6 +214,10 @@
 
                             <flux:menu.item :href="route('admin.news.index')" icon="newspaper" wire:navigate>
                                 {{ __('Berita') }}
+                            </flux:menu.item>
+
+                            <flux:menu.item :href="route('admin.whatsapp.index')" icon="chat-bubble-left-right" wire:navigate>
+                                {{ __('WhatsApp Import') }}
                             </flux:menu.item>
 
                             @can('view-audit-logs')

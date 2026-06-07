@@ -77,6 +77,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Get WhatsApp chat imports uploaded by the user.
+     *
+     * @return HasMany<WhatsappImport, $this>
+     */
+    public function whatsappImports(): HasMany
+    {
+        return $this->hasMany(WhatsappImport::class, 'uploaded_by');
+    }
+
+    /**
      * Determine if the user has one of the given roles.
      *
      * @param  array<int, string>|string  $roles
@@ -110,6 +120,22 @@ class User extends Authenticatable
     public function canViewAuditLogs(): bool
     {
         return $this->hasRole('superadmin');
+    }
+
+    /**
+     * Determine if the user can import WhatsApp chat analytics.
+     */
+    public function canImportWhatsappAnalytics(): bool
+    {
+        return $this->canManageAlumni();
+    }
+
+    /**
+     * Determine if the user can view WhatsApp analytics.
+     */
+    public function canViewWhatsappAnalytics(): bool
+    {
+        return $this->canManageAlumni() || $this->alumni()->exists();
     }
 
     /**
