@@ -6,11 +6,22 @@ use Database\Seeders\AlumniContactSeeder;
 use Illuminate\Support\Facades\Schema;
 
 test('alumni contact seeder creates users and alumni profiles', function () {
-    $contacts = json_decode(
-        file_get_contents(base_path('specification/contacts.json')),
-        associative: true,
-        flags: JSON_THROW_ON_ERROR,
-    );
+    $contacts = [
+        [
+            'name' => 'Ade Chandra',
+            'wanumber' => '+62 812-3456-7890',
+            'nim' => 'D096001',
+        ],
+        [
+            'name' => 'Budi Santoso',
+            'wanumber' => '6281234567891',
+            'nim' => 'D096002',
+        ],
+    ];
+
+    $contactsPath = storage_path('framework/testing/contacts.json');
+    file_put_contents($contactsPath, json_encode($contacts, JSON_THROW_ON_ERROR));
+    config()->set('kembali-ke-titik-nol.contacts_path', $contactsPath);
 
     $this->seed(AlumniContactSeeder::class);
 

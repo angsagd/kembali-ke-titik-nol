@@ -19,8 +19,10 @@ class AlumniContactSeeder extends Seeder
             ['description' => 'Anggota alumni'],
         );
 
+        $contactsPath = (string) config('kembali-ke-titik-nol.contacts_path');
+
         $contacts = json_decode(
-            file_get_contents(base_path('specification/contacts.json')),
+            file_get_contents($contactsPath),
             associative: true,
             flags: JSON_THROW_ON_ERROR,
         );

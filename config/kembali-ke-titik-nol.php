@@ -7,4 +7,6 @@ return [
         'whatsapp_number' => env('KTN_SUPERADMIN_WHATSAPP', '620000000001'),
         'password' => env('KTN_SUPERADMIN_PASSWORD', 'tgd0001'),
     ],
+
+    'contacts_path' => env('KTN_CONTACTS_PATH', base_path('specification/contacts.json')),
 ];
