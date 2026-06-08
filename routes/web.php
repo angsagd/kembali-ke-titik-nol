@@ -32,6 +32,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('can:update-own-alumni-profile')
         ->name('alumni.finance');
 
+    Route::livewire('memory-book', 'pages::memory-book.index')
+        ->middleware('can:update-own-alumni-profile')
+        ->name('memory-book.index');
+    Route::livewire('memory-book/{alumni}', 'pages::memory-book.show')
+        ->middleware('can:update-own-alumni-profile')
+        ->name('memory-book.show');
+
     Route::livewire('documentation', 'pages::documentation.index')
         ->middleware('can:update-own-alumni-profile')
         ->name('documentation.index');

@@ -6,6 +6,7 @@ use App\Models\City;
 use App\Models\Country;
 use App\Models\Role;
 use App\Models\User;
+use Livewire\Livewire;
 
 test('guests are redirected from alumni distribution', function () {
     $this->get(route('alumni.distribution.index'))
@@ -28,7 +29,12 @@ test('users without alumni profile cannot access alumni distribution', function 
 test('alumni users can view distribution statistics', function () {
     $viewer = Alumni::factory()->create();
     $country = Country::factory()->create(['name' => 'Indonesia', 'code' => 'ID']);
-    $city = City::factory()->create(['country_id' => $country->id, 'name' => 'Yogyakarta']);
+    $city = City::factory()->create([
+        'country_id' => $country->id,
+        'name' => 'Yogyakarta',
+        'latitude' => -7.7956,
+        'longitude' => 110.3695,
+    ]);
 
     Alumni::factory()->create([
         'full_name' => 'Ade Chandra',
@@ -64,6 +70,12 @@ test('alumni users can view distribution statistics', function () {
         ->assertOk()
         ->assertSee('Persebaran Alumni')
         ->assertSee('Total alumni')
+        ->assertSee('Peta Persebaran')
+        ->assertSee('marker kota')
+        ->assertSee('Detail Lokasi')
+        ->assertSee('Koordinat: -7.7956, 110.3695')
+        ->assertSee('Ade Chandra')
+        ->assertSee('Budi Santoso')
         ->assertSee('Status RSVP')
         ->assertSee('Indonesia')
         ->assertSee('Yogyakarta')
@@ -72,6 +84,43 @@ test('alumni users can view distribution statistics', function () {
         ->assertSee('Titik Historis Teratas')
         ->assertSee('1996')
         ->assertSee('2001');
+});
+
+test('alumni users can select a city marker to view location alumni', function () {
+    $viewer = Alumni::factory()->create();
+    $country = Country::factory()->create(['name' => 'Indonesia', 'code' => 'ID']);
+    $yogyakarta = City::factory()->create([
+        'country_id' => $country->id,
+        'name' => 'Yogyakarta',
+        'latitude' => -7.7956,
+        'longitude' => 110.3695,
+    ]);
+    $jakarta = City::factory()->create([
+        'country_id' => $country->id,
+        'name' => 'Jakarta',
+        'latitude' => -6.2088,
+        'longitude' => 106.8456,
+    ]);
+
+    Alumni::factory()->create([
+        'full_name' => 'Ade Chandra',
+        'current_country_id' => $country->id,
+        'current_city_id' => $yogyakarta->id,
+    ]);
+    Alumni::factory()->create([
+        'full_name' => 'Citra Lestari',
+        'current_country_id' => $country->id,
+        'current_city_id' => $jakarta->id,
+    ]);
+
+    $this->actingAs($viewer->user);
+
+    Livewire::test('pages::alumni.distribution.index')
+        ->call('selectCity', $jakarta->id)
+        ->assertSet('selectedCityId', $jakarta->id)
+        ->assertSee('Jakarta')
+        ->assertSee('Citra Lestari')
+        ->assertDontSee('Ade Chandra');
 });
 
 test('administrator users can view distribution statistics', function () {

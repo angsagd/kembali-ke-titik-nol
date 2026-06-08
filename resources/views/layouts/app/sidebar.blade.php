@@ -37,6 +37,10 @@
                             {{ __('Pembayaran') }}
                         </flux:sidebar.item>
 
+                        <flux:sidebar.item icon="book-open" :href="route('memory-book.index')" :current="request()->routeIs('memory-book.*')" wire:navigate>
+                            {{ __('Buku Kenangan') }}
+                        </flux:sidebar.item>
+
                         <flux:sidebar.item icon="photo" :href="route('documentation.index')" :current="request()->routeIs('documentation.*')" wire:navigate>
                             {{ __('Dokumentasi') }}
                         </flux:sidebar.item>
@@ -164,6 +168,10 @@
 
                             <flux:menu.item :href="route('alumni.finance')" icon="banknotes" wire:navigate>
                                 {{ __('Pembayaran') }}
+                            </flux:menu.item>
+
+                            <flux:menu.item :href="route('memory-book.index')" icon="book-open" wire:navigate>
+                                {{ __('Buku Kenangan') }}
                             </flux:menu.item>
 
                             <flux:menu.item :href="route('documentation.index')" icon="photo" wire:navigate>

@@ -102,6 +102,21 @@ select:focus[data-flux-control] {
     filter: drop-shadow(0 20px 24px rgb(23 63 37 / 0.12));
 }
 
+.ktn-leaflet-marker {
+    display: grid;
+    place-items: center;
+    border: 2px solid;
+    border-radius: 9999px;
+    box-shadow: 0 10px 22px rgb(23 63 37 / 0.22);
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.leaflet-container {
+    font-family: var(--font-sans);
+}
+
 @keyframes hero-kontur-drift {
     from {
         background-position: 42% 50%;

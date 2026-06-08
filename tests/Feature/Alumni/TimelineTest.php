@@ -42,7 +42,12 @@ test('alumni users can view their timeline page', function () {
 test('alumni users can create update and delete their own timeline entries', function () {
     $profile = Alumni::factory()->create();
     $country = Country::factory()->create(['name' => 'Indonesia', 'code' => 'ID']);
-    $city = City::factory()->create(['country_id' => $country->id, 'name' => 'Yogyakarta']);
+    $city = City::factory()->create([
+        'country_id' => $country->id,
+        'name' => 'Yogyakarta',
+        'latitude' => -7.7956,
+        'longitude' => 110.3695,
+    ]);
 
     $this->actingAs($profile->user);
 
@@ -61,6 +66,8 @@ test('alumni users can create update and delete their own timeline entries', fun
     expect($timeline->month)->toBe(8);
     expect($timeline->city_id)->toBe($city->id);
     expect($timeline->country_id)->toBe($country->id);
+    expect((string) $timeline->latitude)->toBe('-7.7956000');
+    expect((string) $timeline->longitude)->toBe('110.3695000');
 
     Livewire::test('pages::alumni.timeline.index')
         ->call('editTimeline', $timeline->id)

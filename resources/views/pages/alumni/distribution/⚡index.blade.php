@@ -8,9 +8,13 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as SupportCollection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 new #[Title('Persebaran Alumni')] class extends Component {
+    #[Url(as: 'city')]
+    public int|string|null $selectedCityId = null;
+
     #[Computed]
     public function summary(): array
     {
@@ -56,6 +60,49 @@ new #[Title('Persebaran Alumni')] class extends Component {
             ->orderByDesc('alumni_count')
             ->orderBy('name')
             ->limit(20)
+            ->get();
+    }
+
+    #[Computed]
+    public function cityMarkers(): Collection
+    {
+        return City::query()
+            ->whereHas('alumni')
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->with(['country'])
+            ->withCount(['alumni as alumni_count'])
+            ->orderByDesc('alumni_count')
+            ->orderBy('name')
+            ->get();
+    }
+
+    #[Computed]
+    public function selectedCity(): ?City
+    {
+        if (! filled($this->selectedCityId)) {
+            return $this->cityMarkers->first();
+        }
+
+        return City::query()
+            ->whereKey($this->selectedCityId)
+            ->whereHas('alumni')
+            ->with(['country'])
+            ->withCount(['alumni as alumni_count'])
+            ->first();
+    }
+
+    #[Computed]
+    public function selectedCityAlumni(): Collection
+    {
+        if (! $this->selectedCity) {
+            return new Collection;
+        }
+
+        return Alumni::query()
+            ->where('current_city_id', $this->selectedCity->id)
+            ->with(['currentCountry'])
+            ->orderBy('full_name')
             ->get();
     }
 
@@ -109,6 +156,31 @@ new #[Title('Persebaran Alumni')] class extends Component {
 
         return (int) round(($count / $max) * 100);
     }
+
+    public function selectCity(int $cityId): void
+    {
+        $this->selectedCityId = $cityId;
+        unset($this->selectedCity, $this->selectedCityAlumni);
+    }
+
+    /**
+     * @return list<array{id: int, name: string, country: string, count: int, latitude: float, longitude: float, selected: bool}>
+     */
+    public function leafletMarkers(): array
+    {
+        return $this->cityMarkers
+            ->map(fn (City $city): array => [
+                'id' => $city->id,
+                'name' => $city->name,
+                'country' => $city->country?->name ?: __('Negara belum diisi'),
+                'count' => (int) $city->alumni_count,
+                'latitude' => (float) $city->latitude,
+                'longitude' => (float) $city->longitude,
+                'selected' => $this->selectedCity?->id === $city->id,
+            ])
+            ->values()
+            ->all();
+    }
 }; ?>
 
 <section class="w-full space-y-6 p-6 lg:p-8">
@@ -149,6 +221,72 @@ new #[Title('Persebaran Alumni')] class extends Component {
             <flux:text>{{ __('Catatan timeline') }}</flux:text>
             <div class="mt-2 text-3xl font-semibold tabular-nums">{{ $this->summary['timeline_entries'] }}</div>
             <flux:text class="mt-2">{{ __(':count alumni sudah mengisi', ['count' => $this->summary['timeline_alumni']]) }}</flux:text>
+        </div>
+    </div>
+
+    <div class="grid gap-6 xl:grid-cols-[1fr_24rem]">
+        <div class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <flux:heading size="lg">{{ __('Peta Persebaran') }}</flux:heading>
+                    <flux:text>{{ __('Marker kota berdasarkan koordinat master city dan jumlah alumni pada domisili saat ini.') }}</flux:text>
+                </div>
+                <flux:badge>{{ __(':count marker kota', ['count' => $this->cityMarkers->count()]) }}</flux:badge>
+            </div>
+
+            <div class="relative mt-5 aspect-[16/9] overflow-hidden rounded-lg border border-ktn-instrument bg-ktn-topo">
+                @if ($this->cityMarkers->isNotEmpty())
+                    <div
+                        wire:ignore
+                        data-leaflet-distribution-map
+                        data-markers='@json($this->leafletMarkers())'
+                        class="size-full"
+                    ></div>
+                @else
+                    <div class="absolute inset-0 flex items-center justify-center p-6 text-center">
+                        <flux:text>{{ __('Belum ada kota dengan koordinat dan alumni domisili.') }}</flux:text>
+                    </div>
+                @endif
+            </div>
+        </div>
+
+        <div class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <flux:heading size="lg">{{ __('Detail Lokasi') }}</flux:heading>
+                    <flux:text>{{ __('Klik marker kota untuk melihat alumni pada lokasi tersebut.') }}</flux:text>
+                </div>
+                @if ($this->selectedCity)
+                    <flux:badge>{{ $this->selectedCity->alumni_count }}</flux:badge>
+                @endif
+            </div>
+
+            @if ($this->selectedCity)
+                <div class="mt-5 space-y-4">
+                    <div class="rounded-md border border-zinc-200 p-4 dark:border-zinc-700">
+                        <div class="font-semibold">{{ $this->selectedCity->name }}</div>
+                        <flux:text>{{ $this->selectedCity->country?->name ?: __('Negara belum diisi') }}</flux:text>
+                        <flux:text class="mt-2">
+                            {{ __('Koordinat: :lat, :lng', ['lat' => $this->selectedCity->latitude, 'lng' => $this->selectedCity->longitude]) }}
+                        </flux:text>
+                    </div>
+
+                    <div class="grid gap-3">
+                        @foreach ($this->selectedCityAlumni as $profile)
+                            <a wire:key="city-alumni-{{ $profile->id }}" href="{{ route('alumni.directory.show', $profile) }}" wire:navigate class="rounded-md border border-zinc-200 p-3 transition hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800">
+                                <div class="font-medium">{{ $profile->full_name }}</div>
+                                <div class="text-sm text-zinc-500 dark:text-zinc-400">
+                                    {{ collect([$profile->company, $profile->job_title])->filter()->join(' / ') ?: __('Profil alumni') }}
+                                </div>
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+            @else
+                <div class="mt-5 rounded-md border border-dashed border-zinc-300 p-6 text-center dark:border-zinc-700">
+                    <flux:text>{{ __('Belum ada lokasi yang dapat ditampilkan.') }}</flux:text>
+                </div>
+            @endif
         </div>
     </div>
 

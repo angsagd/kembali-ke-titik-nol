@@ -83,8 +83,17 @@ new #[Title('Timeline Lokasi')] class extends Component {
             ? new AlumniTimeline(['alumni_id' => $this->alumni->id])
             : $this->alumni->timelines()->whereKey($this->editing_timeline_id)->firstOrFail();
 
+        $city = filled($validated['city_id'] ?? null)
+            ? City::query()->find($validated['city_id'])
+            : null;
+        $country = filled($validated['country_id'] ?? null)
+            ? Country::query()->find($validated['country_id'])
+            : null;
+
         $timeline->fill([
             ...$validated,
+            'latitude' => $city?->latitude ?? $country?->latitude,
+            'longitude' => $city?->longitude ?? $country?->longitude,
             'location_source' => 'geocoded',
         ])->save();
 
@@ -237,6 +246,11 @@ new #[Title('Timeline Lokasi')] class extends Component {
                                 <div class="text-sm text-zinc-600 dark:text-zinc-300">
                                     {{ collect([$timeline->city?->name, $timeline->country?->name])->filter()->join(', ') ?: __('Lokasi belum diisi') }}
                                 </div>
+                                @if ($timeline->latitude !== null && $timeline->longitude !== null)
+                                    <div class="text-xs text-zinc-500 dark:text-zinc-400">
+                                        {{ __('Koordinat: :lat, :lng', ['lat' => $timeline->latitude, 'lng' => $timeline->longitude]) }}
+                                    </div>
+                                @endif
                                 @if ($timeline->notes)
                                     <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ $timeline->notes }}</p>
                                 @endif
