@@ -2,6 +2,8 @@
 
 use App\Models\Alumni;
 use App\Models\Donation;
+use App\Models\MediaItem;
+use App\Models\News;
 use App\Models\Payment;
 use App\Models\Role;
 use App\Models\User;
@@ -61,8 +63,13 @@ test('administrator users see operational dashboard but not finance totals', fun
 
     Alumni::factory()->create(['rsvp_status' => 'attending']);
     Alumni::factory()->create(['rsvp_status' => 'not_attending']);
+    Alumni::factory()->create(['is_profile_completed' => true]);
     Donation::factory()->create(['amount' => 2500000]);
     Payment::factory()->create(['status' => 'pending_verification']);
+    MediaItem::factory()->photo()->create();
+    MediaItem::factory()->video()->create();
+    News::factory()->draft()->create();
+    News::factory()->published()->create();
 
     $this->actingAs($administrator)
         ->get(route('dashboard'))
@@ -72,6 +79,14 @@ test('administrator users see operational dashboard but not finance totals', fun
         ->assertSee('RSVP Hadir')
         ->assertSee('Pembayaran Menunggu')
         ->assertSee('Jumlah Donatur')
+        ->assertSee('Total Berita')
+        ->assertSee('Berita Draft')
+        ->assertSee('Berita Published')
+        ->assertSee('Analytics Operasional')
+        ->assertSee('Kehadiran')
+        ->assertSee('Pembayaran Lunas')
+        ->assertSee('Donatur')
+        ->assertSee('Dokumentasi')
         ->assertSee('Export Laporan Operasional')
         ->assertSee('Export Alumni')
         ->assertSee('Export RSVP')

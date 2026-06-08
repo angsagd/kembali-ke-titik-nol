@@ -125,6 +125,37 @@ new #[Title('Dashboard')] class extends Component {
     }
 
     /**
+     * @return array<string, int>
+     */
+    #[Computed]
+    public function newsStats(): array
+    {
+        return [
+            'total' => News::query()->count(),
+            'draft' => News::query()->where('status', 'draft')->count(),
+            'published' => News::query()->where('status', 'published')->count(),
+        ];
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    #[Computed]
+    public function operationalAnalytics(): array
+    {
+        $totalAlumni = $this->alumniStats['total'];
+        $totalDocumentation = $this->documentationStats['photos'] + $this->documentationStats['videos'];
+
+        return [
+            'rsvp_rate' => $this->percentage($this->rsvpStats['attending'], $totalAlumni),
+            'payment_rate' => $this->percentage($this->financeStats['paid'], $totalAlumni),
+            'profile_completion_rate' => $this->percentage($this->alumniStats['completed_profiles'], $totalAlumni),
+            'documentation_total' => $totalDocumentation,
+            'donor_rate' => $this->percentage($this->financeStats['donors'], $totalAlumni),
+        ];
+    }
+
+    /**
      * @return Collection<int, Payment>
      */
     #[Computed]
@@ -249,6 +280,15 @@ new #[Title('Dashboard')] class extends Component {
     public function money(int|float|null $amount): string
     {
         return 'Rp '.number_format((float) $amount, 0, ',', '.');
+    }
+
+    private function percentage(int|float $value, int|float $total): int
+    {
+        if ($total <= 0) {
+            return 0;
+        }
+
+        return (int) round(($value / $total) * 100);
     }
 }; ?>
 
@@ -416,6 +456,21 @@ new #[Title('Dashboard')] class extends Component {
                 </flux:card>
             </div>
 
+            <div class="grid gap-4 md:grid-cols-3">
+                <flux:card>
+                    <flux:text>{{ __('Total Berita') }}</flux:text>
+                    <div class="mt-2 text-3xl font-semibold tabular-nums">{{ $this->newsStats['total'] }}</div>
+                </flux:card>
+                <flux:card>
+                    <flux:text>{{ __('Berita Draft') }}</flux:text>
+                    <div class="mt-2 text-3xl font-semibold tabular-nums">{{ $this->newsStats['draft'] }}</div>
+                </flux:card>
+                <flux:card>
+                    <flux:text>{{ __('Berita Published') }}</flux:text>
+                    <div class="mt-2 text-3xl font-semibold tabular-nums">{{ $this->newsStats['published'] }}</div>
+                </flux:card>
+            </div>
+
             @if (! $this->canManageFinance())
                 <div class="grid gap-4 md:grid-cols-4">
                     <flux:card>
@@ -436,6 +491,32 @@ new #[Title('Dashboard')] class extends Component {
                     </flux:card>
                 </div>
             @endif
+
+            <flux:card class="space-y-4">
+                <flux:heading size="lg">{{ __('Analytics Operasional') }}</flux:heading>
+                <div class="grid gap-4 md:grid-cols-5">
+                    <div>
+                        <flux:text>{{ __('Kehadiran') }}</flux:text>
+                        <div class="mt-1 text-2xl font-semibold tabular-nums">{{ $this->operationalAnalytics['rsvp_rate'] }}%</div>
+                    </div>
+                    <div>
+                        <flux:text>{{ __('Pembayaran Lunas') }}</flux:text>
+                        <div class="mt-1 text-2xl font-semibold tabular-nums">{{ $this->operationalAnalytics['payment_rate'] }}%</div>
+                    </div>
+                    <div>
+                        <flux:text>{{ __('Donatur') }}</flux:text>
+                        <div class="mt-1 text-2xl font-semibold tabular-nums">{{ $this->operationalAnalytics['donor_rate'] }}%</div>
+                    </div>
+                    <div>
+                        <flux:text>{{ __('Profil Lengkap') }}</flux:text>
+                        <div class="mt-1 text-2xl font-semibold tabular-nums">{{ $this->operationalAnalytics['profile_completion_rate'] }}%</div>
+                    </div>
+                    <div>
+                        <flux:text>{{ __('Dokumentasi') }}</flux:text>
+                        <div class="mt-1 text-2xl font-semibold tabular-nums">{{ $this->operationalAnalytics['documentation_total'] }}</div>
+                    </div>
+                </div>
+            </flux:card>
 
             <flux:card class="space-y-4">
                 <flux:heading size="lg">{{ __('Export Laporan Operasional') }}</flux:heading>
