@@ -33,6 +33,8 @@ Tema kegiatan: **Kembali ke Titik Nol** - Reuni Geodesi 96 untuk Ngalibrasi 30 T
 - News/pengumuman.
 - Audit log dasar.
 - WhatsApp import/analytics dasar berbasis agregat, tanpa menampilkan raw chat.
+- Reporting/export CSV untuk alumni, RSVP, pembayaran, donasi, dan rooming.
+- Backup database dan readiness check go-live.
 
 ## Sumber Data dan Assets
 
@@ -107,6 +109,11 @@ Import WhatsApp menggunakan file export `.txt` tanpa media. Sistem hanya menyimp
 - silent reader
 - link poster
 - image poster
+- nocturnal chatter
+- work time chatter
+- weekend warrior
+- emoji champion
+- top topic
 - busiest year/month/hour
 - word cloud
 
@@ -138,26 +145,40 @@ Build frontend:
 npm run build
 ```
 
+Readiness check go-live:
+
+```bash
+php artisan readiness:check
+```
+
+Backup database:
+
+```bash
+php artisan backup:database
+```
+
 Status terakhir yang pernah diverifikasi:
 
 ```text
-143 tests, 521 assertions
+193 tests, full suite passing
 ```
+
+Panduan penggunaan ringkas tersedia di [`USER_GUIDE.md`](USER_GUIDE.md).
 
 ## Catatan Implementasi
 
 - Dokumentasi foto/video diimplementasikan sebagai `media_items` dan `media_item_tags`, bukan tabel terpisah `photos/videos`. Secara fungsi tetap mencakup tipe media, visibility, metadata, uploader, dan tagging.
 - RSVP saat ini disimpan sebagai `alumni.rsvp_status`, sesuai catatan spesifikasi yang memperbolehkan denormalized summary.
-- Upload foto sudah menyimpan metadata ukuran/dimensi, tetapi resize/compression aktual masih perlu ditambahkan.
-- News sudah memiliki admin management dan halaman authenticated; portal publik news perlu dirapikan bila ingin sepenuhnya mengikuti bagian Portal Informasi Publik.
-- Donatur di landing page masih perlu dihubungkan ke data `donations`.
+- Upload foto sudah menyimpan metadata ukuran/dimensi, tetapi resize/compression aktual masih dapat ditingkatkan.
+- News sudah memiliki admin management dan halaman publik.
+- Donatur publik di landing page sudah berasal dari data `donations`, tanpa menampilkan nominal.
 
 ## Roadmap Terdekat
 
 Rekomendasi urutan berikutnya:
 
-1. Rapikan public portal: news publik dan berita terbaru dari database di landing.
-2. Donatur publik dinamis dari `donations`.
-3. Documentation advanced: edit/delete milik sendiri, admin visibility, restore, permanent delete.
-4. Lengkapi kategori WhatsApp Analytics: nocturnal chatter, work time chatter, weekend warrior, emoji champion, top topic.
-5. Memory Book dan Memorial Alumni.
+1. UAT bersama panitia menggunakan [`USER_GUIDE.md`](USER_GUIDE.md).
+2. Review data alumni awal dan data RSVP/payment/donation aktual.
+3. Finalisasi konfigurasi production: domain, SSL, database, storage, scheduler, dan backup retention.
+4. Tingkatkan resize/compression foto bila diperlukan untuk efisiensi storage.
+5. Siapkan deployment production.
