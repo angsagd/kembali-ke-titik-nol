@@ -26,6 +26,24 @@ test('alumni users can view whatsapp analytics', function () {
         'value' => 20,
         'rank' => 1,
     ]);
+    foreach ([
+        'silent_reader' => 'Citra Rahma',
+        'link_poster' => 'Dodi',
+        'image_poster' => 'Eka',
+        'nocturnal_chatter' => 'Fajar',
+        'work_time_chatter' => 'Gita',
+        'weekend_warrior' => 'Hadi',
+        'emoji_champion' => 'Intan',
+        'top_topic' => 'reuni',
+    ] as $category => $label) {
+        WhatsappStatistic::factory()->create([
+            'whatsapp_import_id' => $whatsappImport->id,
+            'category' => $category,
+            'label' => $label,
+            'value' => 7,
+            'rank' => 1,
+        ]);
+    }
     WhatsappStatistic::factory()->create([
         'whatsapp_import_id' => $whatsappImport->id,
         'category' => 'word_cloud',
@@ -38,8 +56,17 @@ test('alumni users can view whatsapp analytics', function () {
         ->get(route('whatsapp.analytics'))
         ->assertOk()
         ->assertSee('WhatsApp Analytics')
+        ->assertSee('Hall of Fame')
+        ->assertSee('Statistik Grup')
+        ->assertSee('Topik Populer')
+        ->assertSee('Insight Historis')
         ->assertSee('Member Paling Aktif')
+        ->assertSee('Nocturnal Chatter')
+        ->assertSee('Work Time Chatter')
+        ->assertSee('Weekend Warrior')
+        ->assertSee('Emoji Champion')
         ->assertSee('Budi')
+        ->assertSee('reuni')
         ->assertSee('geodesi')
         ->assertDontSee('raw chat');
 });

@@ -25,7 +25,7 @@ new #[Title('WhatsApp Import')] class extends Component {
     public function saveImport(): void
     {
         $validated = $this->validate([
-            'chat_file' => ['required', 'file', 'max:10240'],
+            'chat_file' => ['required', 'file', 'mimes:txt', 'max:10240'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 

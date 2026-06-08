@@ -24,6 +24,10 @@ class WhatsappChatAnalyzer
         $participantCounts = [];
         $linkCounts = [];
         $imageCounts = [];
+        $nocturnalCounts = [];
+        $workTimeCounts = [];
+        $weekendCounts = [];
+        $emojiCounts = [];
         $yearCounts = [];
         $monthCounts = [];
         $hourCounts = [];
@@ -49,6 +53,7 @@ class WhatsappChatAnalyzer
             $yearKey = $date->format('Y');
             $monthKey = $date->format('Y-m');
             $hourKey = $date->format('H');
+            $hour = (int) $date->format('G');
             $yearCounts[$yearKey] = ($yearCounts[$yearKey] ?? 0) + 1;
             $monthCounts[$monthKey] = ($monthCounts[$monthKey] ?? 0) + 1;
             $hourCounts[$hourKey] = ($hourCounts[$hourKey] ?? 0) + 1;
@@ -61,6 +66,24 @@ class WhatsappChatAnalyzer
                 $imageCounts[$sender] = ($imageCounts[$sender] ?? 0) + 1;
             }
 
+            if ($hour >= 22 || $hour < 6) {
+                $nocturnalCounts[$sender] = ($nocturnalCounts[$sender] ?? 0) + 1;
+            }
+
+            if ($date->dayOfWeekIso <= 5 && $hour >= 9 && $hour < 18) {
+                $workTimeCounts[$sender] = ($workTimeCounts[$sender] ?? 0) + 1;
+            }
+
+            if ($date->isWeekend()) {
+                $weekendCounts[$sender] = ($weekendCounts[$sender] ?? 0) + 1;
+            }
+
+            $emojiCount = $this->emojiCount($body);
+
+            if ($emojiCount > 0) {
+                $emojiCounts[$sender] = ($emojiCounts[$sender] ?? 0) + $emojiCount;
+            }
+
             foreach ($this->words($body) as $word) {
                 $wordCounts[$word] = ($wordCounts[$word] ?? 0) + 1;
             }
@@ -70,9 +93,14 @@ class WhatsappChatAnalyzer
             ...$this->rankedParticipantStats('active_member', $participantCounts),
             ...$this->rankedParticipantStats('link_poster', $linkCounts),
             ...$this->rankedParticipantStats('image_poster', $imageCounts),
+            ...$this->rankedParticipantStats('nocturnal_chatter', $nocturnalCounts),
+            ...$this->rankedParticipantStats('work_time_chatter', $workTimeCounts),
+            ...$this->rankedParticipantStats('weekend_warrior', $weekendCounts),
+            ...$this->rankedParticipantStats('emoji_champion', $emojiCounts),
             ...$this->rankedLabelStats('busiest_year', $yearCounts, 5),
             ...$this->rankedLabelStats('busiest_month', $monthCounts, 12),
             ...$this->rankedLabelStats('busiest_hour', $hourCounts, 24),
+            ...$this->rankedLabelStats('top_topic', $wordCounts, 10),
             ...$this->rankedLabelStats('word_cloud', $wordCounts, 30),
             ...$this->silentReaderStats(array_keys($participantCounts)),
         ];
@@ -133,6 +161,13 @@ class WhatsappChatAnalyzer
         }
 
         return null;
+    }
+
+    private function emojiCount(string $body): int
+    {
+        preg_match_all('/[\x{1F000}-\x{1FAFF}\x{2600}-\x{27BF}]/u', $body, $matches);
+
+        return count($matches[0] ?? []);
     }
 
     /**

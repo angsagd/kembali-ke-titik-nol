@@ -48,6 +48,10 @@ test('administrator users can upload and process whatsapp export', function () {
         '01/01/2026, 08:00 - Budi: Selamat pagi geodesi',
         '01/01/2026, 08:05 - Citra: Info reuni https://example.test',
         '01/01/2026, 09:00 - Budi: Foto <Media omitted>',
+        '01/01/2026, 23:30 - Budi: Malam nostalgia geodesi 😄😄',
+        '01/02/2026, 10:00 - Citra: Kerja sambil bahas reuni',
+        '01/03/2026, 11:00 - Budi: Weekend kumpul geodesi 😄',
+        '01/03/2026, 11:30 - Dodi: Hadir reuni',
     ]));
 
     $this->actingAs($administrator);
@@ -68,9 +72,33 @@ test('administrator users can upload and process whatsapp export', function () {
     $whatsappImport->refresh();
 
     expect($whatsappImport->status)->toBe('completed');
-    expect($whatsappImport->total_messages)->toBe(3);
-    expect($whatsappImport->total_participants)->toBe(2);
+    expect($whatsappImport->total_messages)->toBe(7);
+    expect($whatsappImport->total_participants)->toBe(3);
     expect(WhatsappStatistic::query()->where('category', 'active_member')->exists())->toBeTrue();
+    expect(WhatsappStatistic::query()->where('category', 'link_poster')->exists())->toBeTrue();
+    expect(WhatsappStatistic::query()->where('category', 'image_poster')->exists())->toBeTrue();
+    expect(WhatsappStatistic::query()->where('category', 'nocturnal_chatter')->exists())->toBeTrue();
+    expect(WhatsappStatistic::query()->where('category', 'work_time_chatter')->exists())->toBeTrue();
+    expect(WhatsappStatistic::query()->where('category', 'weekend_warrior')->exists())->toBeTrue();
+    expect(WhatsappStatistic::query()->where('category', 'emoji_champion')->exists())->toBeTrue();
+    expect(WhatsappStatistic::query()->where('category', 'top_topic')->exists())->toBeTrue();
     expect(WhatsappStatistic::query()->where('category', 'word_cloud')->exists())->toBeTrue();
     expect(AuditLog::query()->where('action', 'whatsapp_import.processed')->exists())->toBeTrue();
+});
+
+test('administrator users can only upload whatsapp text export files', function () {
+    Storage::fake('local');
+
+    $administratorRole = Role::factory()->create([
+        'name' => 'administrator',
+        'description' => 'Administrator sistem',
+    ]);
+    $administrator = User::factory()->create(['role_id' => $administratorRole->id]);
+
+    $this->actingAs($administrator);
+
+    Livewire::test('pages::admin.whatsapp.index')
+        ->set('chat_file', File::createWithContent('chat.csv', 'not a whatsapp text export'))
+        ->call('saveImport')
+        ->assertHasErrors(['chat_file']);
 });
