@@ -72,6 +72,10 @@ test('administrator users see operational dashboard but not finance totals', fun
         ->assertSee('RSVP Hadir')
         ->assertSee('Pembayaran Menunggu')
         ->assertSee('Jumlah Donatur')
+        ->assertSee('Export Laporan Operasional')
+        ->assertSee('Export Alumni')
+        ->assertSee('Export RSVP')
+        ->assertSee('Export Rooming')
         ->assertDontSee('Total Dana Terkumpul')
         ->assertDontSee('2.500.000');
 });
@@ -102,6 +106,9 @@ test('bendahara users see finance dashboard', function () {
         ->assertSee('Dashboard Bendahara')
         ->assertSee('Total Dana Terkumpul')
         ->assertSee('Rp 3.500.000')
+        ->assertSee('Export Laporan Keuangan')
+        ->assertSee('Export Pembayaran')
+        ->assertSee('Export Donasi')
         ->assertSee('Monitoring Pembayaran')
         ->assertSee('Monitoring Donasi');
 });

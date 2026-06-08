@@ -12,6 +12,53 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ExportController extends Controller
 {
+    public function alumni(): StreamedResponse
+    {
+        return $this->csv('alumni-export.csv', [
+            'Nama',
+            'NIM',
+            'Nama Panggilan',
+            'WhatsApp',
+            'Email',
+            'Kota',
+            'Negara',
+            'Perusahaan',
+            'Jabatan',
+            'Status Alumni',
+            'Status RSVP',
+            'Status Pembayaran',
+            'Status Donasi',
+            'Kamar',
+            'Profil Lengkap',
+            'Terakhir Diperbarui',
+        ], function (): void {
+            Alumni::query()
+                ->with(['user', 'currentCity', 'currentCountry', 'payment', 'donation', 'roomAssignment.room'])
+                ->orderBy('full_name')
+                ->lazy()
+                ->each(function (Alumni $alumni): void {
+                    $this->writeCsvRow([
+                        $alumni->full_name,
+                        $alumni->student_number,
+                        $alumni->nickname,
+                        $alumni->user?->whatsapp_number,
+                        $alumni->email,
+                        $alumni->currentCity?->name,
+                        $alumni->currentCountry?->name,
+                        $alumni->company,
+                        $alumni->job_title,
+                        $this->alumniStatusLabel($alumni->alumni_status),
+                        $this->rsvpStatusLabel($alumni->rsvp_status),
+                        $this->paymentStatusLabel($alumni->payment?->status),
+                        $this->donationStatusLabel($alumni->donation !== null),
+                        $alumni->roomAssignment?->room?->room_name,
+                        $alumni->is_profile_completed ? 'Ya' : 'Tidak',
+                        $alumni->updated_at?->toDateTimeString(),
+                    ]);
+                });
+        });
+    }
+
     public function rsvp(): StreamedResponse
     {
         return $this->csv('rsvp-export.csv', [
@@ -184,6 +231,13 @@ class ExportController extends Controller
         };
     }
 
+    private function alumniStatusLabel(?string $status): string
+    {
+        return $status === 'deceased'
+            ? 'Meninggal'
+            : 'Aktif';
+    }
+
     private function paymentStatusLabel(?string $status): string
     {
         return match ($status) {
@@ -191,6 +245,11 @@ class ExportController extends Controller
             'pending_verification' => 'Menunggu Verifikasi',
             default => 'Belum Bayar',
         };
+    }
+
+    private function donationStatusLabel(bool $hasDonation): string
+    {
+        return $hasDonation ? 'Ada Donasi' : 'Belum Ada';
     }
 
     private function donationPublicationLabel(?string $status): string

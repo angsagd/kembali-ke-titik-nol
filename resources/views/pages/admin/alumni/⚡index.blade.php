@@ -69,19 +69,27 @@ new #[Title('Manajemen Alumni')] class extends Component {
             </flux:text>
         </div>
 
-        <div class="grid gap-3 sm:grid-cols-[minmax(16rem,1fr)_12rem] lg:w-[34rem]">
-            <flux:input
-                wire:model.live.debounce.300ms="search"
-                icon="magnifying-glass"
-                :label="__('Cari alumni')"
-                :placeholder="__('Nama, NIM, WhatsApp')"
-            />
+        <div class="grid gap-3 lg:w-[34rem]">
+            <div class="flex justify-end">
+                <flux:button icon="arrow-down-tray" variant="primary" :href="route('reports.alumni.export')">
+                    {{ __('Export Alumni') }}
+                </flux:button>
+            </div>
 
-            <flux:select wire:model.live="status" :label="__('Status')">
-                <flux:select.option value="all">{{ __('Semua') }}</flux:select.option>
-                <flux:select.option value="active">{{ __('Aktif') }}</flux:select.option>
-                <flux:select.option value="deceased">{{ __('Wafat') }}</flux:select.option>
-            </flux:select>
+            <div class="grid gap-3 sm:grid-cols-[minmax(16rem,1fr)_12rem]">
+                <flux:input
+                    wire:model.live.debounce.300ms="search"
+                    icon="magnifying-glass"
+                    :label="__('Cari alumni')"
+                    :placeholder="__('Nama, NIM, WhatsApp')"
+                />
+
+                <flux:select wire:model.live="status" :label="__('Status')">
+                    <flux:select.option value="all">{{ __('Semua') }}</flux:select.option>
+                    <flux:select.option value="active">{{ __('Aktif') }}</flux:select.option>
+                    <flux:select.option value="deceased">{{ __('Wafat') }}</flux:select.option>
+                </flux:select>
+            </div>
         </div>
     </div>
 

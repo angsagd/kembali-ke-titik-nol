@@ -436,6 +436,24 @@ new #[Title('Dashboard')] class extends Component {
                     </flux:card>
                 </div>
             @endif
+
+            <flux:card class="space-y-4">
+                <flux:heading size="lg">{{ __('Export Laporan Operasional') }}</flux:heading>
+                <div class="flex flex-wrap gap-3">
+                    <flux:button icon="arrow-down-tray" variant="ghost" :href="route('reports.alumni.export')">
+                        {{ __('Export Alumni') }}
+                    </flux:button>
+                    <flux:button icon="arrow-down-tray" variant="ghost" :href="route('reports.rsvp.export')">
+                        {{ __('Export RSVP') }}
+                    </flux:button>
+                    <flux:button icon="arrow-down-tray" variant="ghost" :href="route('reports.rooming.export')">
+                        {{ __('Export Rooming') }}
+                    </flux:button>
+                    <flux:button icon="printer" variant="ghost" :href="route('reports.rooming.print')" target="_blank">
+                        {{ __('Cetak Rooming') }}
+                    </flux:button>
+                </div>
+            </flux:card>
         </div>
     @endif
 
@@ -479,6 +497,18 @@ new #[Title('Dashboard')] class extends Component {
                     <div class="mt-2 text-2xl font-semibold tabular-nums">{{ $this->money($this->financeStats['total_amount']) }}</div>
                 </flux:card>
             </div>
+
+            <flux:card class="space-y-4">
+                <flux:heading size="lg">{{ __('Export Laporan Keuangan') }}</flux:heading>
+                <div class="flex flex-wrap gap-3">
+                    <flux:button icon="arrow-down-tray" variant="ghost" :href="route('reports.payments.export')">
+                        {{ __('Export Pembayaran') }}
+                    </flux:button>
+                    <flux:button icon="arrow-down-tray" variant="primary" :href="route('reports.donations.export')">
+                        {{ __('Export Donasi') }}
+                    </flux:button>
+                </div>
+            </flux:card>
 
             <div class="grid gap-4 xl:grid-cols-2">
                 <flux:card class="space-y-4">

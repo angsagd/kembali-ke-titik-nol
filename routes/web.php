@@ -66,6 +66,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::livewire('admin/whatsapp', 'pages::admin.whatsapp.index')
             ->middleware('can:import-whatsapp-analytics')
             ->name('admin.whatsapp.index');
+        Route::get('reports/alumni/export', [ExportController::class, 'alumni'])->name('reports.alumni.export');
         Route::get('reports/rsvp/export', [ExportController::class, 'rsvp'])->name('reports.rsvp.export');
         Route::get('reports/rooming/export', [ExportController::class, 'rooming'])->name('reports.rooming.export');
         Route::get('reports/rooming/print', [ExportController::class, 'roomingPrint'])->name('reports.rooming.print');
