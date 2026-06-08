@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
@@ -35,19 +36,45 @@ new #[Title('Dokumentasi')] class extends Component {
     /** @var array<int, int|string> */
     public array $tagged_alumni_ids = [];
 
+    #[Url]
+    public string $view = 'all';
+
     public function mount(): void
     {
         $this->year = (int) now()->year;
     }
 
     #[Computed]
+    public function currentAlumni(): Alumni
+    {
+        return Auth::user()->alumni()->firstOrFail();
+    }
+
+    #[Computed]
     public function mediaItems(): Collection
     {
+        $alumni = $this->currentAlumni;
+
         return MediaItem::query()
             ->with(['uploader', 'taggedAlumni'])
+            ->when($this->view === 'uploaded', function ($query) use ($alumni): void {
+                $query->where('uploaded_by_alumni_id', $alumni->id);
+            })
+            ->when($this->view === 'tagged', function ($query) use ($alumni): void {
+                $query->whereHas('taggedAlumni', fn ($query) => $query->whereKey($alumni->id));
+            })
             ->latest()
             ->limit(24)
             ->get();
+    }
+
+    public function updatedView(): void
+    {
+        if (! in_array($this->view, ['all', 'uploaded', 'tagged'], true)) {
+            $this->view = 'all';
+        }
+
+        unset($this->mediaItems);
     }
 
     #[Computed]
@@ -146,6 +173,28 @@ new #[Title('Dokumentasi')] class extends Component {
         Flux::toast(variant: 'success', text: __('Dokumentasi disimpan.'));
     }
 
+    public function deleteMedia(int $mediaItemId): void
+    {
+        $mediaItem = MediaItem::query()
+            ->whereKey($mediaItemId)
+            ->firstOrFail();
+
+        abort_unless($mediaItem->uploaded_by_alumni_id === $this->currentAlumni->id, 403);
+
+        $oldValues = $mediaItem->only(['title', 'visibility', 'uploaded_by_alumni_id']);
+        $mediaItem->delete();
+
+        AuditLog::record(
+            action: 'media.deleted',
+            entity: $mediaItem,
+            oldValues: $oldValues,
+        );
+
+        unset($this->mediaItems);
+
+        Flux::toast(variant: 'success', text: __('Dokumentasi dipindahkan ke arsip.'));
+    }
+
     public function typeLabel(string $type): string
     {
         return $type === 'video' ? __('Video') : __('Foto');
@@ -173,6 +222,15 @@ new #[Title('Dokumentasi')] class extends Component {
         }
 
         return number_format($fileSize / 1024, 0, ',', '.').' KB';
+    }
+
+    public function viewLabel(): string
+    {
+        return match ($this->view) {
+            'uploaded' => __('Unggahan Saya'),
+            'tagged' => __('Tag Saya'),
+            default => __('Semua Dokumentasi'),
+        };
     }
 
     private function videoProvider(string $videoUrl): string
@@ -273,7 +331,24 @@ new #[Title('Dokumentasi')] class extends Component {
         </form>
 
         <div class="space-y-4">
-            <flux:heading size="lg">{{ __('Galeri Terbaru') }}</flux:heading>
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <flux:heading size="lg">{{ $this->viewLabel() }}</flux:heading>
+                    <flux:text>{{ __('Galeri privat alumni untuk arsip foto dan video angkatan.') }}</flux:text>
+                </div>
+
+                <div class="flex flex-wrap gap-2">
+                    <flux:button size="sm" variant="{{ $view === 'all' ? 'primary' : 'ghost' }}" wire:click="$set('view', 'all')">
+                        {{ __('Semua') }}
+                    </flux:button>
+                    <flux:button size="sm" variant="{{ $view === 'uploaded' ? 'primary' : 'ghost' }}" wire:click="$set('view', 'uploaded')">
+                        {{ __('Unggahan Saya') }}
+                    </flux:button>
+                    <flux:button size="sm" variant="{{ $view === 'tagged' ? 'primary' : 'ghost' }}" wire:click="$set('view', 'tagged')">
+                        {{ __('Tag Saya') }}
+                    </flux:button>
+                </div>
+            </div>
 
             <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 @forelse ($this->mediaItems as $mediaItem)
@@ -314,6 +389,18 @@ new #[Title('Dokumentasi')] class extends Component {
                             @endif
                             @if ($mediaItem->taggedAlumni->isNotEmpty())
                                 <flux:text>{{ __('Tag: :names', ['names' => $mediaItem->taggedAlumni->pluck('full_name')->join(', ')]) }}</flux:text>
+                            @endif
+                        </div>
+
+                        <div class="mt-4 flex flex-wrap gap-2">
+                            <flux:button size="sm" variant="primary" icon="eye" :href="route('documentation.show', $mediaItem)" wire:navigate>
+                                {{ __('Detail') }}
+                            </flux:button>
+
+                            @if ($mediaItem->uploaded_by_alumni_id === $this->currentAlumni->id)
+                                <flux:button size="sm" variant="danger" icon="trash" wire:click="deleteMedia({{ $mediaItem->id }})" wire:confirm="{{ __('Pindahkan dokumentasi ini ke arsip?') }}">
+                                    {{ __('Arsipkan') }}
+                                </flux:button>
                             @endif
                         </div>
                     </div>

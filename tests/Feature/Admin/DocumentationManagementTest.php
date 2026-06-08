@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Alumni;
+use App\Models\AuditLog;
 use App\Models\MediaItem;
 use App\Models\Role;
 use App\Models\User;
@@ -93,4 +94,67 @@ test('administrator users can search documentation by uploader', function () {
         ->set('search', 'Ade')
         ->assertSee('Foto Ade')
         ->assertDontSee('Foto Budi');
+});
+
+test('administrator users can view archived documentation', function () {
+    $administratorRole = Role::factory()->create([
+        'name' => 'administrator',
+        'description' => 'Administrator sistem',
+    ]);
+    $administrator = User::factory()->create(['role_id' => $administratorRole->id]);
+
+    $activeMedia = MediaItem::factory()->photo()->create(['title' => 'Foto Aktif']);
+    $archivedMedia = MediaItem::factory()->photo()->create(['title' => 'Foto Arsip']);
+    $archivedMedia->delete();
+
+    $this->actingAs($administrator);
+
+    Livewire::test('pages::admin.documentation.index')
+        ->assertSee('Foto Aktif')
+        ->assertDontSee('Foto Arsip')
+        ->set('status', 'archived')
+        ->assertSee('Foto Arsip')
+        ->assertDontSee('Foto Aktif')
+        ->assertSee('Diarsipkan');
+});
+
+test('administrator users can restore archived documentation', function () {
+    $administratorRole = Role::factory()->create([
+        'name' => 'administrator',
+        'description' => 'Administrator sistem',
+    ]);
+    $administrator = User::factory()->create(['role_id' => $administratorRole->id]);
+    $mediaItem = MediaItem::factory()->photo()->create(['title' => 'Foto Arsip']);
+    $mediaItem->delete();
+
+    $this->actingAs($administrator);
+
+    Livewire::test('pages::admin.documentation.index')
+        ->set('status', 'archived')
+        ->call('restoreMedia', $mediaItem->id)
+        ->assertHasNoErrors();
+
+    expect(MediaItem::query()->find($mediaItem->id))->not->toBeNull();
+    expect(AuditLog::query()->where('action', 'media.restored')->exists())->toBeTrue();
+});
+
+test('administrator users can update documentation visibility', function () {
+    $administratorRole = Role::factory()->create([
+        'name' => 'administrator',
+        'description' => 'Administrator sistem',
+    ]);
+    $administrator = User::factory()->create(['role_id' => $administratorRole->id]);
+    $mediaItem = MediaItem::factory()->photo()->create([
+        'title' => 'Foto Internal',
+        'visibility' => 'internal',
+    ]);
+
+    $this->actingAs($administrator);
+
+    Livewire::test('pages::admin.documentation.index')
+        ->call('setVisibility', $mediaItem->id, 'public')
+        ->assertHasNoErrors();
+
+    expect($mediaItem->fresh()->visibility)->toBe('public');
+    expect(AuditLog::query()->where('action', 'media.visibility_updated')->exists())->toBeTrue();
 });

@@ -8,6 +8,7 @@ test('login screen can be rendered', function () {
     $response
         ->assertOk()
         ->assertSee('Nomor WhatsApp')
+        ->assertSee('hero-kontur')
         ->assertDontSee('class="dark"', false)
         ->assertDontSee('Flux.applyAppearance', false);
 });

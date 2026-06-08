@@ -90,7 +90,7 @@ select:focus[data-flux-control] {
 }
 
 .hero-kontur {
-    background-image: url('/images/brand/kontur.png');
+    background-image: url('../images/brand/kontur.png');
     background-position: 50% 50%;
     background-repeat: repeat-x;
     background-size: auto 115%;

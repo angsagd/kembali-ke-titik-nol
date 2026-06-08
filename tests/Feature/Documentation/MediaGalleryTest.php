@@ -42,6 +42,37 @@ test('alumni users can view documentation gallery', function () {
         ->assertSee('Simpan Dokumentasi');
 });
 
+test('alumni users can filter uploaded and tagged documentation', function () {
+    $profile = Alumni::factory()->create(['full_name' => 'Ade Chandra']);
+    $other = Alumni::factory()->create(['full_name' => 'Budi Santoso']);
+
+    MediaItem::factory()->photo()->create([
+        'uploaded_by_alumni_id' => $profile->id,
+        'title' => 'Foto Unggahan Saya',
+    ]);
+
+    $taggedMedia = MediaItem::factory()->photo()->create([
+        'uploaded_by_alumni_id' => $other->id,
+        'title' => 'Foto Tag Saya',
+    ]);
+    $taggedMedia->taggedAlumni()->attach($profile->id, ['tagged_by_alumni_id' => $other->id]);
+
+    MediaItem::factory()->photo()->create([
+        'uploaded_by_alumni_id' => $other->id,
+        'title' => 'Foto Orang Lain',
+    ]);
+
+    $this->actingAs($profile->user);
+
+    Livewire::test('pages::documentation.index')
+        ->set('view', 'uploaded')
+        ->assertSee('Foto Unggahan Saya')
+        ->assertDontSee('Foto Tag Saya')
+        ->set('view', 'tagged')
+        ->assertSee('Foto Tag Saya')
+        ->assertDontSee('Foto Orang Lain');
+});
+
 test('alumni users can upload photo documentation', function () {
     Storage::fake('public');
 
@@ -118,4 +149,72 @@ test('photo documentation requires a photo file', function () {
         ->set('year', 2026)
         ->call('saveMedia')
         ->assertHasErrors(['photo' => ['required']]);
+});
+
+test('alumni users can view and update their documentation detail', function () {
+    $profile = Alumni::factory()->create(['full_name' => 'Ade Chandra']);
+    $tagged = Alumni::factory()->create(['full_name' => 'Budi Santoso']);
+    $mediaItem = MediaItem::factory()->photo()->create([
+        'uploaded_by_alumni_id' => $profile->id,
+        'title' => 'Foto Lama',
+        'visibility' => 'internal',
+    ]);
+
+    $this->actingAs($profile->user)
+        ->get(route('documentation.show', $mediaItem))
+        ->assertOk()
+        ->assertSee('Foto Lama')
+        ->assertSee('Edit Dokumentasi');
+
+    Livewire::test('pages::documentation.show', ['mediaItem' => $mediaItem])
+        ->set('title', 'Foto Baru')
+        ->set('description', 'Cerita foto diperbarui.')
+        ->set('month', 8)
+        ->set('year', 2026)
+        ->set('visibility', 'public')
+        ->set('tagged_alumni_ids', [$tagged->id])
+        ->call('saveDetails')
+        ->assertHasNoErrors();
+
+    $mediaItem->refresh();
+
+    expect($mediaItem->title)->toBe('Foto Baru');
+    expect($mediaItem->visibility)->toBe('public');
+    expect($mediaItem->taggedAlumni()->pluck('alumni.id')->all())->toBe([$tagged->id]);
+    expect(AuditLog::query()->where('action', 'media.updated')->exists())->toBeTrue();
+});
+
+test('uploaders can soft delete their documentation', function () {
+    $profile = Alumni::factory()->create();
+    $mediaItem = MediaItem::factory()->photo()->create([
+        'uploaded_by_alumni_id' => $profile->id,
+        'title' => 'Foto Arsip',
+    ]);
+
+    $this->actingAs($profile->user);
+
+    Livewire::test('pages::documentation.index')
+        ->call('deleteMedia', $mediaItem->id)
+        ->assertHasNoErrors();
+
+    expect(MediaItem::query()->find($mediaItem->id))->toBeNull();
+    expect(MediaItem::withTrashed()->find($mediaItem->id)?->trashed())->toBeTrue();
+    expect(AuditLog::query()->where('action', 'media.deleted')->exists())->toBeTrue();
+});
+
+test('alumni users cannot soft delete another alumni documentation', function () {
+    $profile = Alumni::factory()->create();
+    $other = Alumni::factory()->create();
+    $mediaItem = MediaItem::factory()->photo()->create([
+        'uploaded_by_alumni_id' => $other->id,
+        'title' => 'Foto Orang Lain',
+    ]);
+
+    $this->actingAs($profile->user);
+
+    Livewire::test('pages::documentation.index')
+        ->call('deleteMedia', $mediaItem->id)
+        ->assertForbidden();
+
+    expect($mediaItem->fresh())->not->toBeNull();
 });

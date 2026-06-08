@@ -35,6 +35,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('documentation', 'pages::documentation.index')
         ->middleware('can:update-own-alumni-profile')
         ->name('documentation.index');
+    Route::livewire('documentation/{mediaItem}', 'pages::documentation.show')
+        ->middleware('can:update-own-alumni-profile')
+        ->name('documentation.show');
 
     Route::livewire('whatsapp/analytics', 'pages::whatsapp.analytics')
         ->middleware('can:view-whatsapp-analytics')
