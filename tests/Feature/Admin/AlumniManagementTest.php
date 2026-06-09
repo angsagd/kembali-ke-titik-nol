@@ -7,6 +7,7 @@ use App\Models\City;
 use App\Models\Country;
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
 
 test('guests are redirected from alumni management', function () {
@@ -57,7 +58,8 @@ test('administrator users can browse and search alumni', function () {
         ->assertOk()
         ->assertSee('Manajemen Alumni')
         ->assertSee('Ade Chandra')
-        ->assertSee('D096001')
+        ->assertDontSee("sort('student_number')", false)
+        ->assertDontSee("sort('alumni_status')", false)
         ->assertDontSee('Budi Santoso');
 
     $this->actingAs($administrator)
@@ -69,6 +71,212 @@ test('administrator users can browse and search alumni', function () {
         ->assertSee('Agustus 1996')
         ->assertSee('Yogyakarta')
         ->assertSee('Mulai kuliah.');
+});
+
+test('superadmin users can see role column on alumni management table', function () {
+    $superadminRole = Role::factory()->create([
+        'name' => 'superadmin',
+        'description' => 'Pengelola teknis sistem',
+    ]);
+    $bendaharaRole = Role::factory()->create([
+        'name' => 'bendahara',
+        'description' => 'Pengelola pembayaran dan donasi',
+    ]);
+
+    $superadmin = User::factory()->create(['role_id' => $superadminRole->id]);
+    $bendaharaUser = User::factory()->create([
+        'role_id' => $bendaharaRole->id,
+        'name' => 'Bendahara Alumni',
+    ]);
+    Alumni::factory()->create([
+        'user_id' => $bendaharaUser->id,
+        'full_name' => 'Bendahara Alumni',
+    ]);
+
+    $this->actingAs($superadmin)
+        ->get(route('admin.alumni.index'))
+        ->assertOk()
+        ->assertSee('Role')
+        ->assertSee('bendahara');
+});
+
+test('administrator users can sort alumni management table by clicking sortable columns', function () {
+    $administratorRole = Role::factory()->create([
+        'name' => 'administrator',
+        'description' => 'Administrator sistem',
+    ]);
+    $administrator = User::factory()->create(['role_id' => $administratorRole->id]);
+
+    Alumni::factory()->create([
+        'full_name' => 'Aaa Alumni Sort',
+        'student_number' => 'D096001',
+    ]);
+    Alumni::factory()->create([
+        'full_name' => 'Zzz Alumni Sort',
+        'student_number' => 'D096999',
+    ]);
+
+    $response = $this->actingAs($administrator)
+        ->get(route('admin.alumni.index', [
+            'sort' => 'full_name',
+            'direction' => 'desc',
+        ]))
+        ->assertOk()
+        ->assertSee('Nama')
+        ->assertSee('Zzz Alumni Sort')
+        ->assertSee('Aaa Alumni Sort');
+
+    $content = $response->getContent();
+
+    expect(strpos($content, 'Zzz Alumni Sort'))->toBeLessThan(strpos($content, 'Aaa Alumni Sort'));
+});
+
+test('superadmin users can sort alumni management table by role column', function () {
+    $superadminRole = Role::factory()->create([
+        'name' => 'superadmin',
+        'description' => 'Pengelola teknis sistem',
+    ]);
+    $administratorRole = Role::factory()->create([
+        'name' => 'administrator',
+        'description' => 'Administrator sistem',
+    ]);
+    $bendaharaRole = Role::factory()->create([
+        'name' => 'bendahara',
+        'description' => 'Pengelola pembayaran dan donasi',
+    ]);
+
+    $superadmin = User::factory()->create(['role_id' => $superadminRole->id]);
+    $administratorUser = User::factory()->create([
+        'role_id' => $administratorRole->id,
+        'name' => 'Admin Role Alumni',
+    ]);
+    $bendaharaUser = User::factory()->create([
+        'role_id' => $bendaharaRole->id,
+        'name' => 'Bendahara Role Alumni',
+    ]);
+
+    Alumni::factory()->create([
+        'user_id' => $administratorUser->id,
+        'full_name' => 'Admin Role Alumni',
+    ]);
+    Alumni::factory()->create([
+        'user_id' => $bendaharaUser->id,
+        'full_name' => 'Bendahara Role Alumni',
+    ]);
+
+    $response = $this->actingAs($superadmin)
+        ->get(route('admin.alumni.index', [
+            'sort' => 'role',
+            'direction' => 'asc',
+        ]))
+        ->assertOk()
+        ->assertSee('Role')
+        ->assertSee('Admin Role Alumni')
+        ->assertSee('Bendahara Role Alumni');
+
+    $content = $response->getContent();
+
+    expect(strpos($content, 'Admin Role Alumni'))->toBeLessThan(strpos($content, 'Bendahara Role Alumni'));
+});
+
+test('administrator users do not see role column on alumni management table', function () {
+    $administratorRole = Role::factory()->create([
+        'name' => 'administrator',
+        'description' => 'Administrator sistem',
+    ]);
+    $bendaharaRole = Role::factory()->create([
+        'name' => 'bendahara',
+        'description' => 'Pengelola pembayaran dan donasi',
+    ]);
+
+    $administrator = User::factory()->create(['role_id' => $administratorRole->id]);
+    $bendaharaUser = User::factory()->create([
+        'role_id' => $bendaharaRole->id,
+        'name' => 'Bendahara Alumni',
+    ]);
+    Alumni::factory()->create([
+        'user_id' => $bendaharaUser->id,
+        'full_name' => 'Bendahara Alumni',
+    ]);
+
+    $this->actingAs($administrator)
+        ->get(route('admin.alumni.index'))
+        ->assertOk()
+        ->assertDontSee('Role')
+        ->assertDontSee('bendahara');
+});
+
+test('administrator users can create alumni from alumni management', function () {
+    $administratorRole = Role::factory()->create([
+        'name' => 'administrator',
+        'description' => 'Administrator sistem',
+    ]);
+    $alumniRole = Role::factory()->alumni()->create();
+    $administrator = User::factory()->create(['role_id' => $administratorRole->id]);
+
+    $this->actingAs($administrator)
+        ->get(route('admin.alumni.index'))
+        ->assertOk()
+        ->assertSee('Tambah Alumni');
+
+    Livewire::actingAs($administrator)
+        ->test('pages::admin.alumni.index')
+        ->call('showCreateForm')
+        ->assertSet('show_create_form', true)
+        ->set('full_name', 'Alumni Baru')
+        ->set('whatsapp_number', '+62 812-2222-3333')
+        ->set('student_number', 'D096777')
+        ->set('email', 'alumni-baru@example.test')
+        ->set('alumni_status', 'active')
+        ->call('createAlumni')
+        ->assertHasNoErrors();
+
+    $user = User::query()
+        ->where('whatsapp_number', '6281222223333')
+        ->firstOrFail();
+    $profile = Alumni::query()
+        ->where('user_id', $user->id)
+        ->firstOrFail();
+
+    expect($user->name)->toBe('Alumni Baru');
+    expect($user->email)->toBe('alumni-baru@example.test');
+    expect($user->role_id)->toBe($alumniRole->id);
+    expect(Hash::check('tgd3333', $user->password))->toBeTrue();
+    expect($profile->full_name)->toBe('Alumni Baru');
+    expect($profile->student_number)->toBe('D096777');
+    expect($profile->rsvp_status)->toBe('pending');
+    expect($profile->is_profile_completed)->toBeFalse();
+    expect(AuditLog::query()
+        ->where('action', 'alumni.created')
+        ->where('entity_type', $profile->getMorphClass())
+        ->where('entity_id', $profile->id)
+        ->exists())->toBeTrue();
+});
+
+test('administrator alumni creation validates unique identifiers', function () {
+    $administratorRole = Role::factory()->create([
+        'name' => 'administrator',
+        'description' => 'Administrator sistem',
+    ]);
+    $administrator = User::factory()->create(['role_id' => $administratorRole->id]);
+    $existing = Alumni::factory()->create([
+        'student_number' => 'D096123',
+    ]);
+
+    $this->actingAs($administrator);
+
+    Livewire::test('pages::admin.alumni.index')
+        ->call('showCreateForm')
+        ->set('full_name', 'Duplikat Alumni')
+        ->set('whatsapp_number', $existing->user->whatsapp_number)
+        ->set('student_number', 'D096123')
+        ->set('email', $existing->user->email)
+        ->call('createAlumni')
+        ->assertHasErrors([
+            'whatsapp_number' => 'unique',
+            'student_number' => 'unique',
+            'email' => 'unique',
+        ]);
 });
 
 test('administrator users can update core alumni data', function () {

@@ -1,7 +1,14 @@
 <?php
 
+use App\Models\AuditLog;
 use App\Models\Alumni;
+use App\Models\Role;
+use App\Models\User;
+use App\Models\City;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -17,6 +24,24 @@ new #[Title('Manajemen Alumni')] class extends Component {
     #[Url]
     public string $status = 'all';
 
+    #[Url(as: 'sort')]
+    public string $sort_by = 'full_name';
+
+    #[Url(as: 'direction')]
+    public string $sort_direction = 'asc';
+
+    public bool $show_create_form = false;
+
+    public string $full_name = '';
+
+    public string $whatsapp_number = '';
+
+    public ?string $student_number = null;
+
+    public ?string $email = null;
+
+    public string $alumni_status = 'active';
+
     public function updatedSearch(): void
     {
         $this->resetPage();
@@ -24,6 +49,22 @@ new #[Title('Manajemen Alumni')] class extends Component {
 
     public function updatedStatus(): void
     {
+        $this->resetPage();
+    }
+
+    public function sort(string $column): void
+    {
+        if (! array_key_exists($column, $this->sortableColumns())) {
+            return;
+        }
+
+        if ($this->sort_by === $column) {
+            $this->sort_direction = $this->sort_direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sort_by = $column;
+            $this->sort_direction = 'asc';
+        }
+
         $this->resetPage();
     }
 
@@ -55,8 +96,132 @@ new #[Title('Manajemen Alumni')] class extends Component {
             ->when(in_array($this->status, ['active', 'deceased'], true), function ($query): void {
                 $query->where('alumni_status', $this->status);
             })
-            ->orderBy('full_name')
+            ->tap(fn ($query) => $this->applySorting($query))
             ->paginate(15);
+    }
+
+    public function showCreateForm(): void
+    {
+        $this->show_create_form = true;
+        $this->resetCreateForm();
+    }
+
+    public function cancelCreate(): void
+    {
+        $this->show_create_form = false;
+        $this->resetCreateForm();
+    }
+
+    public function createAlumni(): void
+    {
+        $this->whatsapp_number = User::normalizeWhatsappNumber($this->whatsapp_number) ?? '';
+
+        $validated = $this->validate([
+            'full_name' => ['required', 'string', 'max:150'],
+            'whatsapp_number' => ['required', 'string', 'max:30', Rule::unique(User::class, 'whatsapp_number')],
+            'student_number' => ['nullable', 'string', 'max:50', Rule::unique(Alumni::class, 'student_number')],
+            'email' => ['nullable', 'string', 'email', 'max:150', Rule::unique(User::class, 'email')],
+            'alumni_status' => ['required', Rule::in(['active', 'deceased'])],
+        ]);
+
+        $alumni = DB::transaction(function () use ($validated): Alumni {
+            $alumniRole = Role::query()->firstOrCreate(
+                ['name' => 'alumni'],
+                ['description' => 'Anggota alumni'],
+            );
+            $password = 'tgd'.substr($validated['whatsapp_number'], -4);
+
+            $user = User::query()->create([
+                'role_id' => $alumniRole->id,
+                'name' => $validated['full_name'],
+                'email' => $validated['email'] ?: "{$validated['whatsapp_number']}@geodesi96.local",
+                'whatsapp_number' => $validated['whatsapp_number'],
+                'password' => $password,
+                'is_active' => true,
+            ]);
+
+            $alumni = Alumni::query()->create([
+                'user_id' => $user->id,
+                'student_number' => $validated['student_number'],
+                'full_name' => $validated['full_name'],
+                'email' => $validated['email'],
+                'alumni_status' => $validated['alumni_status'],
+                'rsvp_status' => 'pending',
+                'is_profile_completed' => false,
+            ]);
+
+            AuditLog::record(
+                action: 'alumni.created',
+                entity: $alumni,
+                newValues: [
+                    'full_name' => $alumni->full_name,
+                    'student_number' => $alumni->student_number,
+                    'whatsapp_number' => $user->whatsapp_number,
+                    'role' => $user->role?->name,
+                ],
+            );
+
+            return $alumni;
+        });
+
+        $this->redirectRoute('admin.alumni.show', ['alumni' => $alumni], navigate: true);
+    }
+
+    private function resetCreateForm(): void
+    {
+        $this->reset(['full_name', 'whatsapp_number', 'student_number', 'email']);
+        $this->alumni_status = 'active';
+        $this->resetErrorBag();
+    }
+
+    private function applySorting(Builder $query): void
+    {
+        $direction = $this->sort_direction === 'desc' ? 'desc' : 'asc';
+        $column = $this->sortableColumns()[$this->sort_by] ?? 'full_name';
+
+        match ($column) {
+            'whatsapp_number' => $query->orderBy(
+                User::query()
+                    ->select('whatsapp_number')
+                    ->whereColumn('users.id', 'alumni.user_id')
+                    ->limit(1),
+                $direction,
+            ),
+            'city' => $query->orderBy(
+                City::query()
+                    ->select('name')
+                    ->whereColumn('cities.id', 'alumni.current_city_id')
+                    ->limit(1),
+                $direction,
+            ),
+            'role' => $query->orderBy(
+                Role::query()
+                    ->select('roles.name')
+                    ->join('users', 'users.role_id', '=', 'roles.id')
+                    ->whereColumn('users.id', 'alumni.user_id')
+                    ->limit(1),
+                $direction,
+            ),
+            default => $query->orderBy($column, $direction),
+        };
+
+        $query->orderBy('id');
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function sortableColumns(): array
+    {
+        return [
+            'full_name' => 'full_name',
+            'student_number' => 'student_number',
+            'whatsapp_number' => 'whatsapp_number',
+            'city' => 'city',
+            'role' => 'role',
+            'alumni_status' => 'alumni_status',
+            'rsvp_status' => 'rsvp_status',
+        ];
     }
 }; ?>
 
@@ -70,7 +235,11 @@ new #[Title('Manajemen Alumni')] class extends Component {
         </div>
 
         <div class="grid gap-3 lg:w-[34rem]">
-            <div class="flex justify-end">
+            <div class="flex flex-wrap justify-end gap-3">
+                <flux:button icon="plus" variant="primary" wire:click="showCreateForm">
+                    {{ __('Tambah Alumni') }}
+                </flux:button>
+
                 <flux:button icon="arrow-down-tray" variant="primary" :href="route('reports.alumni.export')">
                     {{ __('Export Alumni') }}
                 </flux:button>
@@ -93,14 +262,46 @@ new #[Title('Manajemen Alumni')] class extends Component {
         </div>
     </div>
 
+    @if ($show_create_form)
+        <form wire:submit="createAlumni" class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <flux:heading size="lg">{{ __('Tambah Alumni') }}</flux:heading>
+                    <flux:text>{{ __('Buat akun alumni baru dengan role default alumni. Password awal mengikuti pola tgd + 4 digit terakhir WhatsApp.') }}</flux:text>
+                </div>
+
+                <div class="flex flex-wrap gap-2">
+                    <flux:button type="button" variant="ghost" wire:click="cancelCreate">
+                        {{ __('Batal') }}
+                    </flux:button>
+                    <flux:button type="submit" variant="primary" icon="check" wire:loading.attr="disabled">
+                        {{ __('Simpan Alumni') }}
+                    </flux:button>
+                </div>
+            </div>
+
+            <div class="mt-5 grid gap-5 lg:grid-cols-2">
+                <flux:input wire:model="full_name" :label="__('Nama lengkap')" required />
+                <flux:input wire:model="whatsapp_number" :label="__('Nomor WhatsApp')" type="tel" required />
+                <flux:input wire:model="student_number" :label="__('NIM')" />
+                <flux:input wire:model="email" :label="__('Email')" type="email" />
+                <flux:select wire:model="alumni_status" :label="__('Status alumni')">
+                    <flux:select.option value="active">{{ __('Aktif') }}</flux:select.option>
+                    <flux:select.option value="deceased">{{ __('Wafat') }}</flux:select.option>
+                </flux:select>
+            </div>
+        </form>
+    @endif
+
     <flux:table :paginate="$this->alumniProfiles" pagination:scroll-to="body">
         <flux:table.columns>
-            <flux:table.column>{{ __('Nama') }}</flux:table.column>
-            <flux:table.column>{{ __('NIM') }}</flux:table.column>
-            <flux:table.column>{{ __('WhatsApp') }}</flux:table.column>
-            <flux:table.column>{{ __('Domisili') }}</flux:table.column>
-            <flux:table.column>{{ __('Status') }}</flux:table.column>
-            <flux:table.column>{{ __('RSVP') }}</flux:table.column>
+            <flux:table.column sortable :sorted="$sort_by === 'full_name'" :direction="$sort_direction" wire:click="sort('full_name')">{{ __('Nama') }}</flux:table.column>
+            <flux:table.column sortable :sorted="$sort_by === 'whatsapp_number'" :direction="$sort_direction" wire:click="sort('whatsapp_number')">{{ __('WhatsApp') }}</flux:table.column>
+            <flux:table.column sortable :sorted="$sort_by === 'city'" :direction="$sort_direction" wire:click="sort('city')">{{ __('Domisili') }}</flux:table.column>
+            @can('manage-user-roles')
+                <flux:table.column sortable :sorted="$sort_by === 'role'" :direction="$sort_direction" wire:click="sort('role')">{{ __('Role') }}</flux:table.column>
+            @endcan
+            <flux:table.column sortable :sorted="$sort_by === 'rsvp_status'" :direction="$sort_direction" wire:click="sort('rsvp_status')">{{ __('RSVP') }}</flux:table.column>
             <flux:table.column align="end">{{ __('Aksi') }}</flux:table.column>
         </flux:table.columns>
 
@@ -113,14 +314,20 @@ new #[Title('Manajemen Alumni')] class extends Component {
                             <span class="text-xs font-normal text-zinc-500 dark:text-zinc-400">{{ $profile->nickname ?: __('Nama panggilan belum diisi') }}</span>
                         </div>
                     </flux:table.cell>
-                    <flux:table.cell>{{ $profile->student_number ?: '-' }}</flux:table.cell>
                     <flux:table.cell>{{ $profile->user?->whatsapp_number ?: '-' }}</flux:table.cell>
                     <flux:table.cell>{{ collect([$profile->currentCity?->name, $profile->currentCountry?->name])->filter()->join(', ') ?: '-' }}</flux:table.cell>
-                    <flux:table.cell>
-                        <flux:badge color="{{ $profile->alumni_status === 'active' ? 'green' : 'zinc' }}">
-                            {{ $profile->alumni_status === 'active' ? __('Aktif') : __('Wafat') }}
-                        </flux:badge>
-                    </flux:table.cell>
+                    @can('manage-user-roles')
+                        <flux:table.cell>
+                            <flux:badge color="{{ match ($profile->user?->role?->name) {
+                                'superadmin' => 'red',
+                                'administrator' => 'blue',
+                                'bendahara' => 'amber',
+                                default => 'zinc',
+                            } }}">
+                                {{ $profile->user?->role?->name ?: '-' }}
+                            </flux:badge>
+                        </flux:table.cell>
+                    @endcan
                     <flux:table.cell>
                         <flux:badge color="{{ $profile->rsvp_status === 'attending' ? 'green' : ($profile->rsvp_status === 'not_attending' ? 'red' : 'amber') }}">
                             {{ match ($profile->rsvp_status) {
@@ -138,7 +345,7 @@ new #[Title('Manajemen Alumni')] class extends Component {
                 </flux:table.row>
             @empty
                 <flux:table.row>
-                    <flux:table.cell colspan="7">
+                    <flux:table.cell colspan="{{ auth()->user()->canManageUserRoles() ? 6 : 5 }}">
                         <div class="py-10 text-center">
                             <flux:heading size="lg">{{ __('Tidak ada alumni ditemukan') }}</flux:heading>
                             <flux:text>{{ __('Ubah kata kunci atau filter status untuk melihat data lain.') }}</flux:text>
