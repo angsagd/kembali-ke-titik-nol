@@ -408,7 +408,7 @@
                                     <circle cx="12" cy="12" r="3.5" stroke="currentColor" stroke-width="1.8" />
                                     <circle cx="16.8" cy="7.2" r="1" fill="currentColor" />
                                 </svg>
-                                <span>@titiknol.tgd96</span>
+                                <span>titiknol.tgd96</span>
                             </a>
 
                             <a
@@ -416,13 +416,27 @@
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 class="inline-flex items-center gap-3 text-sm font-bold text-white transition hover:text-ktn-gold-light"
-                                aria-label="WhatsApp panitia reuni TGD96"
+                                aria-label="WhatsApp Asih panitia reuni TGD96"
                             >
                                 <svg class="size-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                     <path d="M5.3 18.7 6.4 15A7.4 7.4 0 1 1 9 17.6l-3.7 1.1Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
                                     <path d="M9.4 8.7c.2-.5.4-.5.7-.5h.5c.2 0 .4.1.5.4l.6 1.4c.1.3 0 .5-.2.7l-.4.4c.7 1.2 1.6 2.1 2.8 2.8l.4-.4c.2-.2.4-.3.7-.2l1.4.6c.3.1.4.3.4.6v.5c0 .3 0 .5-.5.7-.5.2-1 .3-1.5.3-2.8 0-6.2-3.4-6.2-6.2 0-.5.1-1 .3-1.5Z" fill="currentColor" />
                                 </svg>
-                                <span>+6281931720792</span>
+                                <span>Asih</span>
+                            </a>
+
+                            <a
+                                href="https://wa.me/6281286134887?text=Halo%20panitia%20reuni%20tgd96"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="inline-flex items-center gap-3 text-sm font-bold text-white transition hover:text-ktn-gold-light"
+                                aria-label="WhatsApp Iin panitia reuni TGD96"
+                            >
+                                <svg class="size-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M5.3 18.7 6.4 15A7.4 7.4 0 1 1 9 17.6l-3.7 1.1Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                                    <path d="M9.4 8.7c.2-.5.4-.5.7-.5h.5c.2 0 .4.1.5.4l.6 1.4c.1.3 0 .5-.2.7l-.4.4c.7 1.2 1.6 2.1 2.8 2.8l.4-.4c.2-.2.4-.3.7-.2l1.4.6c.3.1.4.3.4.6v.5c0 .3 0 .5-.5.7-.5.2-1 .3-1.5.3-2.8 0-6.2-3.4-6.2-6.2 0-.5.1-1 .3-1.5Z" fill="currentColor" />
+                                </svg>
+                                <span>Iin</span>
                             </a>
                         </div>
                     </div>

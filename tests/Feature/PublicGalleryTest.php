@@ -106,7 +106,11 @@ test('landing page footer exposes instagram and whatsapp committee contacts', fu
         ->assertSee('https://www.instagram.com/titiknol.tgd96')
         ->assertSee('@titiknol.tgd96')
         ->assertSee('https://wa.me/6281931720792?text=Halo%20panitia%20reuni%20tgd96')
-        ->assertSee('+6281931720792');
+        ->assertSee('Asih')
+        ->assertSee('https://wa.me/6281286134887?text=Halo%20panitia%20reuni%20tgd96')
+        ->assertSee('Iin')
+        ->assertDontSee('+6281931720792')
+        ->assertDontSee('+6281286134887');
 });
 
 test('landing page highlights published news only', function () {
