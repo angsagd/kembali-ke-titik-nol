@@ -35,6 +35,8 @@
         <meta name="twitter:image" content="{{ $metaImage }}">
         <meta name="twitter:image:alt" content="Artwork Kembali ke Titik Nol Reuni 30 Tahun Geodesi 96">
 
+        <link rel="shortcut icon" href="/favicon.ico">
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg">
         <link rel="icon" type="image/png" sizes="48x48" href="/images/icon/favicon48.png">
         <link rel="icon" type="image/png" sizes="96x96" href="/images/icon/favicon96.png">
         <link rel="icon" type="image/png" sizes="192x192" href="/images/icon/favicon192.png">

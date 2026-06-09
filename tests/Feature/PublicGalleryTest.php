@@ -71,6 +71,8 @@ test('landing page uses dynamic countdown target for reunion date', function () 
 test('landing page uses provided icon assets for favicon and header logo', function () {
     $this->get(route('home'))
         ->assertOk()
+        ->assertSee('/favicon.ico')
+        ->assertSee('/favicon.svg')
         ->assertSee('/images/icon/favicon48.png')
         ->assertSee('/images/icon/favicon96.png')
         ->assertSee('/images/icon/favicon192.png')
@@ -99,12 +101,21 @@ test('landing page exposes social sharing metadata', function () {
         ->assertSee('<meta name="twitter:image" content="'.$image.'">', false);
 });
 
+test('root favicon assets do not use laravel default logo', function () {
+    expect(public_path('favicon.ico'))->toBeFile()
+        ->and(public_path('favicon.svg'))->toBeFile()
+        ->and(public_path('apple-touch-icon.png'))->toBeFile()
+        ->and(file_get_contents(public_path('favicon.svg')))
+        ->not->toContain('#FF2D20')
+        ->not->toContain('Laravel');
+});
+
 test('landing page footer exposes instagram and whatsapp committee contacts', function () {
     $this->get(route('home'))
         ->assertOk()
         ->assertSee('Kontak Panitia')
         ->assertSee('https://www.instagram.com/titiknol.tgd96')
-        ->assertSee('@titiknol.tgd96')
+        ->assertSee('titiknol.tgd96')
         ->assertSee('https://wa.me/6281931720792?text=Halo%20panitia%20reuni%20tgd96')
         ->assertSee('Asih')
         ->assertSee('https://wa.me/6281286134887?text=Halo%20panitia%20reuni%20tgd96')
