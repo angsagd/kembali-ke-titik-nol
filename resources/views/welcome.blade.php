@@ -379,7 +379,7 @@
                             <span class="font-display text-xl font-extrabold">Geodesi 96</span>
                         </a>
                         <p class="max-w-sm text-sm leading-7 text-ktn-sage-light">Ngalibrasi 30 Taon Paseduluran - Alumni Teknik Geodesi UGM 1996.</p>
-                        <p class="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-ktn-sage-light">23-24 Agustus 2026</p>
+                        <p class="font-mono text-md font-semibold uppercase tracking-[0.18em] text-ktn-sage-light">23-24 Agustus 2026</p>
                     </div>
 
                     <div>
