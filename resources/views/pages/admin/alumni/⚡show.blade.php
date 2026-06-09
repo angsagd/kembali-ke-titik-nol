@@ -1,5 +1,6 @@
 <?php
 
+use App\Concerns\PasswordValidationRules;
 use App\Models\Alumni;
 use App\Models\AuditLog;
 use App\Models\City;
@@ -16,6 +17,8 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Title('Detail Alumni')] class extends Component {
+    use PasswordValidationRules;
+
     public Alumni $alumni;
 
     public string $full_name = '';
@@ -45,6 +48,10 @@ new #[Title('Detail Alumni')] class extends Component {
     public bool $is_profile_completed = false;
 
     public ?int $role_id = null;
+
+    public string $password = '';
+
+    public string $password_confirmation = '';
 
     public function mount(Alumni $alumni): void
     {
@@ -256,6 +263,38 @@ new #[Title('Detail Alumni')] class extends Component {
         $this->fillForm();
 
         Flux::toast(variant: 'success', text: __('Role akun diperbarui.'));
+    }
+
+    /**
+     * Reset the linked user account password.
+     */
+    public function updatePassword(): void
+    {
+        Gate::authorize('manage-user-passwords');
+
+        $validated = $this->validate([
+            'password' => $this->passwordRules(),
+        ]);
+
+        $user = $this->alumni->user;
+
+        abort_unless($user instanceof User, 404);
+
+        $user->forceFill([
+            'password' => $validated['password'],
+        ])->save();
+
+        AuditLog::record(
+            action: 'user.password_updated',
+            entity: $user,
+            newValues: [
+                'password_updated' => true,
+            ],
+        );
+
+        $this->reset('password', 'password_confirmation');
+
+        Flux::toast(variant: 'success', text: __('Password akun diperbarui.'));
     }
 
     private function hasOtherSuperadmin(User $user): bool
@@ -481,6 +520,35 @@ new #[Title('Detail Alumni')] class extends Component {
 
                         <flux:button type="submit" variant="primary" icon="shield-check" class="mt-4 w-full" wire:loading.attr="disabled">
                             {{ __('Simpan Role') }}
+                        </flux:button>
+                    </form>
+                @endcan
+
+                @can('manage-user-passwords')
+                    <form wire:submit="updatePassword" class="mt-5 border-t border-zinc-200 pt-5 dark:border-zinc-700">
+                        <flux:heading size="sm">{{ __('Reset Password') }}</flux:heading>
+                        <flux:text class="mt-1">{{ __('Set password baru untuk akun ini. Password tidak akan dicatat di audit log.') }}</flux:text>
+
+                        <div class="mt-4 grid gap-4">
+                            <flux:input
+                                wire:model="password"
+                                :label="__('Password baru')"
+                                type="password"
+                                autocomplete="new-password"
+                                passwordrules="{{ \Illuminate\Validation\Rules\Password::defaults()->toPasswordRulesString() }}"
+                            />
+
+                            <flux:input
+                                wire:model="password_confirmation"
+                                :label="__('Konfirmasi password')"
+                                type="password"
+                                autocomplete="new-password"
+                                passwordrules="{{ \Illuminate\Validation\Rules\Password::defaults()->toPasswordRulesString() }}"
+                            />
+                        </div>
+
+                        <flux:button type="submit" variant="primary" icon="key" class="mt-4 w-full" wire:loading.attr="disabled">
+                            {{ __('Simpan Password') }}
                         </flux:button>
                     </form>
                 @endcan

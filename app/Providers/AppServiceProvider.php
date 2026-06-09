@@ -38,6 +38,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('manage-finance', fn (User $user): bool => $user->canManageFinance());
         Gate::define('view-audit-logs', fn (User $user): bool => $user->canViewAuditLogs());
         Gate::define('manage-user-roles', fn (User $user): bool => $user->canManageUserRoles());
+        Gate::define('manage-user-passwords', fn (User $user): bool => $user->canManageUserPasswords());
         Gate::define('import-whatsapp-analytics', fn (User $user): bool => $user->canImportWhatsappAnalytics());
         Gate::define('view-whatsapp-analytics', fn (User $user): bool => $user->canViewWhatsappAnalytics());
         Gate::define('update-own-alumni-profile', fn (User $user): bool => $user->alumni()->exists());

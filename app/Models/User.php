@@ -131,6 +131,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Determine if the user can reset other user passwords.
+     */
+    public function canManageUserPasswords(): bool
+    {
+        return $this->hasRole('superadmin');
+    }
+
+    /**
      * Determine if the user can import WhatsApp chat analytics.
      */
     public function canImportWhatsappAnalytics(): bool

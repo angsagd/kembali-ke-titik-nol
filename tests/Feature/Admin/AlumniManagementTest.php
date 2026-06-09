@@ -421,6 +421,67 @@ test('superadmin users cannot remove the last superadmin role', function () {
     expect($superadmin->refresh()->role_id)->toBe($superadminRole->id);
 });
 
+test('superadmin users can reset linked user password from alumni detail', function () {
+    $superadminRole = Role::factory()->create([
+        'name' => 'superadmin',
+        'description' => 'Pengelola teknis sistem',
+    ]);
+
+    $superadmin = User::factory()->create(['role_id' => $superadminRole->id]);
+    $profile = Alumni::factory()->create();
+
+    $this->actingAs($superadmin)
+        ->get(route('admin.alumni.show', $profile))
+        ->assertOk()
+        ->assertSee('Reset Password')
+        ->assertSee('Simpan Password');
+
+    Livewire::actingAs($superadmin)
+        ->test('pages::admin.alumni.show', ['alumni' => $profile])
+        ->set('password', 'new-password')
+        ->set('password_confirmation', 'new-password')
+        ->call('updatePassword')
+        ->assertHasNoErrors()
+        ->assertSet('password', '')
+        ->assertSet('password_confirmation', '');
+
+    $profile->user->refresh();
+    $auditLog = AuditLog::query()
+        ->where('action', 'user.password_updated')
+        ->where('entity_type', $profile->user->getMorphClass())
+        ->where('entity_id', $profile->user->id)
+        ->firstOrFail();
+
+    expect(Hash::check('new-password', $profile->user->password))->toBeTrue();
+    expect($auditLog->new_values)->toBe(['password_updated' => true]);
+});
+
+test('administrator users cannot reset linked user passwords', function () {
+    $administratorRole = Role::factory()->create([
+        'name' => 'administrator',
+        'description' => 'Administrator sistem',
+    ]);
+
+    $administrator = User::factory()->create(['role_id' => $administratorRole->id]);
+    $profile = Alumni::factory()->create();
+    $originalPassword = $profile->user->password;
+
+    $this->actingAs($administrator)
+        ->get(route('admin.alumni.show', $profile))
+        ->assertOk()
+        ->assertDontSee('Reset Password')
+        ->assertDontSee('Simpan Password');
+
+    Livewire::actingAs($administrator)
+        ->test('pages::admin.alumni.show', ['alumni' => $profile])
+        ->set('password', 'new-password')
+        ->set('password_confirmation', 'new-password')
+        ->call('updatePassword')
+        ->assertForbidden();
+
+    expect($profile->user->refresh()->password)->toBe($originalPassword);
+});
+
 test('administrator alumni update validates unique identifiers', function () {
     $administratorRole = Role::factory()->create([
         'name' => 'administrator',
