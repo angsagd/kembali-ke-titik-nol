@@ -78,6 +78,37 @@ test('landing page uses provided icon assets for favicon and header logo', funct
         ->assertSee('alt="Logo Geodesi 96"', false);
 });
 
+test('landing page exposes social sharing metadata', function () {
+    $title = 'Reuni 30 Tahun Geodesi 96 - Kembali ke Titik Nol';
+    $description = 'Ngalibrasi 30 Taon Paseduluran. Reuni alumni Teknik Geodesi UGM angkatan 96 untuk pulang, bertemu, mengenang, dan kembali ke titik nol bersama.';
+    $url = 'https://geodesiugm96.web.id';
+    $image = 'https://geodesiugm96.web.id/images/brand/sticker-kembali-ke-titik-nol.png';
+
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertSee("<title>{$title}</title>", false)
+        ->assertSee('<meta name="description" content="'.$description.'">', false)
+        ->assertSee('<link rel="canonical" href="'.$url.'">', false)
+        ->assertSee('<meta property="og:site_name" content="Kembali ke Titik Nol">', false)
+        ->assertSee('<meta property="og:title" content="'.$title.'">', false)
+        ->assertSee('<meta property="og:description" content="'.$description.'">', false)
+        ->assertSee('<meta property="og:url" content="'.$url.'">', false)
+        ->assertSee('<meta property="og:image" content="'.$image.'">', false)
+        ->assertSee('<meta property="og:image:type" content="image/png">', false)
+        ->assertSee('<meta name="twitter:card" content="summary_large_image">', false)
+        ->assertSee('<meta name="twitter:image" content="'.$image.'">', false);
+});
+
+test('landing page footer exposes instagram and whatsapp committee contacts', function () {
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertSee('Kontak Panitia')
+        ->assertSee('https://www.instagram.com/titiknol.tgd96')
+        ->assertSee('@titiknol.tgd96')
+        ->assertSee('https://wa.me/6281931720792?text=Halo%20panitia%20reuni%20tgd96')
+        ->assertSee('+6281931720792');
+});
+
 test('landing page highlights published news only', function () {
     News::factory()->published()->create([
         'title' => 'Rilis Rundown Reuni',

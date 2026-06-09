@@ -4,7 +4,36 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <title>Kembali ke Titik Nol - {{ config('app.name', 'Geodesi 96') }}</title>
+        @php
+            $metaTitle = 'Reuni 30 Tahun Geodesi 96 - Kembali ke Titik Nol';
+            $metaDescription = 'Ngalibrasi 30 Taon Paseduluran. Reuni alumni Teknik Geodesi UGM angkatan 96 untuk pulang, bertemu, mengenang, dan kembali ke titik nol bersama.';
+            $metaUrl = 'https://geodesiugm96.web.id';
+            $metaImage = 'https://geodesiugm96.web.id/images/brand/sticker-kembali-ke-titik-nol.png';
+            $siteName = 'Kembali ke Titik Nol';
+        @endphp
+
+        <title>{{ $metaTitle }}</title>
+        <meta name="description" content="{{ $metaDescription }}">
+        <link rel="canonical" href="{{ $metaUrl }}">
+
+        <meta property="og:locale" content="id_ID">
+        <meta property="og:type" content="website">
+        <meta property="og:site_name" content="{{ $siteName }}">
+        <meta property="og:title" content="{{ $metaTitle }}">
+        <meta property="og:description" content="{{ $metaDescription }}">
+        <meta property="og:url" content="{{ $metaUrl }}">
+        <meta property="og:image" content="{{ $metaImage }}">
+        <meta property="og:image:secure_url" content="{{ $metaImage }}">
+        <meta property="og:image:type" content="image/png">
+        <meta property="og:image:width" content="1254">
+        <meta property="og:image:height" content="1254">
+        <meta property="og:image:alt" content="Artwork Kembali ke Titik Nol Reuni 30 Tahun Geodesi 96">
+
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:title" content="{{ $metaTitle }}">
+        <meta name="twitter:description" content="{{ $metaDescription }}">
+        <meta name="twitter:image" content="{{ $metaImage }}">
+        <meta name="twitter:image:alt" content="Artwork Kembali ke Titik Nol Reuni 30 Tahun Geodesi 96">
 
         <link rel="icon" type="image/png" sizes="48x48" href="/images/icon/favicon48.png">
         <link rel="icon" type="image/png" sizes="96x96" href="/images/icon/favicon96.png">
@@ -341,14 +370,67 @@
             </main>
 
             <footer id="kontak" class="scroll-mt-24 bg-ktn-forest px-4 py-12 text-white sm:px-6 lg:px-8">
-                <div class="mx-auto flex max-w-7xl flex-col justify-between gap-8 md:flex-row md:items-end">
+                <div class="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.2fr_0.8fr_1fr]">
+                    <div class="space-y-4">
+                        <a href="#home" class="inline-flex items-center gap-3">
+                            <img src="{{ asset('images/icon/favicon96.png') }}" alt="Logo Geodesi 96" class="size-10 rounded-lg border border-white/20 bg-white object-contain p-1">
+                            <span class="font-display text-xl font-extrabold">Geodesi 96</span>
+                        </a>
+                        <p class="max-w-sm text-sm leading-7 text-ktn-sage-light">Ngalibrasi 30 Taon Paseduluran - Alumni Teknik Geodesi UGM 1996.</p>
+                        <p class="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-ktn-sage-light">23-24 Agustus 2026</p>
+                    </div>
+
                     <div>
-                        <h2 class="font-display text-xl font-extrabold">Geodesi 96</h2>
-                        <p class="mt-3 max-w-sm text-sm leading-7 text-ktn-sage-light">Ngalibrasi 30 Taon Paseduluran - Alumni Teknik Geodesi UGM 1996.</p>
+                        <h3 class="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-ktn-sage-light">Navigasi</h3>
+                        <div class="mt-4 grid gap-3 text-sm font-semibold">
+                            <a href="#tentang" class="text-white transition hover:text-ktn-gold-light">Tentang</a>
+                            <a href="#rundown" class="text-white transition hover:text-ktn-gold-light">Rundown</a>
+                            <a href="#galeri" class="text-white transition hover:text-ktn-gold-light">Galeri</a>
+                            <a href="#berita" class="text-white transition hover:text-ktn-gold-light">Berita</a>
+                            <a href="#donatur" class="text-white transition hover:text-ktn-gold-light">Donatur</a>
+                        </div>
                     </div>
-                    <div class="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-ktn-sage-light">
-                        © 2026 Geodesi 96 · Kembali ke Titik Nol
+
+                    <div>
+                        <h3 class="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-ktn-sage-light">Kontak Panitia</h3>
+                        <p class="mt-4 text-sm leading-7 text-ktn-sage-light">Ikuti kabar terbaru reuni dan hubungi panitia untuk informasi teknis kegiatan.</p>
+
+                        <div class="mt-5 grid gap-3">
+                            <a
+                                href="https://www.instagram.com/titiknol.tgd96"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="inline-flex items-center gap-3 text-sm font-bold text-white transition hover:text-ktn-gold-light"
+                                aria-label="Instagram titiknol.tgd96"
+                            >
+                                <svg class="size-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <rect x="4" y="4" width="16" height="16" rx="4.5" stroke="currentColor" stroke-width="1.8" />
+                                    <circle cx="12" cy="12" r="3.5" stroke="currentColor" stroke-width="1.8" />
+                                    <circle cx="16.8" cy="7.2" r="1" fill="currentColor" />
+                                </svg>
+                                <span>@titiknol.tgd96</span>
+                            </a>
+
+                            <a
+                                href="https://wa.me/6281931720792?text=Halo%20panitia%20reuni%20tgd96"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="inline-flex items-center gap-3 text-sm font-bold text-white transition hover:text-ktn-gold-light"
+                                aria-label="WhatsApp panitia reuni TGD96"
+                            >
+                                <svg class="size-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M5.3 18.7 6.4 15A7.4 7.4 0 1 1 9 17.6l-3.7 1.1Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                                    <path d="M9.4 8.7c.2-.5.4-.5.7-.5h.5c.2 0 .4.1.5.4l.6 1.4c.1.3 0 .5-.2.7l-.4.4c.7 1.2 1.6 2.1 2.8 2.8l.4-.4c.2-.2.4-.3.7-.2l1.4.6c.3.1.4.3.4.6v.5c0 .3 0 .5-.5.7-.5.2-1 .3-1.5.3-2.8 0-6.2-3.4-6.2-6.2 0-.5.1-1 .3-1.5Z" fill="currentColor" />
+                                </svg>
+                                <span>+6281931720792</span>
+                            </a>
+                        </div>
                     </div>
+                </div>
+
+                <div class="mx-auto mt-10 flex max-w-7xl flex-col gap-3 border-t border-white/10 pt-6 font-mono text-xs font-semibold uppercase tracking-[0.16em] text-ktn-sage-light sm:flex-row sm:items-center sm:justify-between">
+                    <span>© 2026 Geodesi 96 · Kembali ke Titik Nol</span>
+                    <span>Reuni 30 Tahun Teknik Geodesi UGM 1996</span>
                 </div>
             </footer>
 
