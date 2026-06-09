@@ -2,6 +2,7 @@
 
 use App\Models\Alumni;
 use App\Models\AlumniTimeline;
+use App\Models\AuditLog;
 use App\Models\City;
 use App\Models\Country;
 use App\Models\Role;
@@ -121,6 +122,95 @@ test('administrator users can update core alumni data', function () {
     expect($profile->user->name)->toBe('Nama Baru');
     expect($profile->user->whatsapp_number)->toBe('6281211112222');
     expect($profile->user->email)->toBe('baru@example.test');
+});
+
+test('superadmin users can update linked user role from alumni detail', function () {
+    $superadminRole = Role::factory()->create([
+        'name' => 'superadmin',
+        'description' => 'Pengelola teknis sistem',
+    ]);
+    $administratorRole = Role::factory()->create([
+        'name' => 'administrator',
+        'description' => 'Panitia pelaksana reuni',
+    ]);
+
+    $superadmin = User::factory()->create(['role_id' => $superadminRole->id]);
+    $profile = Alumni::factory()->create([
+        'full_name' => 'Alumni Calon Admin',
+    ]);
+
+    $this->actingAs($superadmin)
+        ->get(route('admin.alumni.show', $profile))
+        ->assertOk()
+        ->assertSee('Ubah role akun')
+        ->assertSee('Simpan Role');
+
+    Livewire::actingAs($superadmin)
+        ->test('pages::admin.alumni.show', ['alumni' => $profile])
+        ->set('role_id', $administratorRole->id)
+        ->call('updateRole')
+        ->assertHasNoErrors();
+
+    $profile->user->refresh()->load('role');
+
+    expect($profile->user->role?->name)->toBe('administrator');
+    expect(AuditLog::query()
+        ->where('action', 'user.role_updated')
+        ->where('entity_type', $profile->user->getMorphClass())
+        ->where('entity_id', $profile->user->id)
+        ->exists())->toBeTrue();
+});
+
+test('administrator users cannot update linked user roles', function () {
+    $administratorRole = Role::factory()->create([
+        'name' => 'administrator',
+        'description' => 'Administrator sistem',
+    ]);
+    $bendaharaRole = Role::factory()->create([
+        'name' => 'bendahara',
+        'description' => 'Pengelola pembayaran dan donasi',
+    ]);
+
+    $administrator = User::factory()->create(['role_id' => $administratorRole->id]);
+    $profile = Alumni::factory()->create();
+
+    $this->actingAs($administrator)
+        ->get(route('admin.alumni.show', $profile))
+        ->assertOk()
+        ->assertDontSee('Ubah role akun')
+        ->assertDontSee('Simpan Role');
+
+    Livewire::actingAs($administrator)
+        ->test('pages::admin.alumni.show', ['alumni' => $profile])
+        ->set('role_id', $bendaharaRole->id)
+        ->call('updateRole')
+        ->assertForbidden();
+
+    expect($profile->user->refresh()->role_id)->not->toBe($bendaharaRole->id);
+});
+
+test('superadmin users cannot remove the last superadmin role', function () {
+    $superadminRole = Role::factory()->create([
+        'name' => 'superadmin',
+        'description' => 'Pengelola teknis sistem',
+    ]);
+    $alumniRole = Role::factory()->create([
+        'name' => 'alumni',
+        'description' => 'Anggota alumni',
+    ]);
+
+    $superadmin = User::factory()->create(['role_id' => $superadminRole->id]);
+    $profile = Alumni::factory()->create([
+        'user_id' => $superadmin->id,
+    ]);
+
+    Livewire::actingAs($superadmin)
+        ->test('pages::admin.alumni.show', ['alumni' => $profile])
+        ->set('role_id', $alumniRole->id)
+        ->call('updateRole')
+        ->assertHasErrors(['role_id']);
+
+    expect($superadmin->refresh()->role_id)->toBe($superadminRole->id);
 });
 
 test('administrator alumni update validates unique identifiers', function () {

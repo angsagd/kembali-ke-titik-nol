@@ -1,12 +1,15 @@
 <?php
 
 use App\Models\Alumni;
+use App\Models\AuditLog;
 use App\Models\City;
 use App\Models\Country;
+use App\Models\Role;
 use App\Models\User;
 use Flux\Flux;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -41,6 +44,8 @@ new #[Title('Detail Alumni')] class extends Component {
 
     public bool $is_profile_completed = false;
 
+    public ?int $role_id = null;
+
     public function mount(Alumni $alumni): void
     {
         $this->alumni = $alumni->load(['user.role']);
@@ -62,6 +67,7 @@ new #[Title('Detail Alumni')] class extends Component {
         $this->current_city_id = $this->alumni->current_city_id;
         $this->special_notes = $this->alumni->special_notes;
         $this->is_profile_completed = $this->alumni->is_profile_completed;
+        $this->role_id = $this->alumni->user?->role_id;
     }
 
     public function updatedCurrentCountryId(): void
@@ -84,6 +90,15 @@ new #[Title('Detail Alumni')] class extends Component {
             ->when($this->current_country_id, fn ($query) => $query->where('country_id', $this->current_country_id))
             ->orderBy('name')
             ->get(['id', 'name']);
+    }
+
+    #[Computed]
+    public function roles(): Collection
+    {
+        return Role::query()
+            ->orderByRaw("case name when 'superadmin' then 1 when 'administrator' then 2 when 'bendahara' then 3 when 'alumni' then 4 else 5 end")
+            ->orderBy('name')
+            ->get(['id', 'name', 'description']);
     }
 
     #[Computed]
@@ -187,6 +202,68 @@ new #[Title('Detail Alumni')] class extends Component {
         $this->fillForm();
 
         Flux::toast(variant: 'success', text: __('Data alumni diperbarui.'));
+    }
+
+    /**
+     * Update the linked user account role.
+     */
+    public function updateRole(): void
+    {
+        Gate::authorize('manage-user-roles');
+
+        $validated = $this->validate([
+            'role_id' => ['required', 'integer', Rule::exists(Role::class, 'id')],
+        ]);
+
+        $user = $this->alumni->user;
+
+        abort_unless($user instanceof User, 404);
+
+        $targetRole = Role::query()->findOrFail($validated['role_id']);
+        $currentRole = $user->role?->name;
+
+        if ($currentRole === $targetRole->name) {
+            Flux::toast(variant: 'info', text: __('Role akun tidak berubah.'));
+
+            return;
+        }
+
+        if ($currentRole === 'superadmin' && $targetRole->name !== 'superadmin' && ! $this->hasOtherSuperadmin($user)) {
+            $this->addError('role_id', __('Minimal satu superadmin harus tetap tersedia.'));
+
+            return;
+        }
+
+        $oldValues = [
+            'role_id' => $user->role_id,
+            'role' => $currentRole,
+        ];
+
+        $user->forceFill(['role_id' => $targetRole->id])->save();
+        $user->refresh()->load('role');
+
+        AuditLog::record(
+            action: 'user.role_updated',
+            entity: $user,
+            oldValues: $oldValues,
+            newValues: [
+                'role_id' => $user->role_id,
+                'role' => $user->role?->name,
+            ],
+        );
+
+        $this->alumni = $this->alumni->fresh(['user.role']);
+        $this->fillForm();
+
+        Flux::toast(variant: 'success', text: __('Role akun diperbarui.'));
+    }
+
+    private function hasOtherSuperadmin(User $user): bool
+    {
+        return User::query()
+            ->whereKeyNot($user->id)
+            ->whereHas('role', fn ($query) => $query->where('name', 'superadmin'))
+            ->exists();
     }
 }; ?>
 
@@ -391,6 +468,22 @@ new #[Title('Detail Alumni')] class extends Component {
                         <dd class="font-medium">{{ $alumni->user?->last_login_at?->diffForHumans() ?: '-' }}</dd>
                     </div>
                 </dl>
+
+                @can('manage-user-roles')
+                    <form wire:submit="updateRole" class="mt-5 border-t border-zinc-200 pt-5 dark:border-zinc-700">
+                        <flux:select wire:model="role_id" :label="__('Ubah role akun')" :description="__('Hanya superadmin yang dapat mengubah role user.')">
+                            @foreach ($this->roles as $role)
+                                <flux:select.option :value="$role->id">
+                                    {{ $role->description ? "{$role->name} - {$role->description}" : $role->name }}
+                                </flux:select.option>
+                            @endforeach
+                        </flux:select>
+
+                        <flux:button type="submit" variant="primary" icon="shield-check" class="mt-4 w-full" wire:loading.attr="disabled">
+                            {{ __('Simpan Role') }}
+                        </flux:button>
+                    </form>
+                @endcan
             </div>
 
             <div class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">

@@ -123,6 +123,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Determine if the user can manage user role assignments.
+     */
+    public function canManageUserRoles(): bool
+    {
+        return $this->hasRole('superadmin');
+    }
+
+    /**
      * Determine if the user can import WhatsApp chat analytics.
      */
     public function canImportWhatsappAnalytics(): bool
