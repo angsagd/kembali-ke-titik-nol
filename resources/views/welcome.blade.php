@@ -8,7 +8,7 @@
             $metaTitle = 'Reuni 30 Tahun Geodesi 96 - Kembali ke Titik Nol';
             $metaDescription = 'Ngalibrasi 30 Taon Paseduluran. Reuni alumni Teknik Geodesi UGM angkatan 96 untuk pulang, bertemu, mengenang, dan kembali ke titik nol bersama.';
             $metaUrl = 'https://geodesiugm96.web.id';
-            $metaImage = 'https://geodesiugm96.web.id/images/brand/sticker-kembali-ke-titik-nol.png';
+            $metaImage = 'https://geodesiugm96.web.id/images/brand/sticker-kembali-ke-titik-nol-full.png';
             $siteName = 'Kembali ke Titik Nol';
         @endphp
 
@@ -86,7 +86,7 @@
 
                     <div class="relative mx-auto flex max-w-7xl flex-col items-center text-center">
                         <img
-                            src="{{ asset('images/brand/sticker-kembali-ke-titik-nol.jpg') }}"
+                            src="{{ asset('images/brand/sticker-kembali-ke-titik-nol.png') }}"
                             alt="Logo Kembali ke Titik Nol Reuni Geodesi 96"
                             class="sticker-shadow mb-8 size-48 rounded-sm object-contain sm:size-56 lg:size-64"
                         >
