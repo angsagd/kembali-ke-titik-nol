@@ -3,6 +3,7 @@
 use App\Models\WhatsappImport;
 use App\Models\WhatsappStatistic;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Carbon;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -88,6 +89,96 @@ new #[Title('WhatsApp Analytics')] class extends Component {
 
         return $statistic->label ?: '-';
     }
+
+    /**
+     * @return array{labels: array<int, string>, values: array<int, int|float>}
+     */
+    public function activeMemberChartData(): array
+    {
+        $rows = $this->stats('active_member');
+
+        return [
+            'labels' => $rows->map(fn (WhatsappStatistic $statistic): string => $this->statisticLabel($statistic))->all(),
+            'values' => $rows->map(fn (WhatsappStatistic $statistic): int|float => (float) $statistic->value)->all(),
+        ];
+    }
+
+    /**
+     * @return array{labels: array<int, string>, values: array<int, int|float>}
+     */
+    public function monthlyActivityChartData(): array
+    {
+        if ($this->latestImport === null) {
+            return ['labels' => [], 'values' => []];
+        }
+
+        $rows = WhatsappStatistic::query()
+            ->where('whatsapp_import_id', $this->latestImport->id)
+            ->where('category', 'busiest_month')
+            ->orderBy('label')
+            ->limit(24)
+            ->get();
+
+        return [
+            'labels' => $rows->map(function (WhatsappStatistic $statistic): string {
+                $month = Carbon::createFromFormat('Y-m', $statistic->label);
+
+                return $month?->translatedFormat('M Y') ?? $statistic->label;
+            })->all(),
+            'values' => $rows->map(fn (WhatsappStatistic $statistic): int|float => (float) $statistic->value)->all(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function activeMemberChartOption(): array
+    {
+        $data = $this->activeMemberChartData();
+
+        return [
+            'color' => ['#1f5133'],
+            'tooltip' => ['trigger' => 'axis', 'axisPointer' => ['type' => 'shadow']],
+            'grid' => ['left' => 16, 'right' => 16, 'top' => 12, 'bottom' => 12, 'containLabel' => true],
+            'xAxis' => ['type' => 'value', 'splitLine' => ['lineStyle' => ['color' => '#e4e4e7']]],
+            'yAxis' => ['type' => 'category', 'data' => $data['labels'], 'inverse' => true, 'axisTick' => ['show' => false]],
+            'series' => [[
+                'name' => __('Pesan'),
+                'type' => 'bar',
+                'barMaxWidth' => 26,
+                'data' => $data['values'],
+                'itemStyle' => ['borderRadius' => [0, 6, 6, 0]],
+            ]],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function monthlyActivityChartOption(): array
+    {
+        $data = $this->monthlyActivityChartData();
+
+        return [
+            'color' => ['#c57f17'],
+            'tooltip' => ['trigger' => 'axis'],
+            'grid' => ['left' => 16, 'right' => 16, 'top' => 12, 'bottom' => 24, 'containLabel' => true],
+            'xAxis' => [
+                'type' => 'category',
+                'data' => $data['labels'],
+                'axisLabel' => ['rotate' => count($data['labels']) > 8 ? 35 : 0],
+            ],
+            'yAxis' => ['type' => 'value', 'splitLine' => ['lineStyle' => ['color' => '#e4e4e7']]],
+            'series' => [[
+                'name' => __('Pesan'),
+                'type' => 'line',
+                'smooth' => true,
+                'symbolSize' => 8,
+                'data' => $data['values'],
+                'areaStyle' => ['opacity' => 0.15],
+            ]],
+        ];
+    }
 }; ?>
 
 <section class="w-full space-y-6 p-6 lg:p-8">
@@ -155,6 +246,18 @@ new #[Title('WhatsApp Analytics')] class extends Component {
 
         <div class="space-y-4">
             <flux:heading size="lg">{{ __('Statistik Grup') }}</flux:heading>
+
+            <div class="grid gap-4 xl:grid-cols-2">
+                <flux:card class="space-y-4">
+                    <flux:heading size="lg">{{ __('Top Member Aktif') }}</flux:heading>
+                    <div class="h-80 w-full" data-echarts data-echarts-option='@json($this->activeMemberChartOption())'></div>
+                </flux:card>
+
+                <flux:card class="space-y-4">
+                    <flux:heading size="lg">{{ __('Aktivitas per Bulan') }}</flux:heading>
+                    <div class="h-80 w-full" data-echarts data-echarts-option='@json($this->monthlyActivityChartOption())'></div>
+                </flux:card>
+            </div>
 
             <div class="grid gap-4 xl:grid-cols-3">
                 @foreach ($this->activityCategories() as $category)

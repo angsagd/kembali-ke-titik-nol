@@ -1,10 +1,12 @@
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import * as echarts from 'echarts';
 
 const countdownTimers = new WeakMap();
 const leafletMaps = new WeakMap();
 const publicHeaderStates = new WeakMap();
 const landingVideoObservers = new WeakMap();
+const echartsInstances = new WeakMap();
 
 function updateCountdown(countdown) {
     const targetDate = new Date(countdown.dataset.countdownTarget);
@@ -283,14 +285,42 @@ function updateLandingVideoVisibility() {
     });
 }
 
+function initializeEcharts() {
+    document.querySelectorAll('[data-echarts]').forEach((element) => {
+        const option = JSON.parse(element.dataset.echartsOption || '{}');
+
+        if (!option || typeof option !== 'object') {
+            return;
+        }
+
+        if (!echartsInstances.has(element)) {
+            const chart = echarts.init(element);
+
+            chart.setOption(option);
+
+            const resize = () => chart.resize();
+            window.addEventListener('resize', resize);
+            echartsInstances.set(element, { chart, resize });
+
+            return;
+        }
+
+        const existing = echartsInstances.get(element);
+        existing.chart.setOption(option, true);
+        window.setTimeout(() => existing.chart.resize(), 50);
+    });
+}
+
 document.addEventListener('DOMContentLoaded', initializeCountdowns);
 document.addEventListener('DOMContentLoaded', initializeDistributionMaps);
 document.addEventListener('DOMContentLoaded', initializePublicHeaderNavigation);
 document.addEventListener('DOMContentLoaded', initializeLandingVideos);
+document.addEventListener('DOMContentLoaded', initializeEcharts);
 document.addEventListener('visibilitychange', updateLandingVideoVisibility);
 document.addEventListener('livewire:navigated', () => {
     initializeCountdowns();
     initializeDistributionMaps();
     initializePublicHeaderNavigation();
     initializeLandingVideos();
+    initializeEcharts();
 });

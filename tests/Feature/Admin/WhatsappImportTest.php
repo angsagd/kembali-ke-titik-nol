@@ -9,6 +9,28 @@ use Illuminate\Http\Testing\File;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
+function whatsappZipFile(array $entries, string $name = 'chat.zip'): File
+{
+    $zipPath = tempnam(sys_get_temp_dir(), 'wa-import-');
+    $archive = new ZipArchive;
+
+    expect($zipPath)->not->toBeFalse();
+    expect($archive->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE))->toBeTrue();
+
+    foreach ($entries as $entryName => $contents) {
+        $archive->addFromString($entryName, $contents);
+    }
+
+    $archive->close();
+
+    $binary = file_get_contents($zipPath);
+    @unlink($zipPath);
+
+    expect($binary)->toBeString();
+
+    return File::createWithContent($name, $binary);
+}
+
 test('guests are redirected from whatsapp import page', function () {
     $this->get(route('admin.whatsapp.index'))
         ->assertRedirect(route('login'));
@@ -40,6 +62,27 @@ test('superadmin users can access whatsapp import page', function () {
         ->assertSee('Upload Export Chat')
         ->assertSee('maksimum 10 MB')
         ->assertSee('Mengunggah file...');
+});
+
+test('superadmin users can upload whatsapp zip export files', function () {
+    Storage::fake('local');
+
+    $superadminRole = Role::factory()->create([
+        'name' => 'superadmin',
+        'description' => 'Pengelola teknis sistem',
+    ]);
+    $superadmin = User::factory()->create(['role_id' => $superadminRole->id]);
+
+    $this->actingAs($superadmin);
+
+    Livewire::test('pages::admin.whatsapp.index')
+        ->set('chat_file', whatsappZipFile([
+            'chat.txt' => '01/01/2026, 08:00 - Budi: Halo',
+        ]))
+        ->call('saveImport')
+        ->assertHasNoErrors();
+
+    expect(WhatsappImport::query()->firstOrFail()->file_name)->toBe('chat.zip');
 });
 
 test('project upload limits support whatsapp exports up to ten megabytes', function () {
@@ -114,7 +157,79 @@ test('superadmin users can upload and process whatsapp export', function () {
     expect(AuditLog::query()->where('action', 'whatsapp_import.processed')->exists())->toBeTrue();
 });
 
-test('superadmin users can only upload whatsapp text export files', function () {
+test('zip import processes the largest txt file inside archive', function () {
+    Storage::fake('local');
+
+    $superadminRole = Role::factory()->create([
+        'name' => 'superadmin',
+        'description' => 'Pengelola teknis sistem',
+    ]);
+    $superadmin = User::factory()->create(['role_id' => $superadminRole->id]);
+
+    $this->actingAs($superadmin);
+
+    Livewire::test('pages::admin.whatsapp.index')
+        ->set('chat_file', whatsappZipFile([
+            'small.txt' => "01/01/2026, 08:00 - Budi: Halo\n",
+            'nested/largest.txt' => implode("\n", [
+                '01/01/2026, 08:00 - Budi: Selamat pagi geodesi',
+                '01/01/2026, 08:05 - Citra: Info reuni https://example.test',
+                '01/01/2026, 09:00 - Budi: Foto <Media omitted>',
+                '01/01/2026, 23:30 - Budi: Malam nostalgia geodesi 😄😄',
+                '01/02/2026, 10:00 - Citra: Kerja sambil bahas reuni',
+                '01/03/2026, 11:00 - Budi: Weekend kumpul geodesi 😄',
+                '01/03/2026, 11:30 - Dodi: Hadir reuni',
+            ]),
+            'notes/readme.md' => '# not chat export',
+        ], 'exports.zip'))
+        ->call('saveImport')
+        ->assertHasNoErrors();
+
+    $whatsappImport = WhatsappImport::query()->firstOrFail();
+
+    Livewire::test('pages::admin.whatsapp.index')
+        ->call('processImport', $whatsappImport->id)
+        ->assertHasNoErrors();
+
+    $whatsappImport->refresh();
+
+    expect($whatsappImport->status)->toBe('completed');
+    expect($whatsappImport->total_messages)->toBe(7);
+    expect($whatsappImport->total_participants)->toBe(3);
+});
+
+test('zip import fails when archive has no txt file', function () {
+    Storage::fake('local');
+
+    $superadminRole = Role::factory()->create([
+        'name' => 'superadmin',
+        'description' => 'Pengelola teknis sistem',
+    ]);
+    $superadmin = User::factory()->create(['role_id' => $superadminRole->id]);
+
+    $this->actingAs($superadmin);
+
+    Livewire::test('pages::admin.whatsapp.index')
+        ->set('chat_file', whatsappZipFile([
+            'chat.md' => '# no whatsapp txt here',
+            'data/info.json' => '{"status":"ok"}',
+        ], 'invalid-export.zip'))
+        ->call('saveImport')
+        ->assertHasNoErrors();
+
+    $whatsappImport = WhatsappImport::query()->firstOrFail();
+
+    Livewire::test('pages::admin.whatsapp.index')
+        ->call('processImport', $whatsappImport->id)
+        ->assertHasNoErrors();
+
+    $whatsappImport->refresh();
+
+    expect($whatsappImport->status)->toBe('failed');
+    expect($whatsappImport->notes)->toContain('ZIP harus berisi minimal satu file .txt.');
+});
+
+test('superadmin users can only upload whatsapp txt or zip export files', function () {
     Storage::fake('local');
 
     $superadminRole = Role::factory()->create([

@@ -5,6 +5,7 @@ use App\Models\WhatsappImport;
 use App\Services\WhatsappChatAnalyzer;
 use Flux\Flux;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -33,7 +34,7 @@ new #[Title('WhatsApp Import')] class extends Component {
         Gate::authorize('import-whatsapp-analytics');
 
         $validated = $this->validate([
-            'chat_file' => ['required', 'file', 'mimes:txt', 'max:10240'],
+            'chat_file' => ['required', 'file', 'extensions:txt,zip', 'max:10240'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
@@ -66,7 +67,7 @@ new #[Title('WhatsApp Import')] class extends Component {
         $whatsappImport->forceFill(['status' => 'processing'])->save();
 
         try {
-            $contents = $whatsappImport->file_path ? Storage::get($whatsappImport->file_path) : '';
+            $contents = $this->importContents($whatsappImport);
             $analysis = $analyzer->analyze($contents);
 
             DB::transaction(function () use ($whatsappImport, $analysis): void {
@@ -103,6 +104,81 @@ new #[Title('WhatsApp Import')] class extends Component {
         }
 
         unset($this->summary, $this->imports);
+    }
+
+    private function importContents(WhatsappImport $whatsappImport): string
+    {
+        if (! $whatsappImport->file_path) {
+            return '';
+        }
+
+        if ($this->isZipImport($whatsappImport)) {
+            return $this->extractLargestTextFileContents($whatsappImport);
+        }
+
+        return Storage::get($whatsappImport->file_path);
+    }
+
+    private function isZipImport(WhatsappImport $whatsappImport): bool
+    {
+        $fileName = Str::lower((string) $whatsappImport->file_name);
+        $filePath = Str::lower((string) $whatsappImport->file_path);
+
+        return str_ends_with($fileName, '.zip') || str_ends_with($filePath, '.zip');
+    }
+
+    private function extractLargestTextFileContents(WhatsappImport $whatsappImport): string
+    {
+        $zipPath = Storage::path($whatsappImport->file_path);
+        $archive = new ZipArchive();
+        $opened = $archive->open($zipPath);
+
+        if ($opened !== true) {
+            throw new RuntimeException(__('File ZIP tidak dapat dibuka.'));
+        }
+
+        $largestTextIndex = null;
+        $largestTextSize = -1;
+
+        for ($index = 0; $index < $archive->numFiles; $index++) {
+            $fileStat = $archive->statIndex($index);
+
+            if (! is_array($fileStat)) {
+                continue;
+            }
+
+            $entryName = (string) ($fileStat['name'] ?? '');
+            $entrySize = (int) ($fileStat['size'] ?? 0);
+
+            if (! $this->isTextEntry($entryName) || str_ends_with($entryName, '/')) {
+                continue;
+            }
+
+            if ($entrySize > $largestTextSize) {
+                $largestTextSize = $entrySize;
+                $largestTextIndex = $index;
+            }
+        }
+
+        if ($largestTextIndex === null) {
+            $archive->close();
+
+            throw new RuntimeException(__('ZIP harus berisi minimal satu file .txt.'));
+        }
+
+        $contents = $archive->getFromIndex($largestTextIndex);
+        $archive->close();
+
+        if (! is_string($contents)) {
+            throw new RuntimeException(__('File txt di dalam ZIP tidak dapat dibaca.'));
+        }
+
+        return $contents;
+    }
+
+    private function isTextEntry(string $entryName): bool
+    {
+        return Str::lower(pathinfo($entryName, PATHINFO_EXTENSION)) === 'txt';
     }
 
     /**
@@ -196,10 +272,10 @@ new #[Title('WhatsApp Import')] class extends Component {
             <div class="space-y-5">
                 <div>
                     <flux:heading size="lg">{{ __('Upload Export Chat') }}</flux:heading>
-                    <flux:text class="mt-2">{{ __('Gunakan file .txt hasil export WhatsApp tanpa media, maksimum 10 MB.') }}</flux:text>
+                    <flux:text class="mt-2">{{ __('Gunakan file .txt atau .zip hasil export WhatsApp tanpa media, maksimum 10 MB.') }}</flux:text>
                 </div>
 
-                <flux:input wire:model="chat_file" :label="__('File chat')" type="file" accept=".txt,text/plain" />
+                <flux:input wire:model="chat_file" :label="__('File chat')" type="file" accept=".txt,.zip,text/plain,application/zip" />
                 <div x-cloak x-show="uploading" class="space-y-2">
                     <div class="flex justify-between gap-3 text-sm text-zinc-600 dark:text-zinc-300">
                         <span>{{ __('Mengunggah file...') }}</span>
