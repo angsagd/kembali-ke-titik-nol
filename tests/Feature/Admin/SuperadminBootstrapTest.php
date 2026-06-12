@@ -4,6 +4,7 @@ use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\SuperadminSeeder;
+use Illuminate\Support\Facades\Hash;
 
 test('superadmin seeder creates initial administrative account', function () {
     $this->seed([
@@ -15,15 +16,29 @@ test('superadmin seeder creates initial administrative account', function () {
 
     expect($user->role->name)->toBe('superadmin');
     expect($user->canManageAlumni())->toBeTrue();
+    expect(Hash::check('tgd0001', $user->password))->toBeTrue();
 
-    $this->post(route('login.store'), [
-        'whatsapp_number' => '620000000001',
-        'password' => 'tgd0001',
-    ])->assertSessionHasNoErrors();
+    $this->actingAs($user)
+        ->get(route('admin.alumni.index'))
+        ->assertOk();
+});
 
-    $this->assertAuthenticatedAs($user);
+test('superadmin seeder creates initial non alumni administrator account', function () {
+    $this->seed([
+        RoleSeeder::class,
+        SuperadminSeeder::class,
+    ]);
 
-    $this->get(route('admin.alumni.index'))->assertOk();
+    $user = User::query()->where('whatsapp_number', '628100000002')->firstOrFail();
+
+    expect($user->role->name)->toBe('administrator');
+    expect($user->alumni)->toBeNull();
+    expect($user->canManageAlumni())->toBeTrue();
+    expect(Hash::check('tgd0002', $user->password))->toBeTrue();
+
+    $this->actingAs($user)
+        ->get(route('admin.alumni.index'))
+        ->assertOk();
 });
 
 test('existing user can be promoted to an administrative role by whatsapp number', function () {

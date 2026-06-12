@@ -13,20 +13,35 @@ class SuperadminSeeder extends Seeder
      */
     public function run(): void
     {
-        $role = Role::query()->firstOrCreate(
-            ['name' => 'superadmin'],
-            ['description' => 'Pengelola teknis sistem'],
+        $this->seedAdministrativeUser(
+            configKey: 'superadmin',
+            roleName: 'superadmin',
+            defaultDescription: 'Pengelola teknis sistem',
         );
 
-        $whatsappNumber = User::normalizeWhatsappNumber((string) config('kembali-ke-titik-nol.superadmin.whatsapp_number'));
+        $this->seedAdministrativeUser(
+            configKey: 'administrator',
+            roleName: 'administrator',
+            defaultDescription: 'Panitia pelaksana reuni',
+        );
+    }
+
+    private function seedAdministrativeUser(string $configKey, string $roleName, string $defaultDescription): void
+    {
+        $role = Role::query()->firstOrCreate(
+            ['name' => $roleName],
+            ['description' => $defaultDescription],
+        );
+
+        $whatsappNumber = User::normalizeWhatsappNumber((string) config("kembali-ke-titik-nol.{$configKey}.whatsapp_number"));
 
         User::query()->updateOrCreate(
             ['whatsapp_number' => $whatsappNumber],
             [
                 'role_id' => $role->id,
-                'name' => (string) config('kembali-ke-titik-nol.superadmin.name'),
-                'email' => (string) (config('kembali-ke-titik-nol.superadmin.email') ?: "{$whatsappNumber}@kembali-ke-titik-nol.local"),
-                'password' => (string) config('kembali-ke-titik-nol.superadmin.password'),
+                'name' => (string) config("kembali-ke-titik-nol.{$configKey}.name"),
+                'email' => (string) (config("kembali-ke-titik-nol.{$configKey}.email") ?: "{$whatsappNumber}@kembali-ke-titik-nol.local"),
+                'password' => (string) config("kembali-ke-titik-nol.{$configKey}.password"),
                 'is_active' => true,
             ],
         );
