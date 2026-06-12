@@ -121,6 +121,35 @@
                     </div>
                 </section>
 
+                <section class="overflow-hidden border-y border-ktn-sage/20 bg-ktn-forest" aria-label="Video Kembali ke Titik Nol">
+                    <div class="relative mx-auto max-w-7xl">
+                        <video
+                            class="aspect-video w-full object-cover motion-reduce:hidden"
+                            autoplay
+                            muted
+                            loop
+                            playsinline
+                            preload="metadata"
+                            poster="{{ asset('videos/titiknol-movie-poster.webp') }}"
+                            disablepictureinpicture
+                            disableremoteplayback
+                            data-landing-video
+                            aria-hidden="true"
+                            tabindex="-1"
+                        >
+                            <source src="{{ asset('videos/titiknol.mp4') }}" type="video/mp4">
+                        </video>
+
+                        <img
+                            src="{{ asset('videos/titiknol-movie-poster.webp') }}"
+                            alt="Kembali ke Titik Nol Geodesi 96"
+                            class="hidden aspect-video w-full object-cover motion-reduce:block"
+                        >
+
+                        <div class="topo-grid pointer-events-none absolute inset-0 opacity-10 motion-reduce:hidden"></div>
+                    </div>
+                </section>
+
                 <section class="bg-ktn-topo px-4 py-16 sm:px-6 lg:px-8">
                     <div class="mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[1fr_1.05fr]">
                         <div class="relative overflow-hidden rounded-2xl bg-ktn-forest p-8 text-white">
@@ -168,11 +197,21 @@
                             <a href="#kontak" class="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-ktn-forest">Kontak Panitia</a>
                         </div>
 
+                        @php
+                            $eventScheduleItems = \App\Models\EventScheduleItem::query()
+                                ->orderByRaw("case event_day when 'day_one' then 1 else 2 end")
+                                ->orderBy('start_time')
+                                ->orderBy('id')
+                                ->get();
+
+                            $eventDays = [
+                                ['day_one', '01', 'Minggu, 23 Agustus', 'Penginapan Joglo / Kampung Wisata Tembi'],
+                                ['day_two', '02', 'Senin, 24 Agustus', 'Departemen Teknik Geodesi UGM'],
+                            ];
+                        @endphp
+
                         <div class="mt-10 grid gap-5 lg:grid-cols-2">
-                            @foreach ([
-                                ['01', 'Minggu, 23 Agustus', 'Penginapan Joglo / Kampung Wisata Tembi', [['15.00', 'Check-in & Registrasi'], ['19.00', 'Dinner & Malam Akrab'], ['21.00', 'Angkringan Night']]],
-                                ['02', 'Senin, 24 Agustus', 'Departemen Teknik Geodesi UGM', [['09.45', 'Campus Walk'], ['13.00', 'Sarasehan Alumni'], ['18.00', 'Gala Dinner']]],
-                            ] as [$number, $date, $place, $items])
+                            @foreach ($eventDays as [$eventDay, $number, $date, $place])
                                 <article class="rounded-xl border border-ktn-sage/20 bg-ktn-surface p-7">
                                     <div class="flex items-start gap-4">
                                         <span class="grid size-10 shrink-0 place-items-center rounded-lg bg-ktn-forest font-mono text-xs font-bold text-white">{{ $number }}</span>
@@ -182,12 +221,14 @@
                                         </div>
                                     </div>
                                     <div class="mt-7 grid gap-4">
-                                        @foreach ($items as [$time, $activity])
+                                        @forelse ($eventScheduleItems->where('event_day', $eventDay) as $item)
                                             <div class="grid grid-cols-[4rem_1fr] gap-4">
-                                                <span class="font-mono text-xs font-semibold text-ktn-muted">{{ $time }}</span>
-                                                <span class="font-medium text-ktn-ink">{{ $activity }}</span>
+                                                <span class="font-mono text-xs font-semibold text-ktn-muted">{{ $item->displayTime() }}</span>
+                                                <span class="font-medium text-ktn-ink">{{ $item->activity }}</span>
                                             </div>
-                                        @endforeach
+                                        @empty
+                                            <p class="text-sm text-ktn-muted">{{ __('Rundown belum tersedia.') }}</p>
+                                        @endforelse
                                     </div>
                                 </article>
                             @endforeach

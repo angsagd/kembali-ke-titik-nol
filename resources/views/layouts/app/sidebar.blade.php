@@ -93,6 +93,10 @@
                             {{ __('Berita') }}
                         </flux:sidebar.item>
 
+                        <flux:sidebar.item icon="calendar-days" :href="route('admin.event-schedule.index')" :current="request()->routeIs('admin.event-schedule.*')" wire:navigate>
+                            {{ __('Rangkaian Acara') }}
+                        </flux:sidebar.item>
+
                         <flux:sidebar.item icon="chat-bubble-left-right" :href="route('admin.whatsapp.index')" :current="request()->routeIs('admin.whatsapp.*')" wire:navigate>
                             {{ __('WhatsApp Import') }}
                         </flux:sidebar.item>
@@ -222,6 +226,10 @@
 
                             <flux:menu.item :href="route('admin.news.index')" icon="newspaper" wire:navigate>
                                 {{ __('Berita') }}
+                            </flux:menu.item>
+
+                            <flux:menu.item :href="route('admin.event-schedule.index')" icon="calendar-days" wire:navigate>
+                                {{ __('Rangkaian Acara') }}
                             </flux:menu.item>
 
                             <flux:menu.item :href="route('admin.whatsapp.index')" icon="chat-bubble-left-right" wire:navigate>

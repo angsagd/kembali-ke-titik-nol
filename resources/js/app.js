@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 const countdownTimers = new WeakMap();
 const leafletMaps = new WeakMap();
 const publicHeaderStates = new WeakMap();
+const landingVideoObservers = new WeakMap();
 
 function updateCountdown(countdown) {
     const targetDate = new Date(countdown.dataset.countdownTarget);
@@ -228,11 +229,68 @@ function initializePublicHeaderNavigation() {
     });
 }
 
+function initializeLandingVideos() {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    document.querySelectorAll('[data-landing-video]').forEach((video) => {
+        if (landingVideoObservers.has(video)) {
+            return;
+        }
+
+        if (reducedMotion.matches) {
+            video.pause();
+
+            return;
+        }
+
+        const state = {
+            isIntersecting: false,
+            observer: null,
+        };
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    state.isIntersecting = entry.isIntersecting;
+
+                    if (entry.isIntersecting && document.visibilityState === 'visible') {
+                        video.play().catch(() => {});
+                    } else {
+                        video.pause();
+                    }
+                });
+            },
+            { threshold: 0.25 },
+        );
+
+        state.observer = observer;
+        observer.observe(video);
+        landingVideoObservers.set(video, state);
+    });
+}
+
+function updateLandingVideoVisibility() {
+    document.querySelectorAll('[data-landing-video]').forEach((video) => {
+        const state = landingVideoObservers.get(video);
+
+        if (!state || document.visibilityState !== 'visible' || !state.isIntersecting) {
+            video.pause();
+
+            return;
+        }
+
+        video.play().catch(() => {});
+    });
+}
+
 document.addEventListener('DOMContentLoaded', initializeCountdowns);
 document.addEventListener('DOMContentLoaded', initializeDistributionMaps);
 document.addEventListener('DOMContentLoaded', initializePublicHeaderNavigation);
+document.addEventListener('DOMContentLoaded', initializeLandingVideos);
+document.addEventListener('visibilitychange', updateLandingVideoVisibility);
 document.addEventListener('livewire:navigated', () => {
     initializeCountdowns();
     initializeDistributionMaps();
     initializePublicHeaderNavigation();
+    initializeLandingVideos();
 });

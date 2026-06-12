@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             LocationSeeder::class,
             SuperadminSeeder::class,
             AlumniContactSeeder::class,
+            EventScheduleItemSeeder::class,
         ]);
     }
 }

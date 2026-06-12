@@ -63,6 +63,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::livewire('admin/rooming', 'pages::admin.rooming.index')->name('admin.rooming.index');
         Route::livewire('admin/documentation', 'pages::admin.documentation.index')->name('admin.documentation.index');
         Route::livewire('admin/news', 'pages::admin.news.index')->name('admin.news.index');
+        Route::livewire('admin/event-schedule', 'pages::admin.event-schedule.index')->name('admin.event-schedule.index');
         Route::livewire('admin/whatsapp', 'pages::admin.whatsapp.index')
             ->middleware('can:import-whatsapp-analytics')
             ->name('admin.whatsapp.index');
