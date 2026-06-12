@@ -42,14 +42,18 @@ new #[Title('RSVP')] class extends Component {
             ])
             ->values()
             ->all();
-        $this->syncFamilyMembers();
+
+        if ($this->rsvp_status === 'attending') {
+            $this->syncFamilyMembers();
+        } else {
+            $this->resetRsvpParty();
+        }
     }
 
     public function updatedRsvpPartyType(): void
     {
         if ($this->rsvp_party_type === 'self') {
-            $this->family_members_count = 0;
-            $this->family_members = [];
+            $this->resetRsvpParty();
 
             return;
         }
@@ -59,6 +63,13 @@ new #[Title('RSVP')] class extends Component {
         }
 
         $this->syncFamilyMembers();
+    }
+
+    public function updatedRsvpStatus(): void
+    {
+        if ($this->rsvp_status !== 'attending') {
+            $this->resetRsvpParty();
+        }
     }
 
     public function updatedFamilyMembersCount(): void
@@ -135,6 +146,13 @@ new #[Title('RSVP')] class extends Component {
         }
 
         $this->family_members = array_slice($members, 0, $this->family_members_count);
+    }
+
+    protected function resetRsvpParty(): void
+    {
+        $this->rsvp_party_type = 'self';
+        $this->family_members_count = 0;
+        $this->family_members = [];
     }
 
     /**
@@ -251,7 +269,7 @@ new #[Title('RSVP')] class extends Component {
                     <flux:text class="mt-2">{{ __('Pilih salah satu status, lalu simpan perubahan RSVP Anda.') }}</flux:text>
                 </div>
 
-                <flux:radio.group wire:model="rsvp_status" variant="cards" class="max-sm:flex-col" :invalid="$errors->has('rsvp_status')">
+                <flux:radio.group wire:model.live="rsvp_status" variant="cards" class="max-sm:flex-col" :invalid="$errors->has('rsvp_status')">
                     <flux:radio value="attending" icon="check-circle" :label="__('Hadir')" :description="__('Saya berencana hadir pada kegiatan reuni.')" />
                     <flux:radio value="not_attending" icon="x-circle" :label="__('Tidak Hadir')" :description="__('Saya belum dapat hadir pada kegiatan reuni.')" />
                 </flux:radio.group>
@@ -261,13 +279,15 @@ new #[Title('RSVP')] class extends Component {
                 @enderror
 
                 <div class="grid gap-5 lg:grid-cols-2">
-                    <flux:select wire:model.live="rsvp_party_type" :label="__('Kehadiran')">
-                        <flux:select.option value="self">{{ __('Sendiri') }}</flux:select.option>
-                        <flux:select.option value="family">{{ __('Bersama keluarga') }}</flux:select.option>
-                    </flux:select>
+                    @if ($rsvp_status === 'attending')
+                        <flux:select wire:model.live="rsvp_party_type" :label="__('Kehadiran')">
+                            <flux:select.option value="self">{{ __('Sendiri') }}</flux:select.option>
+                            <flux:select.option value="family">{{ __('Bersama keluarga') }}</flux:select.option>
+                        </flux:select>
 
-                    @if ($rsvp_party_type === 'family')
-                        <flux:input wire:model.live="family_members_count" :label="__('Jumlah tambahan keluarga')" type="number" min="1" max="20" />
+                        @if ($rsvp_party_type === 'family')
+                            <flux:input wire:model.live="family_members_count" :label="__('Jumlah tambahan keluarga')" type="number" min="1" max="20" />
+                        @endif
                     @endif
 
                     <flux:select wire:model="shirt_size" :label="__('Ukuran kaos alumni')">
@@ -285,7 +305,7 @@ new #[Title('RSVP')] class extends Component {
                     </flux:select>
                 </div>
 
-                @if ($rsvp_party_type === 'family')
+                @if ($rsvp_status === 'attending' && $rsvp_party_type === 'family')
                     <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800">
                         <flux:heading size="sm">{{ __('Kaos Anggota Keluarga') }}</flux:heading>
                         <flux:text class="mt-1">

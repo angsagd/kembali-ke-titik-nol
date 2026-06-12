@@ -30,6 +30,9 @@ test('public rsvp form loads alumni data by whatsapp number', function () {
         ->assertSet('full_name', 'Bambang Geodesi')
         ->assertSet('nickname', 'Bamgeo')
         ->assertSet('whatsapp_number', '6281234567890')
+        ->assertDontSee('Bersama keluarga')
+        ->assertSee('Ukuran kaos alumni')
+        ->assertSee('Jenis kaos alumni')
         ->assertSee('Data Diri dan RSVP');
 });
 
@@ -46,6 +49,26 @@ test('public rsvp form does not expose alumni data for unknown whatsapp number',
         ->assertHasErrors('lookup_whatsapp_number')
         ->assertSet('alumni', null)
         ->assertDontSee('Nama Tidak Boleh Bocor');
+});
+
+test('public rsvp hides family controls but keeps shirt controls when not attending', function () {
+    $user = User::factory()->create(['whatsapp_number' => '6281234567890']);
+    Alumni::factory()->create([
+        'user_id' => $user->id,
+        'rsvp_status' => 'attending',
+        'rsvp_party_type' => 'family',
+        'family_members_count' => 2,
+    ]);
+
+    Livewire::test('pages::public.rsvp')
+        ->set('lookup_whatsapp_number', '6281234567890')
+        ->call('verifyWhatsappNumber')
+        ->set('rsvp_status', 'not_attending')
+        ->assertSet('rsvp_party_type', 'self')
+        ->assertSet('family_members_count', 0)
+        ->assertDontSee('Bersama keluarga')
+        ->assertSee('Ukuran kaos alumni')
+        ->assertSee('Jenis kaos alumni');
 });
 
 test('public rsvp form updates alumni and user data', function () {

@@ -7,7 +7,9 @@ use App\Models\City;
 use App\Models\Country;
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 test('guests are redirected from alumni management', function () {
@@ -330,6 +332,34 @@ test('administrator users can update core alumni data', function () {
     expect($profile->user->name)->toBe('Nama Baru');
     expect($profile->user->whatsapp_number)->toBe('6281211112222');
     expect($profile->user->email)->toBe('baru@example.test');
+});
+
+test('administrator users can upload alumni memory book photos', function () {
+    Storage::fake('public');
+
+    $administratorRole = Role::factory()->create([
+        'name' => 'administrator',
+        'description' => 'Administrator sistem',
+    ]);
+    $administrator = User::factory()->create(['role_id' => $administratorRole->id]);
+    $profile = Alumni::factory()->create();
+
+    Livewire::actingAs($administrator)
+        ->test('pages::admin.alumni.show', ['alumni' => $profile])
+        ->set('college_photo', UploadedFile::fake()->image('kuliah.jpg', 800, 1000))
+        ->set('current_photo', UploadedFile::fake()->image('sekarang.jpg', 800, 1000))
+        ->call('updateMemoryBookPhotos')
+        ->assertHasNoErrors();
+
+    $profile->refresh();
+
+    Storage::disk('public')->assertExists($profile->college_photo_path);
+    Storage::disk('public')->assertExists($profile->current_photo_path);
+    expect(AuditLog::query()
+        ->where('action', 'alumni.memory_book_photos_updated')
+        ->where('entity_type', $profile->getMorphClass())
+        ->where('entity_id', $profile->id)
+        ->exists())->toBeTrue();
 });
 
 test('superadmin users can update linked user role from alumni detail', function () {

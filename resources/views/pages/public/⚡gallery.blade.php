@@ -88,25 +88,9 @@ new #[Layout('layouts::public')] #[Title('Galeri Publik')] class extends Compone
 }; ?>
 
 <main class="min-h-screen bg-ktn-topo">
-    <header class="border-b border-ktn-sage/20 bg-ktn-surface/90 backdrop-blur-xl">
-        <nav class="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-4 sm:px-6 lg:px-8">
-            <a href="{{ route('home') }}" class="flex items-center gap-3">
-                <img src="{{ asset('images/icon/favicon96.png') }}" alt="Logo Geodesi 96" class="size-9 rounded-lg border border-ktn-forest/20 bg-white object-contain p-1">
-                <span class="font-display text-lg font-extrabold tracking-tight text-ktn-forest">Geodesi 96</span>
-            </a>
+    <x-public-header active="gallery" />
 
-            <div class="flex items-center gap-3">
-                <a href="{{ route('home') }}#galeri" class="hidden font-mono text-xs font-semibold uppercase tracking-[0.18em] text-ktn-muted transition hover:text-ktn-forest sm:inline">Landing</a>
-                @if (Route::has('login'))
-                    <a href="{{ route('login') }}" class="rounded-lg bg-ktn-forest px-5 py-2.5 text-sm font-bold text-white transition hover:bg-ktn-forest-strong">
-                        Login
-                    </a>
-                @endif
-            </div>
-        </nav>
-    </header>
-
-    <section class="px-4 py-12 sm:px-6 lg:px-8">
+    <section class="px-4 pb-12 pt-24 sm:px-6 lg:px-8">
         <div class="mx-auto max-w-7xl">
             <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
                 <div class="space-y-3">

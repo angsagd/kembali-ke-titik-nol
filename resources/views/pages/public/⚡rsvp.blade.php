@@ -95,11 +95,17 @@ new #[Layout('layouts::public')]
         $this->current_city_id = null;
     }
 
+    public function updatedRsvpStatus(): void
+    {
+        if ($this->rsvp_status !== 'attending') {
+            $this->resetRsvpParty();
+        }
+    }
+
     public function updatedRsvpPartyType(): void
     {
         if ($this->rsvp_party_type === 'self') {
-            $this->family_members_count = 0;
-            $this->family_members = [];
+            $this->resetRsvpParty();
 
             return;
         }
@@ -271,7 +277,13 @@ new #[Layout('layouts::public')]
             ])
             ->values()
             ->all();
-        $this->syncFamilyMembers();
+
+        if ($this->rsvp_status === 'attending') {
+            $this->syncFamilyMembers();
+        } else {
+            $this->resetRsvpParty();
+        }
+
         $this->company = $this->alumni->company;
         $this->job_title = $this->alumni->job_title;
         $this->current_country_id = $this->alumni->current_country_id;
@@ -324,6 +336,13 @@ new #[Layout('layouts::public')]
         }
 
         $this->family_members = array_slice($members, 0, $this->family_members_count);
+    }
+
+    protected function resetRsvpParty(): void
+    {
+        $this->rsvp_party_type = 'self';
+        $this->family_members_count = 0;
+        $this->family_members = [];
     }
 
     protected function validateRsvpParty(Validator $validator): void
@@ -436,19 +455,9 @@ new #[Layout('layouts::public')]
 }; ?>
 
 <main class="min-h-screen bg-ktn-surface">
-    <header class="border-b border-ktn-sage/20 bg-white">
-        <nav class="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-4 sm:px-6 lg:px-8">
-            <a href="{{ route('home') }}" class="flex items-center gap-3">
-                <img src="{{ asset('images/icon/favicon96.png') }}" alt="Logo Geodesi 96" class="size-9 rounded-lg border border-ktn-forest/20 bg-white object-contain p-1">
-                <span class="font-display text-lg font-extrabold tracking-tight text-ktn-forest">Geodesi 96</span>
-            </a>
-            <a href="{{ route('home') }}" class="inline-flex items-center justify-center rounded-lg bg-ktn-forest px-4 py-2.5 text-sm font-bold text-white transition hover:bg-ktn-forest-strong">
-                Landing
-            </a>
-        </nav>
-    </header>
+    <x-public-header />
 
-    <section class="px-4 py-12 sm:px-6 lg:px-8">
+    <section class="px-4 pb-12 pt-24 sm:px-6 lg:px-8">
         <div class="mx-auto max-w-4xl space-y-6">
             <div class="space-y-3 text-center">
                 <p class="font-mono text-xs font-semibold uppercase tracking-[0.22em] text-ktn-forest">RSVP Publik</p>
@@ -515,19 +524,21 @@ new #[Layout('layouts::public')]
                                     @endforeach
                                 </flux:select>
 
-                                <flux:select wire:model="rsvp_status" :label="__('Status RSVP')">
+                                <flux:select wire:model.live="rsvp_status" :label="__('Status RSVP')">
                                     <flux:select.option value="pending">{{ __('Belum memastikan') }}</flux:select.option>
                                     <flux:select.option value="attending">{{ __('Insya Allah hadir') }}</flux:select.option>
                                     <flux:select.option value="not_attending">{{ __('Belum bisa hadir') }}</flux:select.option>
                                 </flux:select>
 
-                                <flux:select wire:model.live="rsvp_party_type" :label="__('Kehadiran')">
-                                    <flux:select.option value="self">{{ __('Sendiri') }}</flux:select.option>
-                                    <flux:select.option value="family">{{ __('Bersama keluarga') }}</flux:select.option>
-                                </flux:select>
+                                @if ($rsvp_status === 'attending')
+                                    <flux:select wire:model.live="rsvp_party_type" :label="__('Kehadiran')">
+                                        <flux:select.option value="self">{{ __('Sendiri') }}</flux:select.option>
+                                        <flux:select.option value="family">{{ __('Bersama keluarga') }}</flux:select.option>
+                                    </flux:select>
 
-                                @if ($rsvp_party_type === 'family')
-                                    <flux:input wire:model.live="family_members_count" :label="__('Jumlah tambahan keluarga')" type="number" min="1" max="20" />
+                                    @if ($rsvp_party_type === 'family')
+                                        <flux:input wire:model.live="family_members_count" :label="__('Jumlah tambahan keluarga')" type="number" min="1" max="20" />
+                                    @endif
                                 @endif
 
                                 <flux:select wire:model="shirt_size" :label="__('Ukuran kaos alumni')">
@@ -545,7 +556,7 @@ new #[Layout('layouts::public')]
                                 </flux:select>
                             </div>
 
-                            @if ($rsvp_party_type === 'family')
+                            @if ($rsvp_status === 'attending' && $rsvp_party_type === 'family')
                                 <div class="mt-6 rounded-lg border border-ktn-sage/20 bg-ktn-surface/60 p-4">
                                     <flux:heading size="sm">{{ __('Kaos Anggota Keluarga') }}</flux:heading>
                                     <flux:text class="mt-1">

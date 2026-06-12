@@ -11,15 +11,22 @@ use Flux\Flux;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\WithFileUploads;
 
 new #[Title('Detail Alumni')] class extends Component {
-    use PasswordValidationRules;
+    use PasswordValidationRules, WithFileUploads;
 
     public Alumni $alumni;
+
+    public ?TemporaryUploadedFile $college_photo = null;
+
+    public ?TemporaryUploadedFile $current_photo = null;
 
     public string $full_name = '';
 
@@ -297,6 +304,61 @@ new #[Title('Detail Alumni')] class extends Component {
         Flux::toast(variant: 'success', text: __('Password akun diperbarui.'));
     }
 
+    public function updateMemoryBookPhotos(): void
+    {
+        $validated = $this->validate([
+            'college_photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'current_photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+        ]);
+
+        if ($this->college_photo === null && $this->current_photo === null) {
+            $this->addError('college_photo', __('Pilih minimal satu foto untuk diunggah.'));
+
+            return;
+        }
+
+        $oldValues = [
+            'college_photo_path' => $this->alumni->college_photo_path,
+            'current_photo_path' => $this->alumni->current_photo_path,
+        ];
+        $collegePhotoPath = $this->college_photo?->store('alumni/memory-book/college', 'public');
+        $currentPhotoPath = $this->current_photo?->store('alumni/memory-book/current', 'public');
+
+        $this->alumni->update([
+            'college_photo_path' => $collegePhotoPath ?: $oldValues['college_photo_path'],
+            'current_photo_path' => $currentPhotoPath ?: $oldValues['current_photo_path'],
+        ]);
+
+        if ($collegePhotoPath && $oldValues['college_photo_path']) {
+            Storage::disk('public')->delete($oldValues['college_photo_path']);
+        }
+
+        if ($currentPhotoPath && $oldValues['current_photo_path']) {
+            Storage::disk('public')->delete($oldValues['current_photo_path']);
+        }
+
+        $this->alumni->refresh();
+
+        AuditLog::record(
+            action: 'alumni.memory_book_photos_updated',
+            entity: $this->alumni,
+            oldValues: $oldValues,
+            newValues: [
+                'college_photo_path' => $this->alumni->college_photo_path,
+                'current_photo_path' => $this->alumni->current_photo_path,
+            ],
+        );
+
+        $this->reset('college_photo', 'current_photo');
+
+        Flux::toast(variant: 'success', text: __('Foto buku kenangan diperbarui.'));
+    }
+
+    public function memoryPhotoUrl(?string $path): ?string
+    {
+        return $path ? Storage::disk('public')->url($path) : null;
+    }
+
     private function hasOtherSuperadmin(User $user): bool
     {
         return User::query()
@@ -328,6 +390,55 @@ new #[Title('Detail Alumni')] class extends Component {
 
     <div class="grid gap-6 xl:grid-cols-[1fr_22rem]">
         <div class="space-y-6">
+            <form wire:submit="updateMemoryBookPhotos" class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <flux:heading size="lg">{{ __('Foto Buku Kenangan') }}</flux:heading>
+                        <flux:text>{{ __('Unggah atau ganti foto masa kuliah dan foto saat ini milik alumni.') }}</flux:text>
+                    </div>
+
+                    <flux:button type="submit" variant="primary" icon="photo" wire:loading.attr="disabled">
+                        {{ __('Simpan Foto') }}
+                    </flux:button>
+                </div>
+
+                <div class="mt-5 grid gap-5 md:grid-cols-2">
+                    <div class="space-y-4">
+                        <div class="aspect-[4/5] overflow-hidden rounded-lg border border-zinc-200 bg-ktn-instrument dark:border-zinc-700">
+                            @if ($college_photo)
+                                <img src="{{ $college_photo->temporaryUrl() }}" alt="{{ __('Preview foto masa kuliah') }}" class="size-full object-cover">
+                            @elseif ($this->memoryPhotoUrl($alumni->college_photo_path))
+                                <img src="{{ $this->memoryPhotoUrl($alumni->college_photo_path) }}" alt="{{ __('Foto masa kuliah') }}" class="size-full object-cover">
+                            @else
+                                <div class="flex size-full items-center justify-center p-6 text-center text-sm font-medium text-ktn-muted">
+                                    {{ __('Foto masa kuliah belum diunggah') }}
+                                </div>
+                            @endif
+                        </div>
+
+                        <flux:input wire:model="college_photo" :label="__('Foto masa kuliah')" type="file" accept="image/jpeg,image/png,image/webp" />
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="aspect-[4/5] overflow-hidden rounded-lg border border-zinc-200 bg-ktn-forest dark:border-zinc-700">
+                            @if ($current_photo)
+                                <img src="{{ $current_photo->temporaryUrl() }}" alt="{{ __('Preview foto saat ini') }}" class="size-full object-cover">
+                            @elseif ($this->memoryPhotoUrl($alumni->current_photo_path))
+                                <img src="{{ $this->memoryPhotoUrl($alumni->current_photo_path) }}" alt="{{ __('Foto saat ini') }}" class="size-full object-cover">
+                            @else
+                                <div class="flex size-full items-center justify-center p-6 text-center text-sm font-medium text-white">
+                                    {{ __('Foto saat ini belum diunggah') }}
+                                </div>
+                            @endif
+                        </div>
+
+                        <flux:input wire:model="current_photo" :label="__('Foto saat ini')" type="file" accept="image/jpeg,image/png,image/webp" />
+                    </div>
+                </div>
+
+                <flux:text class="mt-4">{{ __('Format JPG, PNG, atau WebP. Maksimal 5 MB per foto.') }}</flux:text>
+            </form>
+
             <form wire:submit="updateAlumni" class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
                 <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>

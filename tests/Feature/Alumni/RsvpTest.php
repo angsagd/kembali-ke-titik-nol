@@ -35,6 +35,9 @@ test('alumni users can view rsvp page', function () {
         ->assertSee('RSVP')
         ->assertSee('Ade Chandra')
         ->assertSee('Belum Merespon')
+        ->assertDontSee('Bersama keluarga')
+        ->assertSee('Ukuran kaos alumni')
+        ->assertSee('Jenis kaos alumni')
         ->assertSee('Simpan RSVP');
 });
 
@@ -68,16 +71,27 @@ test('alumni users can update rsvp to attending', function () {
 });
 
 test('alumni users can update rsvp to not attending', function () {
-    $profile = Alumni::factory()->create(['rsvp_status' => 'attending']);
+    $profile = Alumni::factory()->create([
+        'rsvp_status' => 'attending',
+        'rsvp_party_type' => 'family',
+        'family_members_count' => 2,
+    ]);
 
     $this->actingAs($profile->user);
 
     Livewire::test('pages::alumni.rsvp')
         ->set('rsvp_status', 'not_attending')
+        ->assertSet('rsvp_party_type', 'self')
+        ->assertSet('family_members_count', 0)
+        ->assertDontSee('Bersama keluarga')
+        ->assertSee('Ukuran kaos alumni')
+        ->assertSee('Jenis kaos alumni')
         ->call('saveRsvp')
         ->assertHasNoErrors();
 
     expect($profile->refresh()->rsvp_status)->toBe('not_attending');
+    expect($profile->rsvp_party_type)->toBe('self');
+    expect($profile->family_members_count)->toBe(0);
 });
 
 test('alumni users can submit family rsvp shirt data', function () {

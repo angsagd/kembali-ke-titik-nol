@@ -5,6 +5,8 @@ use App\Models\City;
 use App\Models\Country;
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 test('guests are redirected from alumni profile page', function () {
@@ -82,6 +84,50 @@ test('alumni users can update their own profile and rsvp', function () {
     expect($profile->user->name)->toBe('Nama Baru');
     expect($profile->user->whatsapp_number)->toBe('6281233334444');
     expect($profile->user->email)->toBe('baru@example.test');
+});
+
+test('alumni users can upload memory book photos from their profile', function () {
+    Storage::fake('public');
+
+    $profile = Alumni::factory()->create();
+    $collegePhoto = UploadedFile::fake()->image('kuliah.jpg', 800, 1000)->size(512);
+    $currentPhoto = UploadedFile::fake()->image('sekarang.webp', 800, 1000)->size(512);
+
+    $this->actingAs($profile->user);
+
+    Livewire::test('pages::alumni.profile')
+        ->set('college_photo', $collegePhoto)
+        ->set('current_photo', $currentPhoto)
+        ->call('updateMemoryBookPhotos')
+        ->assertHasNoErrors();
+
+    $profile->refresh();
+
+    expect($profile->college_photo_path)->not->toBeNull();
+    expect($profile->current_photo_path)->not->toBeNull();
+    Storage::disk('public')->assertExists($profile->college_photo_path);
+    Storage::disk('public')->assertExists($profile->current_photo_path);
+});
+
+test('replacing a memory book photo deletes the previous managed file', function () {
+    Storage::fake('public');
+    Storage::disk('public')->put('alumni/memory-book/college/old.jpg', 'old photo');
+
+    $profile = Alumni::factory()->create([
+        'college_photo_path' => 'alumni/memory-book/college/old.jpg',
+    ]);
+
+    $this->actingAs($profile->user);
+
+    Livewire::test('pages::alumni.profile')
+        ->set('college_photo', UploadedFile::fake()->image('baru.jpg', 800, 1000))
+        ->call('updateMemoryBookPhotos')
+        ->assertHasNoErrors();
+
+    $profile->refresh();
+
+    Storage::disk('public')->assertMissing('alumni/memory-book/college/old.jpg');
+    Storage::disk('public')->assertExists($profile->college_photo_path);
 });
 
 test('alumni profile update validates unique identifiers', function () {

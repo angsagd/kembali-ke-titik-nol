@@ -13,6 +13,12 @@ test('guests can browse published news', function () {
     $this->get(route('news.index'))
         ->assertOk()
         ->assertSee('Berita dan Pengumuman')
+        ->assertSee('Tentang')
+        ->assertSee('Rundown')
+        ->assertSee('Galeri')
+        ->assertDontSee('>Publik<', false)
+        ->assertSee('Donatur')
+        ->assertSee('fixed inset-x-0 top-0', false)
         ->assertSee('Pengumuman Reuni')
         ->assertDontSee('Draft Panitia');
 });
@@ -26,6 +32,12 @@ test('guests can read published news detail', function () {
 
     $this->get(route('news.show', $news->slug))
         ->assertOk()
+        ->assertSee('Tentang')
+        ->assertSee('Rundown')
+        ->assertSee('Galeri')
+        ->assertDontSee('>Publik<', false)
+        ->assertSee('Donatur')
+        ->assertSee('fixed inset-x-0 top-0', false)
         ->assertSee('Pengumuman Reuni')
         ->assertSee('Konten pengumuman resmi.');
 });
