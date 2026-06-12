@@ -3,6 +3,7 @@ import 'leaflet/dist/leaflet.css';
 
 const countdownTimers = new WeakMap();
 const leafletMaps = new WeakMap();
+const publicHeaderStates = new WeakMap();
 
 function updateCountdown(countdown) {
     const targetDate = new Date(countdown.dataset.countdownTarget);
@@ -112,9 +113,126 @@ function initializeDistributionMaps() {
     });
 }
 
+function setPublicHeaderActive(header, activeKey) {
+    const links = header.querySelectorAll('[data-public-header-link]');
+
+    links.forEach((link) => {
+        const isActive = link.dataset.publicHeaderKey === activeKey;
+
+        link.classList.toggle('text-ktn-forest', isActive);
+        link.classList.toggle('underline', isActive);
+        link.classList.toggle('decoration-2', isActive);
+        link.classList.toggle('underline-offset-8', isActive);
+        link.classList.toggle('text-ktn-muted', !isActive);
+
+        if (isActive) {
+            link.setAttribute('aria-current', 'location');
+        } else {
+            link.removeAttribute('aria-current');
+        }
+    });
+}
+
+function updatePublicHeaderFromScroll(header, state) {
+    if (state.sections.length === 0) {
+        return;
+    }
+
+    const offset = header.getBoundingClientRect().bottom + 24;
+    const currentHash = window.location.hash.slice(1);
+
+    if (currentHash) {
+        const hashedSection = state.sections.find((entry) => entry.section.id === currentHash);
+
+        if (hashedSection) {
+            setPublicHeaderActive(header, hashedSection.key);
+            state.activeKey = hashedSection.key;
+
+            return;
+        }
+    }
+
+    let activeEntry = state.sections[0];
+
+    for (const entry of state.sections) {
+        const rect = entry.section.getBoundingClientRect();
+
+        if (rect.top <= offset) {
+            activeEntry = entry;
+        }
+    }
+
+    if (state.activeKey !== activeEntry.key) {
+        state.activeKey = activeEntry.key;
+        setPublicHeaderActive(header, activeEntry.key);
+    }
+}
+
+function initializePublicHeaderNavigation() {
+    document.querySelectorAll('[data-public-header]').forEach((header) => {
+        if (publicHeaderStates.has(header)) {
+            return;
+        }
+
+        const links = Array.from(header.querySelectorAll('[data-public-header-link]'));
+        const sections = links
+            .map((link) => {
+                const url = new URL(link.href, window.location.href);
+                const sectionId = url.hash.replace('#', '');
+                const section = sectionId ? document.getElementById(sectionId) : null;
+
+                if (!section) {
+                    return null;
+                }
+
+                return {
+                    key: link.dataset.publicHeaderKey,
+                    section,
+                };
+            })
+            .filter((entry) => entry !== null);
+
+        if (sections.length === 0) {
+            return;
+        }
+
+        const state = {
+            activeKey: null,
+            sections,
+            rafId: null,
+        };
+
+        const scheduleUpdate = () => {
+            if (state.rafId !== null) {
+                return;
+            }
+
+            state.rafId = window.requestAnimationFrame(() => {
+                state.rafId = null;
+                updatePublicHeaderFromScroll(header, state);
+            });
+        };
+
+        links.forEach((link) => {
+            link.addEventListener('click', () => {
+                window.setTimeout(scheduleUpdate, 0);
+            });
+        });
+
+        window.addEventListener('scroll', scheduleUpdate, { passive: true });
+        window.addEventListener('resize', scheduleUpdate);
+        window.addEventListener('hashchange', scheduleUpdate);
+
+        publicHeaderStates.set(header, state);
+        scheduleUpdate();
+    });
+}
+
 document.addEventListener('DOMContentLoaded', initializeCountdowns);
 document.addEventListener('DOMContentLoaded', initializeDistributionMaps);
+document.addEventListener('DOMContentLoaded', initializePublicHeaderNavigation);
 document.addEventListener('livewire:navigated', () => {
     initializeCountdowns();
     initializeDistributionMaps();
+    initializePublicHeaderNavigation();
 });
