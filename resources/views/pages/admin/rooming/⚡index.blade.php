@@ -192,25 +192,23 @@ new #[Title('Rooming')] class extends Component {
 }; ?>
 
 <section class="w-full space-y-6 p-6 lg:p-8">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div class="space-y-2">
-            <flux:heading size="xl">{{ __('Rooming') }}</flux:heading>
-            <flux:text class="max-w-3xl">
-                {{ __('Kelola daftar kamar penginapan dan penempatan alumni ke kamar reuni.') }}
-            </flux:text>
-        </div>
+    <div class="space-y-2">
+        <flux:heading size="xl">{{ __('Rooming') }}</flux:heading>
+        <flux:text class="max-w-3xl">
+            {{ __('Kelola daftar kamar penginapan dan penempatan alumni ke kamar reuni.') }}
+        </flux:text>
+    </div>
 
-        <div class="flex flex-wrap gap-2">
-            <flux:button variant="ghost" icon="arrow-down-tray" :href="route('reports.rooming.export')">
-                {{ __('Export CSV') }}
-            </flux:button>
-            <flux:button variant="ghost" icon="printer" :href="route('reports.rooming.print')" target="_blank">
-                {{ __('Cetak Rooming List') }}
-            </flux:button>
-            <flux:button variant="primary" icon="plus" wire:click="newRoom">
-                {{ __('Tambah Kamar') }}
-            </flux:button>
-        </div>
+    <div class="flex flex-wrap gap-2 lg:justify-end">
+        <flux:button variant="ghost" icon="arrow-down-tray" :href="route('reports.rooming.export')">
+            {{ __('Export CSV') }}
+        </flux:button>
+        <flux:button variant="ghost" icon="printer" :href="route('reports.rooming.print')" target="_blank">
+            {{ __('Cetak Rooming List') }}
+        </flux:button>
+        <flux:button variant="primary" icon="plus" wire:click="newRoom">
+            {{ __('Tambah Kamar') }}
+        </flux:button>
     </div>
 
     <div class="grid gap-4 md:grid-cols-4">

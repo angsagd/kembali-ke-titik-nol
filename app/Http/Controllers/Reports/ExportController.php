@@ -66,18 +66,43 @@ class ExportController extends Controller
             'NIM',
             'WhatsApp',
             'Status RSVP',
+            'Kehadiran',
+            'Jumlah Keluarga Tambahan',
+            'Total Peserta',
+            'Kaos Alumni',
+            'Kaos Keluarga',
             'Terakhir Diperbarui',
         ], function (): void {
             Alumni::query()
-                ->with('user')
+                ->with(['user', 'rsvpGuests'])
                 ->orderBy('full_name')
                 ->lazy()
                 ->each(function (Alumni $alumni): void {
+                    $isAttending = $alumni->rsvp_status === 'attending';
+                    $familyMembersCount = $isAttending && $alumni->rsvp_party_type === 'family'
+                        ? $alumni->family_members_count
+                        : 0;
+                    $familyShirts = $alumni->rsvpGuests
+                        ->map(fn ($guest): string => sprintf(
+                            'Keluarga %d: %s / %s',
+                            $guest->sequence,
+                            $this->shirtTypeLabel($guest->shirt_type),
+                            $guest->shirt_size,
+                        ))
+                        ->join('; ');
+
                     $this->writeCsvRow([
                         $alumni->full_name,
                         $alumni->student_number,
                         $alumni->user?->whatsapp_number,
                         $this->rsvpStatusLabel($alumni->rsvp_status),
+                        $isAttending ? $this->partyTypeLabel($alumni->rsvp_party_type) : null,
+                        $familyMembersCount,
+                        $isAttending ? 1 + $familyMembersCount : 0,
+                        filled($alumni->shirt_type) && filled($alumni->shirt_size)
+                            ? $this->shirtTypeLabel($alumni->shirt_type).' / '.$alumni->shirt_size
+                            : null,
+                        $familyShirts,
                         $alumni->updated_at?->toDateTimeString(),
                     ]);
                 });
@@ -228,6 +253,23 @@ class ExportController extends Controller
             'attending' => 'Hadir',
             'not_attending' => 'Tidak Hadir',
             default => 'Belum Merespon',
+        };
+    }
+
+    private function partyTypeLabel(?string $partyType): string
+    {
+        return $partyType === 'family'
+            ? 'Bersama keluarga'
+            : 'Sendiri';
+    }
+
+    private function shirtTypeLabel(?string $shirtType): string
+    {
+        return match ($shirtType) {
+            'child' => 'Anak',
+            'male' => 'Pria',
+            'female' => 'Wanita',
+            default => '-',
         };
     }
 

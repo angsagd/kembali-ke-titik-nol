@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Alumni;
+use App\Models\AlumniRsvpGuest;
 use App\Models\City;
 use App\Models\Country;
 use App\Models\Donation;
@@ -90,10 +91,26 @@ test('administrator users can export rsvp report', function () {
     ]);
     $administrator = User::factory()->create(['role_id' => $administratorRole->id]);
 
-    Alumni::factory()->create([
+    $profile = Alumni::factory()->create([
         'full_name' => 'Ade Chandra',
         'student_number' => 'D096001',
         'rsvp_status' => 'attending',
+        'rsvp_party_type' => 'family',
+        'family_members_count' => 2,
+        'shirt_size' => 'XL',
+        'shirt_type' => 'male',
+    ]);
+    AlumniRsvpGuest::factory()->create([
+        'alumni_id' => $profile->id,
+        'sequence' => 1,
+        'shirt_size' => 'M',
+        'shirt_type' => 'female',
+    ]);
+    AlumniRsvpGuest::factory()->create([
+        'alumni_id' => $profile->id,
+        'sequence' => 2,
+        'shirt_size' => 'S',
+        'shirt_type' => 'child',
     ]);
 
     $response = $this->actingAs($administrator)
@@ -102,10 +119,14 @@ test('administrator users can export rsvp report', function () {
     $response->assertOk();
     $response->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
     expect($response->streamedContent())
-        ->toContain('Nama,NIM,WhatsApp,"Status RSVP","Terakhir Diperbarui"')
+        ->toContain('Nama,NIM,WhatsApp,"Status RSVP",Kehadiran,"Jumlah Keluarga Tambahan","Total Peserta","Kaos Alumni","Kaos Keluarga","Terakhir Diperbarui"')
         ->toContain('"Ade Chandra"')
         ->toContain('D096001')
-        ->toContain('Hadir');
+        ->toContain('Hadir')
+        ->toContain('"Bersama keluarga"')
+        ->toContain('Pria / XL')
+        ->toContain('Keluarga 1: Wanita / M')
+        ->toContain('Keluarga 2: Anak / S');
 });
 
 test('administrator users can export rooming list report', function () {

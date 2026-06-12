@@ -165,40 +165,38 @@ new #[Title('Manajemen Dokumentasi')] class extends Component {
 }; ?>
 
 <section class="w-full space-y-6 p-6 lg:p-8">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div class="space-y-2">
-            <flux:heading size="xl">{{ __('Manajemen Dokumentasi') }}</flux:heading>
-            <flux:text class="max-w-2xl">
-                {{ __('Pantau dokumentasi foto dan video yang diunggah alumni.') }}
-            </flux:text>
-        </div>
+    <div class="space-y-2">
+        <flux:heading size="xl">{{ __('Manajemen Dokumentasi') }}</flux:heading>
+        <flux:text class="max-w-3xl">
+            {{ __('Pantau dokumentasi foto dan video yang diunggah alumni.') }}
+        </flux:text>
+    </div>
 
-        <div class="grid gap-3 sm:grid-cols-[minmax(14rem,1fr)_10rem_10rem_10rem] lg:w-[55rem]">
-            <flux:input
-                wire:model.live.debounce.300ms="search"
-                icon="magnifying-glass"
-                :label="__('Cari')"
-                :placeholder="__('Judul, deskripsi, uploader')"
-            />
+    <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(18rem,1fr)_10rem_10rem_10rem]">
+        <flux:input
+            wire:model.live.debounce.300ms="search"
+            icon="magnifying-glass"
+            :label="__('Cari')"
+            :placeholder="__('Judul, deskripsi, uploader')"
+        />
 
-            <flux:select wire:model.live="type" :label="__('Jenis')">
-                <flux:select.option value="all">{{ __('Semua') }}</flux:select.option>
-                <flux:select.option value="photo">{{ __('Foto') }}</flux:select.option>
-                <flux:select.option value="video">{{ __('Video') }}</flux:select.option>
-            </flux:select>
+        <flux:select wire:model.live="type" :label="__('Jenis')">
+            <flux:select.option value="all">{{ __('Semua') }}</flux:select.option>
+            <flux:select.option value="photo">{{ __('Foto') }}</flux:select.option>
+            <flux:select.option value="video">{{ __('Video') }}</flux:select.option>
+        </flux:select>
 
-            <flux:select wire:model.live="visibility" :label="__('Visibilitas')">
-                <flux:select.option value="all">{{ __('Semua') }}</flux:select.option>
-                <flux:select.option value="internal">{{ __('Internal') }}</flux:select.option>
-                <flux:select.option value="public">{{ __('Publik') }}</flux:select.option>
-            </flux:select>
+        <flux:select wire:model.live="visibility" :label="__('Visibilitas')">
+            <flux:select.option value="all">{{ __('Semua') }}</flux:select.option>
+            <flux:select.option value="internal">{{ __('Internal') }}</flux:select.option>
+            <flux:select.option value="public">{{ __('Publik') }}</flux:select.option>
+        </flux:select>
 
-            <flux:select wire:model.live="status" :label="__('Status')">
-                <flux:select.option value="active">{{ __('Aktif') }}</flux:select.option>
-                <flux:select.option value="archived">{{ __('Diarsipkan') }}</flux:select.option>
-                <flux:select.option value="all">{{ __('Semua') }}</flux:select.option>
-            </flux:select>
-        </div>
+        <flux:select wire:model.live="status" :label="__('Status')">
+            <flux:select.option value="active">{{ __('Aktif') }}</flux:select.option>
+            <flux:select.option value="archived">{{ __('Diarsipkan') }}</flux:select.option>
+            <flux:select.option value="all">{{ __('Semua') }}</flux:select.option>
+        </flux:select>
     </div>
 
     <div class="grid gap-4 md:grid-cols-5">

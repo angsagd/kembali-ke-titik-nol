@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Alumni;
+use App\Models\AlumniRsvpGuest;
 use App\Models\Role;
 use App\Models\User;
 use Livewire\Livewire;
@@ -25,10 +26,26 @@ test('administrator users can view rsvp monitoring summary', function () {
     ]);
     $administrator = User::factory()->create(['role_id' => $administratorRole->id]);
 
-    Alumni::factory()->create([
+    $attendingAlumni = Alumni::factory()->create([
         'full_name' => 'Ade Chandra',
         'student_number' => 'D096001',
         'rsvp_status' => 'attending',
+        'rsvp_party_type' => 'family',
+        'family_members_count' => 2,
+        'shirt_size' => 'XL',
+        'shirt_type' => 'male',
+    ]);
+    AlumniRsvpGuest::factory()->create([
+        'alumni_id' => $attendingAlumni->id,
+        'sequence' => 1,
+        'shirt_size' => 'M',
+        'shirt_type' => 'female',
+    ]);
+    AlumniRsvpGuest::factory()->create([
+        'alumni_id' => $attendingAlumni->id,
+        'sequence' => 2,
+        'shirt_size' => 'S',
+        'shirt_type' => 'child',
     ]);
     Alumni::factory()->create([
         'full_name' => 'Budi Santoso',
@@ -41,16 +58,39 @@ test('administrator users can view rsvp monitoring summary', function () {
         'rsvp_status' => 'pending',
     ]);
 
-    $this->actingAs($administrator)
-        ->get(route('admin.rsvp.index'))
+    $this->actingAs($administrator);
+
+    $this->get(route('admin.rsvp.index'))
         ->assertOk()
         ->assertSee('Monitoring RSVP')
+        ->assertDontSee('NIM')
         ->assertSee('Total Alumni')
         ->assertSee('Response Rate')
         ->assertSee('67%')
+        ->assertSee('Total Peserta Hadir')
+        ->assertSee('Bersama keluarga')
+        ->assertSee('2 tambahan')
+        ->assertSee('Alumni: Pria / XL')
+        ->assertSee('Keluarga 1: Wanita / M')
+        ->assertSee('Keluarga 2: Anak / S')
         ->assertSee('Ade Chandra')
         ->assertSee('Budi Santoso')
-        ->assertSee('Citra Lestari');
+        ->assertSee('Citra Lestari')
+        ->assertSee('Rekap Kaos')
+        ->assertSee('Total: 3 kaos');
+
+    $component = Livewire::test('pages::admin.rsvp.index');
+    $shirtSummary = $component->get('shirtSummary');
+
+    expect($shirtSummary['counts']['child']['S'])->toBe(1)
+        ->and($shirtSummary['counts']['male']['XL'])->toBe(1)
+        ->and($shirtSummary['counts']['female']['M'])->toBe(1)
+        ->and($shirtSummary['totals'])->toBe([
+            'child' => 1,
+            'male' => 1,
+            'female' => 1,
+        ])
+        ->and($shirtSummary['grand_total'])->toBe(3);
 });
 
 test('superadmin users can access rsvp monitoring', function () {

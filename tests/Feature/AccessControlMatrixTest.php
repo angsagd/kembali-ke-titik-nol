@@ -63,6 +63,17 @@ test('administrator role can manage operations but cannot access finance or audi
         ->get(route('admin.rooming.index'))
         ->assertOk();
     $this->actingAs($administrator)
+        ->get(route('admin.whatsapp.index'))
+        ->assertForbidden();
+    $this->actingAs($administrator)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertDontSee('WhatsApp Import');
+    $this->actingAs($administrator)
+        ->get(route('whatsapp.analytics'))
+        ->assertOk()
+        ->assertDontSee('Kelola Import');
+    $this->actingAs($administrator)
         ->get(route('finance.index'))
         ->assertForbidden();
     $this->actingAs($administrator)
@@ -93,6 +104,17 @@ test('superadmin role can access protected operational finance and audit areas',
     $this->actingAs($superadmin)
         ->get(route('admin.alumni.index'))
         ->assertOk();
+    $this->actingAs($superadmin)
+        ->get(route('admin.whatsapp.index'))
+        ->assertOk();
+    $this->actingAs($superadmin)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertSee('WhatsApp Import');
+    $this->actingAs($superadmin)
+        ->get(route('whatsapp.analytics'))
+        ->assertOk()
+        ->assertSee('Kelola Import');
     $this->actingAs($superadmin)
         ->get(route('finance.index'))
         ->assertOk();

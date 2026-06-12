@@ -218,23 +218,21 @@ new #[Title('Manajemen Berita')] class extends Component {
 }; ?>
 
 <section class="w-full space-y-6 p-6 lg:p-8">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div class="space-y-2">
-            <flux:heading size="xl">{{ __('Manajemen Berita') }}</flux:heading>
-            <flux:text class="max-w-2xl">
-                {{ __('Kelola berita dan pengumuman reuni dengan status draft, published, atau archived.') }}
-            </flux:text>
-        </div>
+    <div class="space-y-2">
+        <flux:heading size="xl">{{ __('Manajemen Berita') }}</flux:heading>
+        <flux:text class="max-w-3xl">
+            {{ __('Kelola berita dan pengumuman reuni dengan status draft, published, atau archived.') }}
+        </flux:text>
+    </div>
 
-        <div class="grid gap-3 sm:grid-cols-[minmax(14rem,1fr)_12rem] lg:w-[38rem]">
-            <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" :label="__('Cari')" :placeholder="__('Judul, isi, penulis')" />
-            <flux:select wire:model.live="status" :label="__('Status')">
-                <flux:select.option value="all">{{ __('Semua') }}</flux:select.option>
-                <flux:select.option value="draft">{{ __('Draft') }}</flux:select.option>
-                <flux:select.option value="published">{{ __('Published') }}</flux:select.option>
-                <flux:select.option value="archived">{{ __('Archived') }}</flux:select.option>
-            </flux:select>
-        </div>
+    <div class="grid gap-3 sm:grid-cols-[minmax(14rem,1fr)_12rem]">
+        <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" :label="__('Cari')" :placeholder="__('Judul, isi, penulis')" />
+        <flux:select wire:model.live="status" :label="__('Status')">
+            <flux:select.option value="all">{{ __('Semua') }}</flux:select.option>
+            <flux:select.option value="draft">{{ __('Draft') }}</flux:select.option>
+            <flux:select.option value="published">{{ __('Published') }}</flux:select.option>
+            <flux:select.option value="archived">{{ __('Archived') }}</flux:select.option>
+        </flux:select>
     </div>
 
     <div class="grid gap-4 md:grid-cols-3">

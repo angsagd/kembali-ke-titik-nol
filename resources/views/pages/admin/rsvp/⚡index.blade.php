@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Alumni;
+use App\Models\AlumniRsvpGuest;
 use App\Models\ApplicationSetting;
 use App\Models\AuditLog;
 use Flux\Flux;
@@ -47,6 +48,10 @@ new #[Title('Monitoring RSVP')] class extends Component {
             'total' => Alumni::query()->count(),
             'pending' => Alumni::query()->where('rsvp_status', 'pending')->count(),
             'attending' => Alumni::query()->where('rsvp_status', 'attending')->count(),
+            'attending_participants' => Alumni::query()
+                ->where('rsvp_status', 'attending')
+                ->where('rsvp_party_type', 'family')
+                ->sum('family_members_count') + Alumni::query()->where('rsvp_status', 'attending')->count(),
             'not_attending' => Alumni::query()->where('rsvp_status', 'not_attending')->count(),
         ];
     }
@@ -63,13 +68,71 @@ new #[Title('Monitoring RSVP')] class extends Component {
         return (int) round(($responded / $this->summary['total']) * 100);
     }
 
+    /**
+     * @return array{
+     *     sizes: array<int, string>,
+     *     types: array<string, string>,
+     *     counts: array<string, array<string, int>>,
+     *     totals: array<string, int>,
+     *     grand_total: int
+     * }
+     */
+    #[Computed]
+    public function shirtSummary(): array
+    {
+        $sizes = ['S', 'M', 'L', 'XL', 'XXL'];
+        $types = [
+            'child' => __('Anak'),
+            'male' => __('Pria'),
+            'female' => __('Wanita'),
+        ];
+        $counts = [];
+
+        foreach (array_keys($types) as $type) {
+            $counts[$type] = array_fill_keys($sizes, 0);
+        }
+
+        $alumniCounts = Alumni::query()
+            ->select(['shirt_type', 'shirt_size'])
+            ->selectRaw('COUNT(*) as aggregate')
+            ->whereNotNull('shirt_type')
+            ->whereNotNull('shirt_size')
+            ->groupBy('shirt_type', 'shirt_size')
+            ->get();
+
+        $familyCounts = AlumniRsvpGuest::query()
+            ->select(['shirt_type', 'shirt_size'])
+            ->selectRaw('COUNT(*) as aggregate')
+            ->whereHas('alumni')
+            ->groupBy('shirt_type', 'shirt_size')
+            ->get();
+
+        foreach ($alumniCounts->concat($familyCounts) as $row) {
+            if (isset($counts[$row->shirt_type][$row->shirt_size])) {
+                $counts[$row->shirt_type][$row->shirt_size] += (int) $row->aggregate;
+            }
+        }
+
+        $totals = collect($counts)
+            ->map(fn (array $sizeCounts): int => array_sum($sizeCounts))
+            ->all();
+
+        return [
+            'sizes' => $sizes,
+            'types' => $types,
+            'counts' => $counts,
+            'totals' => $totals,
+            'grand_total' => array_sum($totals),
+        ];
+    }
+
     #[Computed]
     public function alumniProfiles(): LengthAwarePaginator
     {
         $search = trim($this->search);
 
         return Alumni::query()
-            ->with('user')
+            ->with(['user', 'rsvpGuests'])
             ->when($search !== '', function ($query) use ($search): void {
                 $query->where(function ($query) use ($search): void {
                     $query
@@ -122,40 +185,35 @@ new #[Title('Monitoring RSVP')] class extends Component {
             default => 'amber',
         };
     }
+
+    public function partyTypeLabel(Alumni $alumni): string
+    {
+        if ($alumni->rsvp_status !== 'attending') {
+            return '-';
+        }
+
+        return $alumni->rsvp_party_type === 'family'
+            ? __('Bersama keluarga')
+            : __('Sendiri');
+    }
+
+    public function shirtTypeLabel(?string $shirtType): string
+    {
+        return match ($shirtType) {
+            'child' => __('Anak'),
+            'male' => __('Pria'),
+            'female' => __('Wanita'),
+            default => '-',
+        };
+    }
 }; ?>
 
 <section class="w-full space-y-6 p-6 lg:p-8">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div class="space-y-2">
-            <flux:heading size="xl">{{ __('Monitoring RSVP') }}</flux:heading>
-            <flux:text class="max-w-2xl">
-                {{ __('Pantau status kehadiran alumni dan rekap peserta reuni berdasarkan RSVP yang diisi alumni.') }}
-            </flux:text>
-        </div>
-
-        <div class="grid gap-3 lg:w-[44rem]">
-            <div class="flex justify-end">
-                <flux:button icon="arrow-down-tray" variant="primary" :href="route('reports.rsvp.export')">
-                    {{ __('Export CSV') }}
-                </flux:button>
-            </div>
-
-            <div class="grid gap-3 sm:grid-cols-[minmax(16rem,1fr)_12rem]">
-                <flux:input
-                    wire:model.live.debounce.300ms="search"
-                    icon="magnifying-glass"
-                    :label="__('Cari alumni')"
-                    :placeholder="__('Nama, NIM, WhatsApp')"
-                />
-
-                <flux:select wire:model.live="status" :label="__('Status RSVP')">
-                    <flux:select.option value="all">{{ __('Semua') }}</flux:select.option>
-                    <flux:select.option value="pending">{{ __('Belum Merespon') }}</flux:select.option>
-                    <flux:select.option value="attending">{{ __('Hadir') }}</flux:select.option>
-                    <flux:select.option value="not_attending">{{ __('Tidak Hadir') }}</flux:select.option>
-                </flux:select>
-            </div>
-        </div>
+    <div class="space-y-2">
+        <flux:heading size="xl">{{ __('Monitoring RSVP') }}</flux:heading>
+        <flux:text class="max-w-3xl">
+            {{ __('Pantau status kehadiran alumni dan rekap peserta reuni berdasarkan RSVP yang diisi alumni.') }}
+        </flux:text>
     </div>
 
     <div class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
@@ -184,7 +242,7 @@ new #[Title('Monitoring RSVP')] class extends Component {
         </div>
     </div>
 
-    <div class="grid gap-4 md:grid-cols-5">
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <flux:card>
             <flux:text>{{ __('Total Alumni') }}</flux:text>
             <div class="mt-2 text-3xl font-semibold tabular-nums">{{ $this->summary['total'] }}</div>
@@ -198,6 +256,10 @@ new #[Title('Monitoring RSVP')] class extends Component {
             <div class="mt-2 text-3xl font-semibold tabular-nums">{{ $this->summary['attending'] }}</div>
         </flux:card>
         <flux:card>
+            <flux:text>{{ __('Total Peserta Hadir') }}</flux:text>
+            <div class="mt-2 text-3xl font-semibold tabular-nums">{{ $this->summary['attending_participants'] }}</div>
+        </flux:card>
+        <flux:card>
             <flux:text>{{ __('Tidak Hadir') }}</flux:text>
             <div class="mt-2 text-3xl font-semibold tabular-nums">{{ $this->summary['not_attending'] }}</div>
         </flux:card>
@@ -207,12 +269,76 @@ new #[Title('Monitoring RSVP')] class extends Component {
         </flux:card>
     </div>
 
+    <flux:card class="space-y-4">
+        <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <flux:heading size="lg">{{ __('Rekap Kaos') }}</flux:heading>
+                <flux:text>{{ __('Jumlah kaos alumni dan keluarga berdasarkan jenis dan ukuran.') }}</flux:text>
+            </div>
+            <div class="text-sm text-zinc-500 dark:text-zinc-400">
+                {{ __('Total: :count kaos', ['count' => $this->shirtSummary['grand_total']]) }}
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[38rem] table-fixed text-sm">
+                <thead>
+                    <tr class="border-b border-zinc-200 text-left text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+                        <th class="w-32 px-3 py-2 font-medium">{{ __('Jenis') }}</th>
+                        @foreach ($this->shirtSummary['sizes'] as $size)
+                            <th wire:key="shirt-size-heading-{{ $size }}" class="px-3 py-2 text-center font-medium">{{ $size }}</th>
+                        @endforeach
+                        <th class="px-3 py-2 text-center font-medium">{{ __('Total') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($this->shirtSummary['types'] as $type => $label)
+                        <tr wire:key="shirt-type-{{ $type }}" class="border-b border-zinc-100 last:border-0 dark:border-zinc-800">
+                            <th class="px-3 py-3 text-left font-medium text-zinc-800 dark:text-zinc-100">{{ $label }}</th>
+                            @foreach ($this->shirtSummary['sizes'] as $size)
+                                <td wire:key="shirt-count-{{ $type }}-{{ $size }}" class="px-3 py-3 text-center tabular-nums">
+                                    {{ $this->shirtSummary['counts'][$type][$size] }}
+                                </td>
+                            @endforeach
+                            <td class="px-3 py-3 text-center font-semibold tabular-nums">
+                                {{ $this->shirtSummary['totals'][$type] }}
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </flux:card>
+
+    <div class="grid gap-3 lg:grid-cols-[minmax(20rem,1fr)_12rem_auto] lg:items-end">
+        <flux:input
+            wire:model.live.debounce.300ms="search"
+            icon="magnifying-glass"
+            :label="__('Cari alumni')"
+            :placeholder="__('Nama atau WhatsApp')"
+        />
+
+        <flux:select wire:model.live="status" :label="__('Status RSVP')">
+            <flux:select.option value="all">{{ __('Semua') }}</flux:select.option>
+            <flux:select.option value="pending">{{ __('Belum Merespon') }}</flux:select.option>
+            <flux:select.option value="attending">{{ __('Hadir') }}</flux:select.option>
+            <flux:select.option value="not_attending">{{ __('Tidak Hadir') }}</flux:select.option>
+        </flux:select>
+
+        <div class="flex lg:justify-end">
+            <flux:button icon="arrow-down-tray" variant="primary" :href="route('reports.rsvp.export')">
+                {{ __('Export CSV') }}
+            </flux:button>
+        </div>
+    </div>
+
     <flux:table :paginate="$this->alumniProfiles" pagination:scroll-to="body">
         <flux:table.columns>
             <flux:table.column>{{ __('Nama') }}</flux:table.column>
-            <flux:table.column>{{ __('NIM') }}</flux:table.column>
             <flux:table.column>{{ __('WhatsApp') }}</flux:table.column>
             <flux:table.column>{{ __('Status RSVP') }}</flux:table.column>
+            <flux:table.column>{{ __('Kehadiran & Keluarga') }}</flux:table.column>
+            <flux:table.column>{{ __('Data Kaos') }}</flux:table.column>
             <flux:table.column>{{ __('Terakhir Diperbarui') }}</flux:table.column>
             <flux:table.column align="end">{{ __('Aksi') }}</flux:table.column>
         </flux:table.columns>
@@ -226,12 +352,43 @@ new #[Title('Monitoring RSVP')] class extends Component {
                             <span class="text-xs font-normal text-zinc-500 dark:text-zinc-400">{{ $profile->nickname ?: __('Nama panggilan belum diisi') }}</span>
                         </div>
                     </flux:table.cell>
-                    <flux:table.cell>{{ $profile->student_number ?: '-' }}</flux:table.cell>
                     <flux:table.cell>{{ $profile->user?->whatsapp_number ?: '-' }}</flux:table.cell>
                     <flux:table.cell>
                         <flux:badge color="{{ $this->rsvpStatusColor($profile->rsvp_status) }}">
                             {{ $this->rsvpStatusLabel($profile->rsvp_status) }}
                         </flux:badge>
+                    </flux:table.cell>
+                    <flux:table.cell>
+                        <div class="grid gap-1">
+                            <span>{{ $this->partyTypeLabel($profile) }}</span>
+                            @if ($profile->rsvp_status === 'attending')
+                                <span class="text-xs text-zinc-500 dark:text-zinc-400">
+                                    @if ($profile->rsvp_party_type === 'family')
+                                        {{ __(':count tambahan', ['count' => $profile->family_members_count]) }}
+                                        ·
+                                    @endif
+                                    {{ __(':count peserta', ['count' => 1 + ($profile->rsvp_party_type === 'family' ? $profile->family_members_count : 0)]) }}
+                                </span>
+                            @endif
+                        </div>
+                    </flux:table.cell>
+                    <flux:table.cell>
+                        @if (filled($profile->shirt_size) && filled($profile->shirt_type))
+                            <div class="grid min-w-44 gap-1 text-sm">
+                                <span>{{ __('Alumni: :type / :size', ['type' => $this->shirtTypeLabel($profile->shirt_type), 'size' => $profile->shirt_size]) }}</span>
+                                @foreach ($profile->rsvpGuests as $guest)
+                                    <span wire:key="rsvp-guest-{{ $guest->id }}" class="text-xs text-zinc-500 dark:text-zinc-400">
+                                        {{ __('Keluarga :sequence: :type / :size', [
+                                            'sequence' => $guest->sequence,
+                                            'type' => $this->shirtTypeLabel($guest->shirt_type),
+                                            'size' => $guest->shirt_size,
+                                        ]) }}
+                                    </span>
+                                @endforeach
+                            </div>
+                        @else
+                            -
+                        @endif
                     </flux:table.cell>
                     <flux:table.cell>{{ $profile->updated_at?->translatedFormat('d F Y H:i') ?: '-' }}</flux:table.cell>
                     <flux:table.cell align="end">
@@ -242,7 +399,7 @@ new #[Title('Monitoring RSVP')] class extends Component {
                 </flux:table.row>
             @empty
                 <flux:table.row>
-                    <flux:table.cell colspan="6">
+                    <flux:table.cell colspan="7">
                         <div class="py-10 text-center">
                             <flux:heading size="lg">{{ __('Tidak ada RSVP ditemukan') }}</flux:heading>
                             <flux:text>{{ __('Ubah kata kunci atau filter status untuk melihat data lain.') }}</flux:text>

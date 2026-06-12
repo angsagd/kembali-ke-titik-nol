@@ -97,9 +97,11 @@
                             {{ __('Rangkaian Acara') }}
                         </flux:sidebar.item>
 
-                        <flux:sidebar.item icon="chat-bubble-left-right" :href="route('admin.whatsapp.index')" :current="request()->routeIs('admin.whatsapp.*')" wire:navigate>
-                            {{ __('WhatsApp Import') }}
-                        </flux:sidebar.item>
+                        @can('import-whatsapp-analytics')
+                            <flux:sidebar.item icon="chat-bubble-left-right" :href="route('admin.whatsapp.index')" :current="request()->routeIs('admin.whatsapp.*')" wire:navigate>
+                                {{ __('WhatsApp Import') }}
+                            </flux:sidebar.item>
+                        @endcan
 
                         @can('view-audit-logs')
                             <flux:sidebar.item icon="clipboard-document-list" :href="route('admin.audit-logs.index')" :current="request()->routeIs('admin.audit-logs.*')" wire:navigate>
@@ -232,9 +234,11 @@
                                 {{ __('Rangkaian Acara') }}
                             </flux:menu.item>
 
-                            <flux:menu.item :href="route('admin.whatsapp.index')" icon="chat-bubble-left-right" wire:navigate>
-                                {{ __('WhatsApp Import') }}
-                            </flux:menu.item>
+                            @can('import-whatsapp-analytics')
+                                <flux:menu.item :href="route('admin.whatsapp.index')" icon="chat-bubble-left-right" wire:navigate>
+                                    {{ __('WhatsApp Import') }}
+                                </flux:menu.item>
+                            @endcan
 
                             @can('view-audit-logs')
                                 <flux:menu.item :href="route('admin.audit-logs.index')" icon="clipboard-document-list" wire:navigate>

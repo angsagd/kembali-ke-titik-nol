@@ -7,6 +7,7 @@ use Flux\Flux;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -22,8 +23,15 @@ new #[Title('WhatsApp Import')] class extends Component {
 
     public ?string $notes = null;
 
+    public function mount(): void
+    {
+        Gate::authorize('import-whatsapp-analytics');
+    }
+
     public function saveImport(): void
     {
+        Gate::authorize('import-whatsapp-analytics');
+
         $validated = $this->validate([
             'chat_file' => ['required', 'file', 'mimes:txt', 'max:10240'],
             'notes' => ['nullable', 'string', 'max:1000'],
@@ -53,6 +61,8 @@ new #[Title('WhatsApp Import')] class extends Component {
 
     public function processImport(WhatsappImport $whatsappImport, WhatsappChatAnalyzer $analyzer): void
     {
+        Gate::authorize('import-whatsapp-analytics');
+
         $whatsappImport->forceFill(['status' => 'processing'])->save();
 
         try {
@@ -173,17 +183,41 @@ new #[Title('WhatsApp Import')] class extends Component {
     </div>
 
     <div class="grid gap-6 xl:grid-cols-[25rem_1fr]">
-        <form wire:submit="saveImport" class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
+        <form
+            wire:submit="saveImport"
+            class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900"
+            x-data="{ uploading: false, progress: 0 }"
+            x-on:livewire-upload-start="uploading = true"
+            x-on:livewire-upload-finish="uploading = false"
+            x-on:livewire-upload-cancel="uploading = false"
+            x-on:livewire-upload-error="uploading = false"
+            x-on:livewire-upload-progress="progress = $event.detail.progress"
+        >
             <div class="space-y-5">
                 <div>
                     <flux:heading size="lg">{{ __('Upload Export Chat') }}</flux:heading>
-                    <flux:text class="mt-2">{{ __('Gunakan file .txt hasil export WhatsApp tanpa media.') }}</flux:text>
+                    <flux:text class="mt-2">{{ __('Gunakan file .txt hasil export WhatsApp tanpa media, maksimum 10 MB.') }}</flux:text>
                 </div>
 
                 <flux:input wire:model="chat_file" :label="__('File chat')" type="file" accept=".txt,text/plain" />
+                <div x-cloak x-show="uploading" class="space-y-2">
+                    <div class="flex justify-between gap-3 text-sm text-zinc-600 dark:text-zinc-300">
+                        <span>{{ __('Mengunggah file...') }}</span>
+                        <span x-text="`${progress}%`" class="tabular-nums"></span>
+                    </div>
+                    <progress max="100" x-bind:value="progress" class="h-2 w-full accent-emerald-700"></progress>
+                </div>
                 <flux:textarea wire:model="notes" :label="__('Catatan')" rows="3" />
 
-                <flux:button type="submit" variant="primary" icon="arrow-up-tray" class="w-full" wire:loading.attr="disabled">
+                <flux:button
+                    type="submit"
+                    variant="primary"
+                    icon="arrow-up-tray"
+                    class="w-full"
+                    x-bind:disabled="uploading"
+                    wire:loading.attr="disabled"
+                    wire:target="saveImport"
+                >
                     {{ __('Simpan Import') }}
                 </flux:button>
             </div>

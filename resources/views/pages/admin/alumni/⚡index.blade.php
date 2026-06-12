@@ -226,40 +226,34 @@ new #[Title('Manajemen Alumni')] class extends Component {
 }; ?>
 
 <section class="w-full space-y-6 p-6 lg:p-8">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div class="space-y-2">
-            <flux:heading size="xl">{{ __('Manajemen Alumni') }}</flux:heading>
-            <flux:text class="max-w-2xl">
-                {{ __('Data awal alumni dari seed kontak WhatsApp. Gunakan pencarian untuk menelusuri nama, NIM, email, atau nomor WhatsApp.') }}
-            </flux:text>
-        </div>
+    <div class="space-y-2">
+        <flux:heading size="xl">{{ __('Manajemen Alumni') }}</flux:heading>
+        <flux:text class="max-w-3xl">
+            {{ __('Data awal alumni dari seed kontak WhatsApp. Gunakan pencarian untuk menelusuri nama, NIM, email, atau nomor WhatsApp.') }}
+        </flux:text>
+    </div>
 
-        <div class="grid gap-3 lg:w-[34rem]">
-            <div class="flex flex-wrap justify-end gap-3">
-                <flux:button icon="plus" variant="primary" wire:click="showCreateForm">
-                    {{ __('Tambah Alumni') }}
-                </flux:button>
+    <div class="grid gap-3 lg:grid-cols-[minmax(12rem,1fr)_10rem_auto_auto] lg:items-end">
+        <flux:input
+            wire:model.live.debounce.300ms="search"
+            icon="magnifying-glass"
+            :label="__('Cari alumni')"
+            :placeholder="__('Nama, NIM, WhatsApp')"
+        />
 
-                <flux:button icon="arrow-down-tray" variant="primary" :href="route('reports.alumni.export')">
-                    {{ __('Export Alumni') }}
-                </flux:button>
-            </div>
+        <flux:select wire:model.live="status" :label="__('Status')">
+            <flux:select.option value="all">{{ __('Semua') }}</flux:select.option>
+            <flux:select.option value="active">{{ __('Aktif') }}</flux:select.option>
+            <flux:select.option value="deceased">{{ __('Wafat') }}</flux:select.option>
+        </flux:select>
 
-            <div class="grid gap-3 sm:grid-cols-[minmax(16rem,1fr)_12rem]">
-                <flux:input
-                    wire:model.live.debounce.300ms="search"
-                    icon="magnifying-glass"
-                    :label="__('Cari alumni')"
-                    :placeholder="__('Nama, NIM, WhatsApp')"
-                />
+        <flux:button class="w-full whitespace-nowrap" icon="plus" variant="primary" wire:click="showCreateForm">
+            {{ __('Tambah Alumni') }}
+        </flux:button>
 
-                <flux:select wire:model.live="status" :label="__('Status')">
-                    <flux:select.option value="all">{{ __('Semua') }}</flux:select.option>
-                    <flux:select.option value="active">{{ __('Aktif') }}</flux:select.option>
-                    <flux:select.option value="deceased">{{ __('Wafat') }}</flux:select.option>
-                </flux:select>
-            </div>
-        </div>
+        <flux:button class="w-full whitespace-nowrap" icon="arrow-down-tray" variant="primary" :href="route('reports.alumni.export')">
+            {{ __('Export Alumni') }}
+        </flux:button>
     </div>
 
     @if ($show_create_form)

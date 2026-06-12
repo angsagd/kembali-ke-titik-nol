@@ -143,7 +143,7 @@ class User extends Authenticatable
      */
     public function canImportWhatsappAnalytics(): bool
     {
-        return $this->canManageAlumni();
+        return $this->hasRole('superadmin');
     }
 
     /**

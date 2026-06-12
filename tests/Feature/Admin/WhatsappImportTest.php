@@ -14,7 +14,7 @@ test('guests are redirected from whatsapp import page', function () {
         ->assertRedirect(route('login'));
 });
 
-test('administrator users can access whatsapp import page', function () {
+test('administrator users cannot access whatsapp import page', function () {
     $administratorRole = Role::factory()->create([
         'name' => 'administrator',
         'description' => 'Administrator sistem',
@@ -23,9 +23,37 @@ test('administrator users can access whatsapp import page', function () {
 
     $this->actingAs($administrator)
         ->get(route('admin.whatsapp.index'))
+        ->assertForbidden();
+});
+
+test('superadmin users can access whatsapp import page', function () {
+    $superadminRole = Role::factory()->create([
+        'name' => 'superadmin',
+        'description' => 'Pengelola teknis sistem',
+    ]);
+    $superadmin = User::factory()->create(['role_id' => $superadminRole->id]);
+
+    $this->actingAs($superadmin)
+        ->get(route('admin.whatsapp.index'))
         ->assertOk()
         ->assertSee('WhatsApp Import')
-        ->assertSee('Upload Export Chat');
+        ->assertSee('Upload Export Chat')
+        ->assertSee('maksimum 10 MB')
+        ->assertSee('Mengunggah file...');
+});
+
+test('project upload limits support whatsapp exports up to ten megabytes', function () {
+    $userIni = file_get_contents(public_path('.user.ini'));
+    $composer = json_decode(file_get_contents(base_path('composer.json')), true, flags: JSON_THROW_ON_ERROR);
+    $developmentCommand = collect($composer['scripts']['dev'])
+        ->first(fn (string $command): bool => str_contains($command, 'artisan serve'));
+
+    expect($userIni)
+        ->toContain('upload_max_filesize=12M')
+        ->toContain('post_max_size=13M')
+        ->and($developmentCommand)
+        ->toContain('upload_max_filesize=12M')
+        ->toContain('post_max_size=13M');
 });
 
 test('alumni users cannot access whatsapp import page', function () {
@@ -36,14 +64,14 @@ test('alumni users cannot access whatsapp import page', function () {
         ->assertForbidden();
 });
 
-test('administrator users can upload and process whatsapp export', function () {
+test('superadmin users can upload and process whatsapp export', function () {
     Storage::fake('local');
 
-    $administratorRole = Role::factory()->create([
-        'name' => 'administrator',
-        'description' => 'Administrator sistem',
+    $superadminRole = Role::factory()->create([
+        'name' => 'superadmin',
+        'description' => 'Pengelola teknis sistem',
     ]);
-    $administrator = User::factory()->create(['role_id' => $administratorRole->id]);
+    $superadmin = User::factory()->create(['role_id' => $superadminRole->id]);
     $chat = File::createWithContent('chat.txt', implode("\n", [
         '01/01/2026, 08:00 - Budi: Selamat pagi geodesi',
         '01/01/2026, 08:05 - Citra: Info reuni https://example.test',
@@ -54,7 +82,7 @@ test('administrator users can upload and process whatsapp export', function () {
         '01/03/2026, 11:30 - Dodi: Hadir reuni',
     ]));
 
-    $this->actingAs($administrator);
+    $this->actingAs($superadmin);
 
     Livewire::test('pages::admin.whatsapp.index')
         ->set('chat_file', $chat)
@@ -86,16 +114,16 @@ test('administrator users can upload and process whatsapp export', function () {
     expect(AuditLog::query()->where('action', 'whatsapp_import.processed')->exists())->toBeTrue();
 });
 
-test('administrator users can only upload whatsapp text export files', function () {
+test('superadmin users can only upload whatsapp text export files', function () {
     Storage::fake('local');
 
-    $administratorRole = Role::factory()->create([
-        'name' => 'administrator',
-        'description' => 'Administrator sistem',
+    $superadminRole = Role::factory()->create([
+        'name' => 'superadmin',
+        'description' => 'Pengelola teknis sistem',
     ]);
-    $administrator = User::factory()->create(['role_id' => $administratorRole->id]);
+    $superadmin = User::factory()->create(['role_id' => $superadminRole->id]);
 
-    $this->actingAs($administrator);
+    $this->actingAs($superadmin);
 
     Livewire::test('pages::admin.whatsapp.index')
         ->set('chat_file', File::createWithContent('chat.csv', 'not a whatsapp text export'))

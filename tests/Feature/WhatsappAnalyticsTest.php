@@ -82,7 +82,7 @@ test('administrator users can view whatsapp analytics', function () {
         ->get(route('whatsapp.analytics'))
         ->assertOk()
         ->assertSee('WhatsApp Analytics')
-        ->assertSee('Kelola Import');
+        ->assertDontSee('Kelola Import');
 });
 
 test('regular users without alumni profile cannot view whatsapp analytics', function () {
