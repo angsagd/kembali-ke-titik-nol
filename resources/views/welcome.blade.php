@@ -121,7 +121,7 @@
                     </div>
                 </section>
 
-                <section class="overflow-hidden border-y border-ktn-sage/20 bg-ktn-forest" aria-label="Video Kembali ke Titik Nol">
+                <section class="overflow-hidden bg-ktn-topo" aria-label="Video Kembali ke Titik Nol">
                     <div class="relative mx-auto max-w-7xl">
                         <video
                             class="aspect-video w-full object-cover motion-reduce:hidden"
