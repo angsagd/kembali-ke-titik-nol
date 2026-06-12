@@ -84,7 +84,7 @@ test('landing page exposes social sharing metadata', function () {
     $title = 'Reuni 30 Tahun Geodesi 96 - Kembali ke Titik Nol';
     $description = 'Ngalibrasi 30 Taon Paseduluran. Reuni alumni Teknik Geodesi UGM angkatan 96 untuk pulang, bertemu, mengenang, dan kembali ke titik nol bersama.';
     $url = 'https://geodesiugm96.web.id';
-    $image = 'https://geodesiugm96.web.id/images/brand/sticker-kembali-ke-titik-nol.png';
+    $image = 'https://geodesiugm96.web.id/images/brand/sticker-kembali-ke-titik-nol-full.png';
 
     $this->get(route('home'))
         ->assertOk()

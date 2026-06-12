@@ -8,7 +8,9 @@ use App\Models\User;
 use Flux\Flux;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator as ValidatorFacade;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -31,6 +33,17 @@ new #[Layout('layouts::public')]
     public string $whatsapp_number = '';
 
     public string $rsvp_status = 'pending';
+
+    public string $rsvp_party_type = 'self';
+
+    public int|string $family_members_count = 0;
+
+    public ?string $shirt_size = null;
+
+    public ?string $shirt_type = null;
+
+    /** @var array<int, array{shirt_size: string|null, shirt_type: string|null}> */
+    public array $family_members = [];
 
     public ?string $company = null;
 
@@ -82,6 +95,34 @@ new #[Layout('layouts::public')]
         $this->current_city_id = null;
     }
 
+    public function updatedRsvpPartyType(): void
+    {
+        if ($this->rsvp_party_type === 'self') {
+            $this->family_members_count = 0;
+            $this->family_members = [];
+
+            return;
+        }
+
+        if ((int) $this->family_members_count < 1) {
+            $this->family_members_count = 1;
+        }
+
+        $this->syncFamilyMembers();
+    }
+
+    public function updatedFamilyMembersCount(): void
+    {
+        if ($this->rsvp_party_type === 'self') {
+            $this->family_members_count = 0;
+            $this->family_members = [];
+
+            return;
+        }
+
+        $this->syncFamilyMembers();
+    }
+
     #[Computed]
     public function countries(): Collection
     {
@@ -111,7 +152,7 @@ new #[Layout('layouts::public')]
 
         $this->whatsapp_number = User::normalizeWhatsappNumber($this->whatsapp_number) ?? '';
 
-        $validated = $this->validate([
+        $validated = ValidatorFacade::make($this->rsvpFormData(), [
             'full_name' => ['required', 'string', 'max:150'],
             'nickname' => ['nullable', 'string', 'max:100'],
             'student_number' => [
@@ -134,6 +175,13 @@ new #[Layout('layouts::public')]
                 Rule::unique(User::class, 'whatsapp_number')->ignore($this->alumni->user),
             ],
             'rsvp_status' => ['required', Rule::in(['pending', 'attending', 'not_attending'])],
+            'rsvp_party_type' => ['required', Rule::in(['self', 'family'])],
+            'family_members_count' => ['required', 'integer', 'min:0', 'max:20'],
+            'shirt_size' => ['nullable', Rule::in(['S', 'M', 'L', 'XL', 'XXL'])],
+            'shirt_type' => ['nullable', Rule::in(['child', 'male', 'female'])],
+            'family_members' => ['array'],
+            'family_members.*.shirt_size' => ['nullable', Rule::in(['S', 'M', 'L', 'XL', 'XXL'])],
+            'family_members.*.shirt_type' => ['nullable', Rule::in(['child', 'male', 'female'])],
             'company' => ['nullable', 'string', 'max:150'],
             'job_title' => ['nullable', 'string', 'max:150'],
             'current_country_id' => ['nullable', Rule::exists(Country::class, 'id')],
@@ -146,12 +194,15 @@ new #[Layout('layouts::public')]
             'memorable_story' => ['nullable', 'string', 'max:5000'],
             'message_to_friends' => ['nullable', 'string', 'max:5000'],
             'special_notes' => ['nullable', 'string', 'max:5000'],
-        ]);
+        ], [], $this->validationAttributes())->after(function (Validator $validator): void {
+            $this->validateRsvpParty($validator);
+        })->validate();
 
         DB::transaction(function () use ($validated): void {
             $isProfileCompleted = filled($validated['full_name'])
                 && filled($validated['whatsapp_number'])
                 && filled($validated['rsvp_status'])
+                && ($validated['rsvp_status'] !== 'attending' || (filled($validated['shirt_size']) && filled($validated['shirt_type'])))
                 && (filled($validated['short_story']) || filled($validated['memorable_story']) || filled($validated['message_to_friends']));
 
             $this->alumni?->update([
@@ -160,6 +211,10 @@ new #[Layout('layouts::public')]
                 'student_number' => $validated['student_number'],
                 'email' => $validated['email'],
                 'rsvp_status' => $validated['rsvp_status'],
+                'rsvp_party_type' => $validated['rsvp_party_type'],
+                'family_members_count' => $validated['rsvp_party_type'] === 'family' ? (int) $validated['family_members_count'] : 0,
+                'shirt_size' => $validated['shirt_size'],
+                'shirt_type' => $validated['shirt_type'],
                 'company' => $validated['company'],
                 'job_title' => $validated['job_title'],
                 'current_country_id' => $validated['current_country_id'],
@@ -176,9 +231,11 @@ new #[Layout('layouts::public')]
                 'whatsapp_number' => $validated['whatsapp_number'],
                 'email' => $validated['email'] ?: $this->alumni->user->email,
             ])->save();
+
+            $this->syncRsvpGuests($validated);
         });
 
-        $this->alumni = $this->alumni?->fresh(['user']);
+        $this->alumni = $this->alumni?->fresh(['user', 'rsvpGuests']);
         $this->lookup_whatsapp_number = $this->alumni?->user?->whatsapp_number ?? $this->lookup_whatsapp_number;
         $this->fillForm();
         $this->saved = true;
@@ -203,6 +260,18 @@ new #[Layout('layouts::public')]
         $this->email = $this->alumni->email;
         $this->whatsapp_number = $this->alumni->user?->whatsapp_number ?? '';
         $this->rsvp_status = $this->alumni->rsvp_status;
+        $this->rsvp_party_type = $this->alumni->rsvp_party_type;
+        $this->family_members_count = $this->alumni->family_members_count;
+        $this->shirt_size = $this->alumni->shirt_size;
+        $this->shirt_type = $this->alumni->shirt_type;
+        $this->family_members = $this->alumni->rsvpGuests
+            ->map(fn ($guest): array => [
+                'shirt_size' => $guest->shirt_size,
+                'shirt_type' => $guest->shirt_type,
+            ])
+            ->values()
+            ->all();
+        $this->syncFamilyMembers();
         $this->company = $this->alumni->company;
         $this->job_title = $this->alumni->job_title;
         $this->current_country_id = $this->alumni->current_country_id;
@@ -222,6 +291,8 @@ new #[Layout('layouts::public')]
             'student_number',
             'email',
             'whatsapp_number',
+            'shirt_size',
+            'shirt_type',
             'company',
             'job_title',
             'current_country_id',
@@ -232,6 +303,135 @@ new #[Layout('layouts::public')]
             'special_notes',
         ]);
         $this->rsvp_status = 'pending';
+        $this->rsvp_party_type = 'self';
+        $this->family_members_count = 0;
+        $this->family_members = [];
+    }
+
+    protected function syncFamilyMembers(): void
+    {
+        $count = max(0, min(20, (int) $this->family_members_count));
+
+        if ($this->rsvp_party_type === 'family' && $count < 1) {
+            $count = 1;
+        }
+
+        $this->family_members_count = $this->rsvp_party_type === 'family' ? $count : 0;
+        $members = array_values($this->family_members);
+
+        for ($index = 0; $index < $this->family_members_count; $index++) {
+            $members[$index] ??= ['shirt_size' => null, 'shirt_type' => null];
+        }
+
+        $this->family_members = array_slice($members, 0, $this->family_members_count);
+    }
+
+    protected function validateRsvpParty(Validator $validator): void
+    {
+        if ($this->rsvp_party_type === 'family' && (int) $this->family_members_count < 1) {
+            $validator->errors()->add('family_members_count', __('Jumlah tambahan keluarga wajib diisi minimal 1.'));
+        }
+
+        if ($this->rsvp_status !== 'attending') {
+            return;
+        }
+
+        if (blank($this->shirt_size)) {
+            $validator->errors()->add('shirt_size', __('Ukuran kaos alumni wajib diisi.'));
+        }
+
+        if (blank($this->shirt_type)) {
+            $validator->errors()->add('shirt_type', __('Jenis kaos alumni wajib diisi.'));
+        }
+
+        if ($this->rsvp_party_type !== 'family') {
+            return;
+        }
+
+        foreach ($this->family_members as $index => $member) {
+            if (blank($member['shirt_size'] ?? null)) {
+                $validator->errors()->add("family_members.{$index}.shirt_size", __('Ukuran kaos keluarga wajib diisi.'));
+            }
+
+            if (blank($member['shirt_type'] ?? null)) {
+                $validator->errors()->add("family_members.{$index}.shirt_type", __('Jenis kaos keluarga wajib diisi.'));
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    protected function syncRsvpGuests(array $validated): void
+    {
+        if ($this->alumni === null) {
+            return;
+        }
+
+        $this->alumni->rsvpGuests()->delete();
+
+        if ($validated['rsvp_status'] !== 'attending' || $validated['rsvp_party_type'] !== 'family') {
+            return;
+        }
+
+        collect($validated['family_members'] ?? [])
+            ->take((int) $validated['family_members_count'])
+            ->values()
+            ->each(function (array $member, int $index): void {
+                $this->alumni?->rsvpGuests()->create([
+                    'sequence' => $index + 1,
+                    'shirt_size' => $member['shirt_size'],
+                    'shirt_type' => $member['shirt_type'],
+                ]);
+            });
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function rsvpFormData(): array
+    {
+        return [
+            'full_name' => $this->full_name,
+            'nickname' => $this->nickname,
+            'student_number' => $this->student_number,
+            'email' => $this->email,
+            'whatsapp_number' => $this->whatsapp_number,
+            'rsvp_status' => $this->rsvp_status,
+            'rsvp_party_type' => $this->rsvp_party_type,
+            'family_members_count' => $this->family_members_count,
+            'shirt_size' => blank($this->shirt_size) ? null : $this->shirt_size,
+            'shirt_type' => blank($this->shirt_type) ? null : $this->shirt_type,
+            'family_members' => collect($this->family_members)
+                ->map(fn (array $member): array => [
+                    'shirt_size' => blank($member['shirt_size'] ?? null) ? null : $member['shirt_size'],
+                    'shirt_type' => blank($member['shirt_type'] ?? null) ? null : $member['shirt_type'],
+                ])
+                ->all(),
+            'company' => $this->company,
+            'job_title' => $this->job_title,
+            'current_country_id' => $this->current_country_id,
+            'current_city_id' => $this->current_city_id,
+            'short_story' => $this->short_story,
+            'memorable_story' => $this->memorable_story,
+            'message_to_friends' => $this->message_to_friends,
+            'special_notes' => $this->special_notes,
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function validationAttributes(): array
+    {
+        return [
+            'rsvp_party_type' => __('opsi kehadiran'),
+            'family_members_count' => __('jumlah tambahan keluarga'),
+            'shirt_size' => __('ukuran kaos alumni'),
+            'shirt_type' => __('jenis kaos alumni'),
+            'family_members.*.shirt_size' => __('ukuran kaos keluarga'),
+            'family_members.*.shirt_type' => __('jenis kaos keluarga'),
+        ];
     }
 }; ?>
 
@@ -320,7 +520,63 @@ new #[Layout('layouts::public')]
                                     <flux:select.option value="attending">{{ __('Insya Allah hadir') }}</flux:select.option>
                                     <flux:select.option value="not_attending">{{ __('Belum bisa hadir') }}</flux:select.option>
                                 </flux:select>
+
+                                <flux:select wire:model.live="rsvp_party_type" :label="__('Kehadiran')">
+                                    <flux:select.option value="self">{{ __('Sendiri') }}</flux:select.option>
+                                    <flux:select.option value="family">{{ __('Bersama keluarga') }}</flux:select.option>
+                                </flux:select>
+
+                                @if ($rsvp_party_type === 'family')
+                                    <flux:input wire:model.live="family_members_count" :label="__('Jumlah tambahan keluarga')" type="number" min="1" max="20" />
+                                @endif
+
+                                <flux:select wire:model="shirt_size" :label="__('Ukuran kaos alumni')">
+                                    <flux:select.option value="">{{ __('Pilih ukuran') }}</flux:select.option>
+                                    @foreach (['S', 'M', 'L', 'XL', 'XXL'] as $size)
+                                        <flux:select.option :value="$size">{{ $size }}</flux:select.option>
+                                    @endforeach
+                                </flux:select>
+
+                                <flux:select wire:model="shirt_type" :label="__('Jenis kaos alumni')">
+                                    <flux:select.option value="">{{ __('Pilih jenis') }}</flux:select.option>
+                                    <flux:select.option value="child">{{ __('Anak') }}</flux:select.option>
+                                    <flux:select.option value="male">{{ __('Pria') }}</flux:select.option>
+                                    <flux:select.option value="female">{{ __('Wanita') }}</flux:select.option>
+                                </flux:select>
                             </div>
+
+                            @if ($rsvp_party_type === 'family')
+                                <div class="mt-6 rounded-lg border border-ktn-sage/20 bg-ktn-surface/60 p-4">
+                                    <flux:heading size="sm">{{ __('Kaos Anggota Keluarga') }}</flux:heading>
+                                    <flux:text class="mt-1">
+                                        {{ __('Isi ukuran dan jenis kaos untuk anggota keluarga tambahan. Pasangan yang juga alumni tetap mengisi data sendiri; anak dicatat pada alumni pasangan laki-laki.') }}
+                                    </flux:text>
+
+                                    <div class="mt-4 grid gap-4">
+                                        @foreach ($family_members as $index => $member)
+                                            <div wire:key="public-family-shirt-{{ $index }}" class="grid gap-3 rounded-md border border-ktn-sage/20 bg-white p-4 lg:grid-cols-[8rem_1fr_1fr] lg:items-end">
+                                                <div class="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-ktn-muted">
+                                                    {{ __('Keluarga :number', ['number' => $index + 1]) }}
+                                                </div>
+
+                                                <flux:select wire:model="family_members.{{ $index }}.shirt_size" :label="__('Ukuran kaos')">
+                                                    <flux:select.option value="">{{ __('Pilih ukuran') }}</flux:select.option>
+                                                    @foreach (['S', 'M', 'L', 'XL', 'XXL'] as $size)
+                                                        <flux:select.option :value="$size">{{ $size }}</flux:select.option>
+                                                    @endforeach
+                                                </flux:select>
+
+                                                <flux:select wire:model="family_members.{{ $index }}.shirt_type" :label="__('Jenis kaos')">
+                                                    <flux:select.option value="">{{ __('Pilih jenis') }}</flux:select.option>
+                                                    <flux:select.option value="child">{{ __('Anak') }}</flux:select.option>
+                                                    <flux:select.option value="male">{{ __('Pria') }}</flux:select.option>
+                                                    <flux:select.option value="female">{{ __('Wanita') }}</flux:select.option>
+                                                </flux:select>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
                         </div>
 
                         <div class="rounded-xl border border-ktn-sage/20 bg-white p-5 shadow-sm">

@@ -62,6 +62,8 @@ test('mvp alumni journey works from login through profile rsvp room finance and 
 
     Livewire::test('pages::alumni.rsvp')
         ->set('rsvp_status', 'attending')
+        ->set('shirt_size', 'L')
+        ->set('shirt_type', 'male')
         ->call('saveRsvp')
         ->assertHasNoErrors();
 

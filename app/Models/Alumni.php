@@ -24,6 +24,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'job_title',
     'alumni_status',
     'rsvp_status',
+    'rsvp_party_type',
+    'family_members_count',
+    'shirt_size',
+    'shirt_type',
     'special_notes',
     'short_story',
     'memorable_story',
@@ -48,6 +52,7 @@ class Alumni extends Model
     {
         return [
             'is_profile_completed' => 'boolean',
+            'family_members_count' => 'integer',
         ];
     }
 
@@ -92,6 +97,17 @@ class Alumni extends Model
             ->orderBy('year')
             ->orderByRaw('month is null')
             ->orderBy('month');
+    }
+
+    /**
+     * Get additional RSVP family members for this alumni profile.
+     *
+     * @return HasMany<AlumniRsvpGuest, $this>
+     */
+    public function rsvpGuests(): HasMany
+    {
+        return $this->hasMany(AlumniRsvpGuest::class)
+            ->orderBy('sequence');
     }
 
     /**

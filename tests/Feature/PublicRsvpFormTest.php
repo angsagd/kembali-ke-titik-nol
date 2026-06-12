@@ -69,6 +69,14 @@ test('public rsvp form updates alumni and user data', function () {
         ->set('email', 'baru@example.test')
         ->set('whatsapp_number', '6289999999999')
         ->set('rsvp_status', 'attending')
+        ->set('rsvp_party_type', 'family')
+        ->set('family_members_count', 2)
+        ->set('shirt_size', 'XL')
+        ->set('shirt_type', 'male')
+        ->set('family_members.0.shirt_size', 'M')
+        ->set('family_members.0.shirt_type', 'female')
+        ->set('family_members.1.shirt_size', 'S')
+        ->set('family_members.1.shirt_type', 'child')
         ->set('company', 'PT Titik Nol')
         ->set('job_title', 'Surveyor')
         ->set('short_story', 'Masih aktif berkarya.')
@@ -83,12 +91,29 @@ test('public rsvp form updates alumni and user data', function () {
     expect($alumni->full_name)->toBe('Nama Baru Alumni');
     expect($alumni->student_number)->toBe('960001');
     expect($alumni->rsvp_status)->toBe('attending');
+    expect($alumni->rsvp_party_type)->toBe('family');
+    expect($alumni->family_members_count)->toBe(2);
+    expect($alumni->shirt_size)->toBe('XL');
+    expect($alumni->shirt_type)->toBe('male');
     expect($alumni->company)->toBe('PT Titik Nol');
     expect($alumni->special_notes)->toBe('Butuh menu vegetarian.');
     expect($alumni->is_profile_completed)->toBeTrue();
     expect($user->name)->toBe('Nama Baru Alumni');
     expect($user->email)->toBe('baru@example.test');
     expect($user->whatsapp_number)->toBe('6289999999999');
+    expect($alumni->rsvpGuests()->count())->toBe(2);
+    $this->assertDatabaseHas('alumni_rsvp_guests', [
+        'alumni_id' => $alumni->id,
+        'sequence' => 1,
+        'shirt_size' => 'M',
+        'shirt_type' => 'female',
+    ]);
+    $this->assertDatabaseHas('alumni_rsvp_guests', [
+        'alumni_id' => $alumni->id,
+        'sequence' => 2,
+        'shirt_size' => 'S',
+        'shirt_type' => 'child',
+    ]);
 });
 
 test('public rsvp form shows closed message when disabled by setting', function () {
