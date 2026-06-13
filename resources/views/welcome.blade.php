@@ -35,6 +35,8 @@
         <meta name="twitter:image" content="{{ $metaImage }}">
         <meta name="twitter:image:alt" content="Artwork Kembali ke Titik Nol Reuni 30 Tahun Geodesi 96">
 
+        <meta name="version" content="0.9.b">
+
         <link rel="shortcut icon" href="/favicon.ico">
         <link rel="icon" type="image/svg+xml" href="/favicon.svg">
         <link rel="icon" type="image/png" sizes="48x48" href="/images/icon/favicon48.png">
@@ -399,6 +401,7 @@
                         </a>
                         <p class="max-w-sm text-sm leading-7 text-ktn-sage-light">Ngalibrasi 30 Taon Paseduluran - Alumni Teknik Geodesi UGM 1996.</p>
                         <p class="font-mono text-md font-semibold uppercase tracking-[0.18em] text-ktn-sage-light">23-24 Agustus 2026</p>
+                        <p class="text-xs font-mono text-ktn-sage-light mt-6">v.0.9.b</p>
                     </div>
 
                     <div>
