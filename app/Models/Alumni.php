@@ -28,6 +28,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'rsvp_status',
     'rsvp_party_type',
     'family_members_count',
+    'brings_private_vehicle',
     'shirt_size',
     'shirt_type',
     'special_notes',
@@ -55,6 +56,7 @@ class Alumni extends Model
         return [
             'is_profile_completed' => 'boolean',
             'family_members_count' => 'integer',
+            'brings_private_vehicle' => 'boolean',
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
         ];

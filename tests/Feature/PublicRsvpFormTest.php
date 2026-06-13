@@ -31,6 +31,7 @@ test('public rsvp form loads alumni data by whatsapp number', function () {
         ->assertSet('nickname', 'Bamgeo')
         ->assertSet('whatsapp_number', '6281234567890')
         ->assertDontSee('Bersama keluarga')
+        ->assertDontSee('Membawa kendaraan pribadi?')
         ->assertSee('Ukuran kaos alumni')
         ->assertSee('Jenis kaos alumni')
         ->assertSee('Data Diri dan RSVP');
@@ -58,6 +59,7 @@ test('public rsvp hides family controls but keeps shirt controls when not attend
         'rsvp_status' => 'attending',
         'rsvp_party_type' => 'family',
         'family_members_count' => 2,
+        'brings_private_vehicle' => true,
     ]);
 
     Livewire::test('pages::public.rsvp')
@@ -66,7 +68,9 @@ test('public rsvp hides family controls but keeps shirt controls when not attend
         ->set('rsvp_status', 'not_attending')
         ->assertSet('rsvp_party_type', 'self')
         ->assertSet('family_members_count', 0)
+        ->assertSet('brings_private_vehicle', null)
         ->assertDontSee('Bersama keluarga')
+        ->assertDontSee('Membawa kendaraan pribadi?')
         ->assertSee('Ukuran kaos alumni')
         ->assertSee('Jenis kaos alumni');
 });
@@ -94,6 +98,7 @@ test('public rsvp form updates alumni and user data', function () {
         ->set('rsvp_status', 'attending')
         ->set('rsvp_party_type', 'family')
         ->set('family_members_count', 2)
+        ->set('brings_private_vehicle', 0)
         ->set('shirt_size', 'XL')
         ->set('shirt_type', 'male')
         ->set('family_members.0.shirt_size', 'M')
@@ -116,6 +121,7 @@ test('public rsvp form updates alumni and user data', function () {
     expect($alumni->rsvp_status)->toBe('attending');
     expect($alumni->rsvp_party_type)->toBe('family');
     expect($alumni->family_members_count)->toBe(2);
+    expect($alumni->brings_private_vehicle)->toBeFalse();
     expect($alumni->shirt_size)->toBe('XL');
     expect($alumni->shirt_type)->toBe('male');
     expect($alumni->company)->toBe('PT Titik Nol');

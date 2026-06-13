@@ -30,6 +30,7 @@ class AlumniFactory extends Factory
             'longitude' => null,
             'alumni_status' => 'active',
             'rsvp_status' => 'pending',
+            'brings_private_vehicle' => null,
             'is_profile_completed' => false,
         ];
     }

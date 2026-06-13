@@ -36,6 +36,7 @@ test('alumni users can view rsvp page', function () {
         ->assertSee('Ade Chandra')
         ->assertSee('Belum Merespon')
         ->assertDontSee('Bersama keluarga')
+        ->assertDontSee('Membawa kendaraan pribadi?')
         ->assertSee('Ukuran kaos alumni')
         ->assertSee('Jenis kaos alumni')
         ->assertSee('Simpan RSVP');
@@ -60,12 +61,14 @@ test('alumni users can update rsvp to attending', function () {
 
     Livewire::test('pages::alumni.rsvp')
         ->set('rsvp_status', 'attending')
+        ->set('brings_private_vehicle', 1)
         ->set('shirt_size', 'L')
         ->set('shirt_type', 'male')
         ->call('saveRsvp')
         ->assertHasNoErrors();
 
     expect($profile->refresh()->rsvp_status)->toBe('attending');
+    expect($profile->brings_private_vehicle)->toBeTrue();
     expect($profile->shirt_size)->toBe('L');
     expect($profile->shirt_type)->toBe('male');
 });
@@ -75,6 +78,7 @@ test('alumni users can update rsvp to not attending', function () {
         'rsvp_status' => 'attending',
         'rsvp_party_type' => 'family',
         'family_members_count' => 2,
+        'brings_private_vehicle' => true,
     ]);
 
     $this->actingAs($profile->user);
@@ -83,7 +87,9 @@ test('alumni users can update rsvp to not attending', function () {
         ->set('rsvp_status', 'not_attending')
         ->assertSet('rsvp_party_type', 'self')
         ->assertSet('family_members_count', 0)
+        ->assertSet('brings_private_vehicle', null)
         ->assertDontSee('Bersama keluarga')
+        ->assertDontSee('Membawa kendaraan pribadi?')
         ->assertSee('Ukuran kaos alumni')
         ->assertSee('Jenis kaos alumni')
         ->call('saveRsvp')
@@ -92,6 +98,7 @@ test('alumni users can update rsvp to not attending', function () {
     expect($profile->refresh()->rsvp_status)->toBe('not_attending');
     expect($profile->rsvp_party_type)->toBe('self');
     expect($profile->family_members_count)->toBe(0);
+    expect($profile->brings_private_vehicle)->toBeNull();
 });
 
 test('alumni users can submit family rsvp shirt data', function () {
@@ -103,6 +110,7 @@ test('alumni users can submit family rsvp shirt data', function () {
         ->set('rsvp_status', 'attending')
         ->set('rsvp_party_type', 'family')
         ->set('family_members_count', 2)
+        ->set('brings_private_vehicle', 0)
         ->set('shirt_size', 'XL')
         ->set('shirt_type', 'male')
         ->set('family_members.0.shirt_size', 'M')
@@ -117,6 +125,7 @@ test('alumni users can submit family rsvp shirt data', function () {
     expect($profile->rsvp_status)->toBe('attending');
     expect($profile->rsvp_party_type)->toBe('family');
     expect($profile->family_members_count)->toBe(2);
+    expect($profile->brings_private_vehicle)->toBeFalse();
     expect($profile->shirt_size)->toBe('XL');
     expect($profile->shirt_type)->toBe('male');
     expect($profile->rsvpGuests()->count())->toBe(2);
@@ -141,10 +150,26 @@ test('shirt data is required when alumni rsvp to attending', function () {
 
     Livewire::test('pages::alumni.rsvp')
         ->set('rsvp_status', 'attending')
+        ->set('brings_private_vehicle', 1)
         ->call('saveRsvp')
         ->assertHasErrors(['shirt_size', 'shirt_type']);
 
     expect($profile->refresh()->rsvp_status)->toBe('pending');
+});
+
+test('private vehicle choice is required when alumni rsvp to attending', function () {
+    $profile = Alumni::factory()->create(['rsvp_status' => 'pending']);
+
+    $this->actingAs($profile->user);
+
+    Livewire::test('pages::alumni.rsvp')
+        ->set('rsvp_status', 'attending')
+        ->set('shirt_size', 'L')
+        ->set('shirt_type', 'male')
+        ->call('saveRsvp')
+        ->assertHasErrors(['brings_private_vehicle']);
+
+    expect($profile->refresh()->brings_private_vehicle)->toBeNull();
 });
 
 test('invalid rsvp status is rejected', function () {

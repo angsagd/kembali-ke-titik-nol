@@ -32,6 +32,7 @@ test('administrator users can view rsvp monitoring summary', function () {
         'rsvp_status' => 'attending',
         'rsvp_party_type' => 'family',
         'family_members_count' => 2,
+        'brings_private_vehicle' => false,
         'shirt_size' => 'XL',
         'shirt_type' => 'male',
     ]);
@@ -68,6 +69,7 @@ test('administrator users can view rsvp monitoring summary', function () {
         ->assertSee('Response Rate')
         ->assertSee('67%')
         ->assertSee('Total Peserta Hadir')
+        ->assertSee('Tanpa Kendaraan Pribadi')
         ->assertSee('Bersama keluarga')
         ->assertSee('2 tambahan')
         ->assertSee('Alumni: Pria / XL')
@@ -90,7 +92,8 @@ test('administrator users can view rsvp monitoring summary', function () {
             'male' => 1,
             'female' => 1,
         ])
-        ->and($shirtSummary['grand_total'])->toBe(3);
+        ->and($shirtSummary['grand_total'])->toBe(3)
+        ->and($component->get('summary')['shared_transport_participants'])->toBe(3);
 });
 
 test('superadmin users can access rsvp monitoring', function () {

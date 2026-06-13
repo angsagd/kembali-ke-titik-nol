@@ -90,6 +90,7 @@ test('administrator users can export rsvp report', function () {
         'rsvp_status' => 'attending',
         'rsvp_party_type' => 'family',
         'family_members_count' => 2,
+        'brings_private_vehicle' => false,
         'shirt_size' => 'XL',
         'shirt_type' => 'male',
     ]);
@@ -112,11 +113,12 @@ test('administrator users can export rsvp report', function () {
     $response->assertOk();
     $response->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
     expect($response->streamedContent())
-        ->toContain('Nama,NIM,WhatsApp,"Status RSVP",Kehadiran,"Jumlah Keluarga Tambahan","Total Peserta","Kaos Alumni","Kaos Keluarga","Terakhir Diperbarui"')
+        ->toContain('Nama,NIM,WhatsApp,"Status RSVP",Kehadiran,"Jumlah Keluarga Tambahan","Total Peserta","Kendaraan Pribadi","Kaos Alumni","Kaos Keluarga","Terakhir Diperbarui"')
         ->toContain('"Ade Chandra"')
         ->toContain('D096001')
         ->toContain('Hadir')
         ->toContain('"Bersama keluarga"')
+        ->toContain('Tidak')
         ->toContain('Pria / XL')
         ->toContain('Keluarga 1: Wanita / M')
         ->toContain('Keluarga 2: Anak / S');

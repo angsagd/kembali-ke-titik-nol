@@ -69,6 +69,7 @@ class ExportController extends Controller
             'Kehadiran',
             'Jumlah Keluarga Tambahan',
             'Total Peserta',
+            'Kendaraan Pribadi',
             'Kaos Alumni',
             'Kaos Keluarga',
             'Terakhir Diperbarui',
@@ -99,6 +100,9 @@ class ExportController extends Controller
                         $isAttending ? $this->partyTypeLabel($alumni->rsvp_party_type) : null,
                         $familyMembersCount,
                         $isAttending ? 1 + $familyMembersCount : 0,
+                        $isAttending && $alumni->brings_private_vehicle !== null
+                            ? ($alumni->brings_private_vehicle ? 'Ya' : 'Tidak')
+                            : null,
                         filled($alumni->shirt_type) && filled($alumni->shirt_size)
                             ? $this->shirtTypeLabel($alumni->shirt_type).' / '.$alumni->shirt_size
                             : null,

@@ -34,6 +34,8 @@ new #[Layout('layouts::public')]
 
     public int|string $family_members_count = 0;
 
+    public int|string|null $brings_private_vehicle = null;
+
     public ?string $shirt_size = null;
 
     public ?string $shirt_type = null;
@@ -96,6 +98,7 @@ new #[Layout('layouts::public')]
     {
         if ($this->rsvp_status !== 'attending') {
             $this->resetRsvpParty();
+            $this->brings_private_vehicle = null;
         }
     }
 
@@ -163,6 +166,7 @@ new #[Layout('layouts::public')]
             'rsvp_status' => ['required', Rule::in(['pending', 'attending', 'not_attending'])],
             'rsvp_party_type' => ['required', Rule::in(['self', 'family'])],
             'family_members_count' => ['required', 'integer', 'min:0', 'max:20'],
+            'brings_private_vehicle' => ['nullable', 'boolean'],
             'shirt_size' => ['nullable', Rule::in(['S', 'M', 'L', 'XL', 'XXL'])],
             'shirt_type' => ['nullable', Rule::in(['child', 'male', 'female'])],
             'family_members' => ['array'],
@@ -198,6 +202,9 @@ new #[Layout('layouts::public')]
                 'rsvp_status' => $validated['rsvp_status'],
                 'rsvp_party_type' => $validated['rsvp_party_type'],
                 'family_members_count' => $validated['rsvp_party_type'] === 'family' ? (int) $validated['family_members_count'] : 0,
+                'brings_private_vehicle' => $validated['rsvp_status'] === 'attending'
+                    ? (bool) $validated['brings_private_vehicle']
+                    : null,
                 'shirt_size' => $validated['shirt_size'],
                 'shirt_type' => $validated['shirt_type'],
                 'company' => $validated['company'],
@@ -249,6 +256,9 @@ new #[Layout('layouts::public')]
         $this->rsvp_status = $this->alumni->rsvp_status;
         $this->rsvp_party_type = $this->alumni->rsvp_party_type;
         $this->family_members_count = $this->alumni->family_members_count;
+        $this->brings_private_vehicle = $this->alumni->brings_private_vehicle === null
+            ? null
+            : (int) $this->alumni->brings_private_vehicle;
         $this->shirt_size = $this->alumni->shirt_size;
         $this->shirt_type = $this->alumni->shirt_type;
         $this->family_members = $this->alumni->rsvpGuests
@@ -287,6 +297,7 @@ new #[Layout('layouts::public')]
             'student_number',
             'email',
             'whatsapp_number',
+            'brings_private_vehicle',
             'shirt_size',
             'shirt_type',
             'company',
@@ -304,6 +315,7 @@ new #[Layout('layouts::public')]
         $this->rsvp_status = 'pending';
         $this->rsvp_party_type = 'self';
         $this->family_members_count = 0;
+        $this->brings_private_vehicle = null;
         $this->family_members = [];
     }
 
@@ -340,6 +352,10 @@ new #[Layout('layouts::public')]
 
         if ($this->rsvp_status !== 'attending') {
             return;
+        }
+
+        if ($this->brings_private_vehicle === null || $this->brings_private_vehicle === '') {
+            $validator->errors()->add('brings_private_vehicle', __('Pilihan kendaraan pribadi wajib diisi.'));
         }
 
         if (blank($this->shirt_size)) {
@@ -406,6 +422,9 @@ new #[Layout('layouts::public')]
             'rsvp_status' => $this->rsvp_status,
             'rsvp_party_type' => $this->rsvp_party_type,
             'family_members_count' => $this->family_members_count,
+            'brings_private_vehicle' => $this->rsvp_status === 'attending'
+                ? $this->brings_private_vehicle
+                : null,
             'shirt_size' => blank($this->shirt_size) ? null : $this->shirt_size,
             'shirt_type' => blank($this->shirt_type) ? null : $this->shirt_type,
             'family_members' => collect($this->family_members)
@@ -436,6 +455,7 @@ new #[Layout('layouts::public')]
         return [
             'rsvp_party_type' => __('opsi kehadiran'),
             'family_members_count' => __('jumlah tambahan keluarga'),
+            'brings_private_vehicle' => __('pilihan kendaraan pribadi'),
             'shirt_size' => __('ukuran kaos alumni'),
             'shirt_type' => __('jenis kaos alumni'),
             'family_members.*.shirt_size' => __('ukuran kaos keluarga'),
@@ -529,6 +549,16 @@ new #[Layout('layouts::public')]
                                     @if ($rsvp_party_type === 'family')
                                         <flux:input wire:model.live="family_members_count" :label="__('Jumlah tambahan keluarga')" type="number" min="1" max="20" />
                                     @endif
+
+                                    <flux:radio.group
+                                        wire:model="brings_private_vehicle"
+                                        :label="__('Membawa kendaraan pribadi?')"
+                                        variant="segmented"
+                                        :invalid="$errors->has('brings_private_vehicle')"
+                                    >
+                                        <flux:radio value="1" :label="__('Ya')" />
+                                        <flux:radio value="0" :label="__('Tidak')" />
+                                    </flux:radio.group>
                                 @endif
 
                                 <flux:select wire:model="shirt_size" :label="__('Ukuran kaos alumni')">

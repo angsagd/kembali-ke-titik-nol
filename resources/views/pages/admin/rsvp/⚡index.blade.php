@@ -76,6 +76,15 @@ new #[Title('Monitoring RSVP')] class extends Component {
                 ->where('rsvp_status', 'attending')
                 ->where('rsvp_party_type', 'family')
                 ->sum('family_members_count') + Alumni::query()->where('rsvp_status', 'attending')->count(),
+            'shared_transport_participants' => Alumni::query()
+                ->where('rsvp_status', 'attending')
+                ->where('brings_private_vehicle', false)
+                ->get(['rsvp_party_type', 'family_members_count'])
+                ->sum(fn (Alumni $alumni): int => 1 + (
+                    $alumni->rsvp_party_type === 'family'
+                        ? $alumni->family_members_count
+                        : 0
+                )),
             'not_attending' => Alumni::query()->where('rsvp_status', 'not_attending')->count(),
         ];
     }
@@ -231,6 +240,15 @@ new #[Title('Monitoring RSVP')] class extends Component {
         };
     }
 
+    public function privateVehicleLabel(Alumni $alumni): string
+    {
+        if ($alumni->rsvp_status !== 'attending' || $alumni->brings_private_vehicle === null) {
+            return '-';
+        }
+
+        return $alumni->brings_private_vehicle ? __('Ya') : __('Tidak');
+    }
+
     private function applySorting(Builder $query): void
     {
         $direction = $this->sort_direction === 'desc' ? 'desc' : 'asc';
@@ -250,6 +268,7 @@ new #[Title('Monitoring RSVP')] class extends Component {
             'shirt' => $query
                 ->orderBy('shirt_type', $direction)
                 ->orderBy('shirt_size', $direction),
+            'brings_private_vehicle' => $query->orderBy('brings_private_vehicle', $direction),
             default => $query->orderBy($column, $direction),
         };
 
@@ -267,6 +286,7 @@ new #[Title('Monitoring RSVP')] class extends Component {
             'rsvp_status' => 'rsvp_status',
             'attendance' => 'attendance',
             'shirt' => 'shirt',
+            'brings_private_vehicle' => 'brings_private_vehicle',
             'updated_at' => 'updated_at',
         ];
     }
@@ -332,6 +352,18 @@ new #[Title('Monitoring RSVP')] class extends Component {
             <div class="mt-2 text-3xl font-semibold tabular-nums">{{ $this->responseRate }}%</div>
         </flux:card>
     </div>
+
+    <flux:card>
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <flux:text>{{ __('Tanpa Kendaraan Pribadi') }}</flux:text>
+                <div class="mt-2 text-3xl font-semibold tabular-nums">{{ $this->summary['shared_transport_participants'] }}</div>
+            </div>
+            <flux:text class="max-w-xl sm:text-right">
+                {{ __('Total peserta hadir, termasuk keluarga, yang membutuhkan kendaraan bersama dari panitia.') }}
+            </flux:text>
+        </div>
+    </flux:card>
 
     <flux:card class="space-y-4">
         <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
@@ -402,6 +434,7 @@ new #[Title('Monitoring RSVP')] class extends Component {
             <flux:table.column sortable :sorted="$sort_by === 'whatsapp_number'" :direction="$sort_direction" wire:click="sort('whatsapp_number')">{{ __('WhatsApp') }}</flux:table.column>
             <flux:table.column sortable :sorted="$sort_by === 'rsvp_status'" :direction="$sort_direction" wire:click="sort('rsvp_status')">{{ __('Status RSVP') }}</flux:table.column>
             <flux:table.column sortable :sorted="$sort_by === 'attendance'" :direction="$sort_direction" wire:click="sort('attendance')">{{ __('Kehadiran & Keluarga') }}</flux:table.column>
+            <flux:table.column sortable :sorted="$sort_by === 'brings_private_vehicle'" :direction="$sort_direction" wire:click="sort('brings_private_vehicle')">{{ __('Kendaraan Pribadi') }}</flux:table.column>
             <flux:table.column sortable :sorted="$sort_by === 'shirt'" :direction="$sort_direction" wire:click="sort('shirt')">{{ __('Data Kaos') }}</flux:table.column>
             <flux:table.column sortable :sorted="$sort_by === 'updated_at'" :direction="$sort_direction" wire:click="sort('updated_at')">{{ __('Terakhir Diperbarui') }}</flux:table.column>
             <flux:table.column align="end">{{ __('Aksi') }}</flux:table.column>
@@ -436,6 +469,7 @@ new #[Title('Monitoring RSVP')] class extends Component {
                             @endif
                         </div>
                     </flux:table.cell>
+                    <flux:table.cell>{{ $this->privateVehicleLabel($profile) }}</flux:table.cell>
                     <flux:table.cell>
                         @if (filled($profile->shirt_size) && filled($profile->shirt_type))
                             <div class="grid min-w-44 gap-1 text-sm">
@@ -463,7 +497,7 @@ new #[Title('Monitoring RSVP')] class extends Component {
                 </flux:table.row>
             @empty
                 <flux:table.row>
-                    <flux:table.cell colspan="7">
+                    <flux:table.cell colspan="8">
                         <div class="py-10 text-center">
                             <flux:heading size="lg">{{ __('Tidak ada RSVP ditemukan') }}</flux:heading>
                             <flux:text>{{ __('Ubah kata kunci atau filter status untuk melihat data lain.') }}</flux:text>
