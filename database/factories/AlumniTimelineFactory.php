@@ -4,8 +4,6 @@ namespace Database\Factories;
 
 use App\Models\Alumni;
 use App\Models\AlumniTimeline;
-use App\Models\City;
-use App\Models\Country;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -20,14 +18,14 @@ class AlumniTimelineFactory extends Factory
      */
     public function definition(): array
     {
-        $country = Country::factory();
-
         return [
             'alumni_id' => Alumni::factory(),
             'month' => fake()->optional()->numberBetween(1, 12),
             'year' => fake()->numberBetween(1996, 2026),
-            'country_id' => $country,
-            'city_id' => City::factory()->for($country),
+            'city' => fake()->city(),
+            'country' => fake()->country(),
+            'latitude' => fake()->latitude(),
+            'longitude' => fake()->longitude(),
             'location_source' => 'geocoded',
             'notes' => fake()->optional()->sentence(),
         ];

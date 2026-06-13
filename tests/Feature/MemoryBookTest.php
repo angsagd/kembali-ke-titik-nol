@@ -1,8 +1,6 @@
 <?php
 
 use App\Models\Alumni;
-use App\Models\City;
-use App\Models\Country;
 use App\Models\MediaItem;
 use App\Models\Role;
 use App\Models\User;
@@ -47,21 +45,18 @@ test('alumni users can browse memory book', function () {
 
 test('alumni users can filter memory book by search city and status', function () {
     $viewer = Alumni::factory()->create();
-    $country = Country::factory()->create(['name' => 'Indonesia']);
-    $yogyakarta = City::factory()->create(['country_id' => $country->id, 'name' => 'Yogyakarta']);
-    $jakarta = City::factory()->create(['country_id' => $country->id, 'name' => 'Jakarta']);
 
     Alumni::factory()->create([
         'full_name' => 'Ade Chandra',
-        'current_city_id' => $yogyakarta->id,
-        'current_country_id' => $country->id,
+        'city' => 'Yogyakarta',
+        'country' => 'Indonesia',
         'alumni_status' => 'active',
         'short_story' => 'Cerita dari Jogja.',
     ]);
     Alumni::factory()->create([
         'full_name' => 'Budi Santoso',
-        'current_city_id' => $jakarta->id,
-        'current_country_id' => $country->id,
+        'city' => 'Jakarta',
+        'country' => 'Indonesia',
         'alumni_status' => 'deceased',
         'short_story' => 'Cerita dari Jakarta.',
     ]);
@@ -73,10 +68,10 @@ test('alumni users can filter memory book by search city and status', function (
         ->assertSee('Ade Chandra')
         ->assertDontSee('Budi Santoso')
         ->set('search', '')
-        ->set('cityId', $jakarta->id)
+        ->set('city', 'Jakarta')
         ->assertSee('Budi Santoso')
         ->assertDontSee('Ade Chandra')
-        ->set('cityId', '')
+        ->set('city', '')
         ->set('status', 'deceased')
         ->assertSee('Budi Santoso')
         ->assertDontSee('Ade Chandra');

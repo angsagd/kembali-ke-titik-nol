@@ -2,6 +2,10 @@
 
 return [
 
+    'world_city' => [
+        'search_url' => env('WORLD_CITY_SEARCH_URL', 'https://world.bakpasir.web.id/api/cities/search'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services

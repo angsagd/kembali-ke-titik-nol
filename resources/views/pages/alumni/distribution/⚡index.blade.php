@@ -2,10 +2,7 @@
 
 use App\Models\Alumni;
 use App\Models\AlumniTimeline;
-use App\Models\City;
-use App\Models\Country;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Collection as SupportCollection;
+use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -13,15 +10,15 @@ use Livewire\Component;
 
 new #[Title('Persebaran Alumni')] class extends Component {
     #[Url(as: 'city')]
-    public int|string|null $selectedCityId = null;
+    public ?string $selectedCityId = null;
 
     #[Computed]
     public function summary(): array
     {
         $total = Alumni::query()->count();
         $located = Alumni::query()
-            ->whereNotNull('current_city_id')
-            ->orWhereNotNull('current_country_id')
+            ->whereNotNull('city')
+            ->orWhereNotNull('country')
             ->count();
         $completed = Alumni::query()->where('is_profile_completed', true)->count();
 
@@ -42,23 +39,28 @@ new #[Title('Persebaran Alumni')] class extends Component {
     #[Computed]
     public function countryDistribution(): Collection
     {
-        return Country::query()
-            ->whereHas('alumni')
-            ->withCount(['alumni as alumni_count'])
+        return Alumni::query()
+            ->whereNotNull('country')
+            ->where('country', '!=', '')
+            ->select('country')
+            ->selectRaw('count(*) as alumni_count')
+            ->groupBy('country')
             ->orderByDesc('alumni_count')
-            ->orderBy('name')
+            ->orderBy('country')
             ->get();
     }
 
     #[Computed]
     public function cityDistribution(): Collection
     {
-        return City::query()
-            ->whereHas('alumni')
-            ->with(['country'])
-            ->withCount(['alumni as alumni_count'])
+        return Alumni::query()
+            ->whereNotNull('city')
+            ->where('city', '!=', '')
+            ->select(['city', 'country'])
+            ->selectRaw('count(*) as alumni_count')
+            ->groupBy('city', 'country')
             ->orderByDesc('alumni_count')
-            ->orderBy('name')
+            ->orderBy('city')
             ->limit(20)
             ->get();
     }
@@ -66,48 +68,46 @@ new #[Title('Persebaran Alumni')] class extends Component {
     #[Computed]
     public function cityMarkers(): Collection
     {
-        return City::query()
-            ->whereHas('alumni')
+        return Alumni::query()
+            ->whereNotNull('city')
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
-            ->with(['country'])
-            ->withCount(['alumni as alumni_count'])
+            ->select(['city', 'country', 'latitude', 'longitude'])
+            ->selectRaw('count(*) as alumni_count')
+            ->groupBy('city', 'country', 'latitude', 'longitude')
             ->orderByDesc('alumni_count')
-            ->orderBy('name')
+            ->orderBy('city')
             ->get();
     }
 
     #[Computed]
-    public function selectedCity(): ?City
+    public function selectedCity(): ?object
     {
         if (! filled($this->selectedCityId)) {
             return $this->cityMarkers->first();
         }
 
-        return City::query()
-            ->whereKey($this->selectedCityId)
-            ->whereHas('alumni')
-            ->with(['country'])
-            ->withCount(['alumni as alumni_count'])
-            ->first();
+        return $this->cityMarkers->first(
+            fn (object $location): bool => $this->locationKey($location->city, $location->country) === $this->selectedCityId,
+        );
     }
 
     #[Computed]
     public function selectedCityAlumni(): Collection
     {
         if (! $this->selectedCity) {
-            return new Collection;
+            return collect();
         }
 
         return Alumni::query()
-            ->where('current_city_id', $this->selectedCity->id)
-            ->with(['currentCountry'])
+            ->where('city', $this->selectedCity->city)
+            ->where('country', $this->selectedCity->country)
             ->orderBy('full_name')
             ->get();
     }
 
     #[Computed]
-    public function timelineYearDistribution(): SupportCollection
+    public function timelineYearDistribution(): Collection
     {
         return AlumniTimeline::query()
             ->select('year')
@@ -120,12 +120,14 @@ new #[Title('Persebaran Alumni')] class extends Component {
     #[Computed]
     public function timelineCityDistribution(): Collection
     {
-        return City::query()
-            ->whereHas('timelines')
-            ->with(['country'])
-            ->withCount(['timelines as timeline_count'])
+        return AlumniTimeline::query()
+            ->whereNotNull('city')
+            ->where('city', '!=', '')
+            ->select(['city', 'country'])
+            ->selectRaw('count(*) as timeline_count')
+            ->groupBy('city', 'country')
             ->orderByDesc('timeline_count')
-            ->orderBy('name')
+            ->orderBy('city')
             ->limit(12)
             ->get();
     }
@@ -134,8 +136,8 @@ new #[Title('Persebaran Alumni')] class extends Component {
     public function unlocatedCount(): int
     {
         return Alumni::query()
-            ->whereNull('current_city_id')
-            ->whereNull('current_country_id')
+            ->whereNull('city')
+            ->whereNull('country')
             ->count();
     }
 
@@ -157,29 +159,35 @@ new #[Title('Persebaran Alumni')] class extends Component {
         return (int) round(($count / $max) * 100);
     }
 
-    public function selectCity(int $cityId): void
+    public function selectCity(string $cityId): void
     {
         $this->selectedCityId = $cityId;
         unset($this->selectedCity, $this->selectedCityAlumni);
     }
 
     /**
-     * @return list<array{id: int, name: string, country: string, count: int, latitude: float, longitude: float, selected: bool}>
+     * @return list<array{id: string, name: string, country: string, count: int, latitude: float, longitude: float, selected: bool}>
      */
     public function leafletMarkers(): array
     {
         return $this->cityMarkers
-            ->map(fn (City $city): array => [
-                'id' => $city->id,
-                'name' => $city->name,
-                'country' => $city->country?->name ?: __('Negara belum diisi'),
-                'count' => (int) $city->alumni_count,
-                'latitude' => (float) $city->latitude,
-                'longitude' => (float) $city->longitude,
-                'selected' => $this->selectedCity?->id === $city->id,
+            ->map(fn (object $location): array => [
+                'id' => $this->locationKey($location->city, $location->country),
+                'name' => $location->city,
+                'country' => $location->country ?: __('Negara belum diisi'),
+                'count' => (int) $location->alumni_count,
+                'latitude' => (float) $location->latitude,
+                'longitude' => (float) $location->longitude,
+                'selected' => $this->selectedCity !== null
+                    && $this->locationKey($this->selectedCity->city, $this->selectedCity->country) === $this->locationKey($location->city, $location->country),
             ])
             ->values()
             ->all();
+    }
+
+    private function locationKey(?string $city, ?string $country): string
+    {
+        return implode('::', [$city, $country]);
     }
 }; ?>
 
@@ -229,7 +237,7 @@ new #[Title('Persebaran Alumni')] class extends Component {
             <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <flux:heading size="lg">{{ __('Peta Persebaran') }}</flux:heading>
-                    <flux:text>{{ __('Marker kota berdasarkan koordinat master city dan jumlah alumni pada domisili saat ini.') }}</flux:text>
+                    <flux:text>{{ __('Marker kota berdasarkan koordinat hasil pencarian eksternal dan jumlah alumni pada domisili saat ini.') }}</flux:text>
                 </div>
                 <flux:badge>{{ __(':count marker kota', ['count' => $this->cityMarkers->count()]) }}</flux:badge>
             </div>
@@ -264,8 +272,8 @@ new #[Title('Persebaran Alumni')] class extends Component {
             @if ($this->selectedCity)
                 <div class="mt-5 space-y-4">
                     <div class="rounded-md border border-zinc-200 p-4 dark:border-zinc-700">
-                        <div class="font-semibold">{{ $this->selectedCity->name }}</div>
-                        <flux:text>{{ $this->selectedCity->country?->name ?: __('Negara belum diisi') }}</flux:text>
+                        <div class="font-semibold">{{ $this->selectedCity->city }}</div>
+                        <flux:text>{{ $this->selectedCity->country ?: __('Negara belum diisi') }}</flux:text>
                         <flux:text class="mt-2">
                             {{ __('Koordinat: :lat, :lng', ['lat' => $this->selectedCity->latitude, 'lng' => $this->selectedCity->longitude]) }}
                         </flux:text>
@@ -375,11 +383,11 @@ new #[Title('Persebaran Alumni')] class extends Component {
 
             <div class="mt-5 grid gap-4">
                 @forelse ($this->timelineCityDistribution as $city)
-                    <a wire:key="timeline-city-{{ $city->id }}" href="{{ route('alumni.directory.index', ['q' => $city->name]) }}" wire:navigate class="block rounded-md border border-zinc-200 p-4 transition hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800">
+                    <a wire:key="timeline-city-{{ $city->city }}-{{ $city->country }}" href="{{ route('alumni.directory.index', ['q' => $city->city]) }}" wire:navigate class="block rounded-md border border-zinc-200 p-4 transition hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800">
                         <div class="flex items-center justify-between gap-3">
                             <div>
-                                <div class="font-medium">{{ $city->name }}</div>
-                                <div class="text-sm text-zinc-500 dark:text-zinc-400">{{ $city->country?->name }}</div>
+                                <div class="font-medium">{{ $city->city }}</div>
+                                <div class="text-sm text-zinc-500 dark:text-zinc-400">{{ $city->country }}</div>
                             </div>
                             <flux:badge>{{ $city->timeline_count }}</flux:badge>
                         </div>
@@ -400,9 +408,9 @@ new #[Title('Persebaran Alumni')] class extends Component {
 
             <div class="mt-5 grid gap-4">
                 @forelse ($this->countryDistribution as $country)
-                    <a wire:key="country-{{ $country->id }}" href="{{ route('alumni.directory.index', ['q' => $country->name]) }}" wire:navigate class="block rounded-md border border-zinc-200 p-4 transition hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800">
+                    <a wire:key="country-{{ $country->country }}" href="{{ route('alumni.directory.index', ['q' => $country->country]) }}" wire:navigate class="block rounded-md border border-zinc-200 p-4 transition hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800">
                         <div class="flex items-center justify-between gap-3">
-                            <span class="font-medium">{{ $country->name }}</span>
+                            <span class="font-medium">{{ $country->country }}</span>
                             <flux:badge>{{ $country->alumni_count }}</flux:badge>
                         </div>
                         <flux:progress class="mt-3" :value="$this->percentage($country->alumni_count)" />
@@ -418,12 +426,12 @@ new #[Title('Persebaran Alumni')] class extends Component {
 
             <div class="mt-5 grid gap-4">
                 @forelse ($this->cityDistribution as $city)
-                    <a wire:key="city-{{ $city->id }}" href="{{ route('alumni.directory.index', ['q' => $city->name]) }}" wire:navigate class="block rounded-md border border-zinc-200 p-4 transition hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800">
+                    <a wire:key="city-{{ $city->city }}-{{ $city->country }}" href="{{ route('alumni.directory.index', ['q' => $city->city]) }}" wire:navigate class="block rounded-md border border-zinc-200 p-4 transition hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800">
                         <div class="flex items-center justify-between gap-3">
-                            <span class="font-medium">{{ $city->name }}</span>
+                            <span class="font-medium">{{ $city->city }}</span>
                             <flux:badge>{{ $city->alumni_count }}</flux:badge>
                         </div>
-                        <div class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ $city->country?->name }}</div>
+                        <div class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ $city->country }}</div>
                         <flux:progress class="mt-3" :value="$this->percentage($city->alumni_count)" />
                     </a>
                 @empty

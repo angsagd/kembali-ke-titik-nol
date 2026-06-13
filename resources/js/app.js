@@ -7,6 +7,7 @@ const leafletMaps = new WeakMap();
 const publicHeaderStates = new WeakMap();
 const landingVideoObservers = new WeakMap();
 const echartsInstances = new WeakMap();
+const cityAutocompleteStates = new WeakMap();
 
 function updateCountdown(countdown) {
     const targetDate = new Date(countdown.dataset.countdownTarget);
@@ -68,6 +69,145 @@ function componentFor(element) {
     }
 
     return window.Livewire.find(componentRoot.getAttribute('wire:id'));
+}
+
+function locationLabel(location) {
+    return [location.name, location.state_name, location.country_name].filter(Boolean).join(', ');
+}
+
+function setCityAutocompleteValue(element, field, value) {
+    const input = element.querySelector(`[data-city-autocomplete-value="${field}"]`);
+
+    if (!input) {
+        return;
+    }
+
+    input.value = value ?? '';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+function clearCityAutocompleteSelection(element, state) {
+    state.selectedLabel = null;
+
+    ['city', 'country', 'latitude', 'longitude'].forEach((field) => {
+        setCityAutocompleteValue(element, field, '');
+    });
+}
+
+function renderCityAutocompleteResults(element, state, locations) {
+    const results = element.querySelector('[data-city-autocomplete-results]');
+
+    results.replaceChildren();
+
+    locations.forEach((location) => {
+        const button = document.createElement('button');
+
+        button.type = 'button';
+        button.className = 'block w-full px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none';
+        button.textContent = locationLabel(location);
+        button.addEventListener('mousedown', (event) => {
+            event.preventDefault();
+
+            const label = locationLabel(location);
+            const input = element.querySelector('[data-city-autocomplete-input]');
+            const status = element.querySelector('[data-city-autocomplete-status]');
+
+            state.selectedLabel = label;
+            input.value = label;
+            setCityAutocompleteValue(element, 'search', label);
+            setCityAutocompleteValue(element, 'city', location.name);
+            setCityAutocompleteValue(element, 'country', location.country_name);
+            setCityAutocompleteValue(element, 'latitude', location.latitude);
+            setCityAutocompleteValue(element, 'longitude', location.longitude);
+            status.textContent = 'Kota dipilih dari hasil pencarian.';
+            results.classList.add('hidden');
+        });
+
+        results.append(button);
+    });
+
+    results.classList.toggle('hidden', locations.length === 0);
+}
+
+function initializeCityAutocompletes() {
+    document.querySelectorAll('[data-city-autocomplete]').forEach((element) => {
+        if (cityAutocompleteStates.has(element)) {
+            return;
+        }
+
+        const input = element.querySelector('[data-city-autocomplete-input]');
+        const results = element.querySelector('[data-city-autocomplete-results]');
+        const status = element.querySelector('[data-city-autocomplete-status]');
+        const state = {
+            abortController: null,
+            debounceTimer: null,
+            selectedLabel: input.value.trim() || null,
+        };
+
+        const search = async () => {
+            const query = input.value.trim();
+
+            if (query === '') {
+                status.textContent = 'Pilih kota dari daftar hasil pencarian.';
+                results.classList.add('hidden');
+
+                return;
+            }
+
+            state.abortController?.abort();
+            state.abortController = new AbortController();
+            status.textContent = 'Mencari kota...';
+
+            try {
+                const response = await fetch(`${element.dataset.searchUrl}/${encodeURIComponent(query)}`, {
+                    headers: { Accept: 'application/json' },
+                    signal: state.abortController.signal,
+                });
+
+                if (!response.ok) {
+                    throw new Error(`City search failed with status ${response.status}`);
+                }
+
+                const locations = await response.json();
+
+                renderCityAutocompleteResults(element, state, Array.isArray(locations) ? locations : []);
+                status.textContent = locations.length > 0
+                    ? `${locations.length} kota ditemukan. Pilih salah satu.`
+                    : 'Kota tidak ditemukan.';
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+
+                results.classList.add('hidden');
+                status.textContent = 'Pencarian kota gagal. Silakan coba lagi.';
+            }
+        };
+
+        input.addEventListener('input', () => {
+            setCityAutocompleteValue(element, 'search', input.value.trim());
+
+            if (input.value.trim() !== state.selectedLabel) {
+                clearCityAutocompleteSelection(element, state);
+            }
+
+            window.clearTimeout(state.debounceTimer);
+            state.debounceTimer = window.setTimeout(search, 250);
+        });
+
+        input.addEventListener('focus', () => {
+            if (results.childElementCount > 0) {
+                results.classList.remove('hidden');
+            }
+        });
+
+        input.addEventListener('blur', () => {
+            window.setTimeout(() => results.classList.add('hidden'), 150);
+        });
+
+        cityAutocompleteStates.set(element, state);
+    });
 }
 
 function initializeDistributionMaps() {
@@ -316,6 +456,12 @@ document.addEventListener('DOMContentLoaded', initializeDistributionMaps);
 document.addEventListener('DOMContentLoaded', initializePublicHeaderNavigation);
 document.addEventListener('DOMContentLoaded', initializeLandingVideos);
 document.addEventListener('DOMContentLoaded', initializeEcharts);
+document.addEventListener('DOMContentLoaded', initializeCityAutocompletes);
+document.addEventListener('livewire:init', () => {
+    window.Livewire.interceptMessage(({ onSuccess }) => {
+        onSuccess(() => window.queueMicrotask(initializeCityAutocompletes));
+    });
+});
 document.addEventListener('visibilitychange', updateLandingVideoVisibility);
 document.addEventListener('livewire:navigated', () => {
     initializeCountdowns();
@@ -323,4 +469,5 @@ document.addEventListener('livewire:navigated', () => {
     initializePublicHeaderNavigation();
     initializeLandingVideos();
     initializeEcharts();
+    initializeCityAutocompletes();
 });

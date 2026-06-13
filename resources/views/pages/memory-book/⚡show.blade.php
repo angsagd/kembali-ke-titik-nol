@@ -13,7 +13,7 @@ new #[Title('Detail Buku Kenangan')] class extends Component {
 
     public function mount(Alumni $alumni): void
     {
-        $this->alumni = $alumni->load(['currentCity', 'currentCountry', 'user']);
+        $this->alumni = $alumni->load('user');
     }
 
     #[Computed]
@@ -36,7 +36,6 @@ new #[Title('Detail Buku Kenangan')] class extends Component {
     {
         return $this->alumni
             ->timelines()
-            ->with(['city', 'country'])
             ->limit(6)
             ->get();
     }
@@ -82,7 +81,7 @@ new #[Title('Detail Buku Kenangan')] class extends Component {
             </flux:button>
             <flux:heading size="xl">{{ $alumni->full_name }}</flux:heading>
             <flux:text>
-                {{ collect([$alumni->nickname ? __('Panggilan: :nickname', ['nickname' => $alumni->nickname]) : null, $alumni->currentCity?->name, $alumni->currentCountry?->name])->filter()->join(' / ') ?: __('Buku kenangan alumni Geodesi 96') }}
+                {{ collect([$alumni->nickname ? __('Panggilan: :nickname', ['nickname' => $alumni->nickname]) : null, $alumni->city, $alumni->country])->filter()->join(' / ') ?: __('Buku kenangan alumni Geodesi 96') }}
             </flux:text>
         </div>
 
@@ -221,7 +220,7 @@ new #[Title('Detail Buku Kenangan')] class extends Component {
                     </div>
                     <div>
                         <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Domisili') }}</dt>
-                        <dd class="font-medium">{{ collect([$alumni->currentCity?->name, $alumni->currentCountry?->name])->filter()->join(', ') ?: '-' }}</dd>
+                        <dd class="font-medium">{{ collect([$alumni->city, $alumni->country])->filter()->join(', ') ?: '-' }}</dd>
                     </div>
                 </dl>
             </div>
@@ -232,7 +231,7 @@ new #[Title('Detail Buku Kenangan')] class extends Component {
                     @forelse ($this->timelines as $timeline)
                         <div wire:key="memory-timeline-{{ $timeline->id }}" class="rounded-md border border-zinc-200 p-3 dark:border-zinc-700">
                             <div class="font-semibold">{{ $timeline->month ? $this->monthName($timeline->month).' ' : '' }}{{ $timeline->year }}</div>
-                            <flux:text>{{ collect([$timeline->city?->name, $timeline->country?->name])->filter()->join(', ') ?: __('Lokasi belum diisi') }}</flux:text>
+                            <flux:text>{{ collect([$timeline->city, $timeline->country])->filter()->join(', ') ?: __('Lokasi belum diisi') }}</flux:text>
                         </div>
                     @empty
                         <flux:text>{{ __('Timeline belum diisi.') }}</flux:text>

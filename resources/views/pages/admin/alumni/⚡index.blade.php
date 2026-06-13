@@ -4,7 +4,6 @@ use App\Models\AuditLog;
 use App\Models\Alumni;
 use App\Models\Role;
 use App\Models\User;
-use App\Models\City;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -74,7 +73,7 @@ new #[Title('Manajemen Alumni')] class extends Component {
         $search = trim($this->search);
 
         return Alumni::query()
-            ->with(['currentCity', 'currentCountry', 'user.role'])
+            ->with('user.role')
             ->when($search !== '', function ($query) use ($search): void {
                 $query->where(function ($query) use ($search): void {
                     $query
@@ -82,12 +81,8 @@ new #[Title('Manajemen Alumni')] class extends Component {
                         ->orWhere('nickname', 'like', "%{$search}%")
                         ->orWhere('student_number', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%")
-                        ->orWhereHas('currentCity', function ($query) use ($search): void {
-                            $query->where('name', 'like', "%{$search}%");
-                        })
-                        ->orWhereHas('currentCountry', function ($query) use ($search): void {
-                            $query->where('name', 'like', "%{$search}%");
-                        })
+                        ->orWhere('city', 'like', "%{$search}%")
+                        ->orWhere('country', 'like', "%{$search}%")
                         ->orWhereHas('user', function ($query) use ($search): void {
                             $query->where('whatsapp_number', 'like', "%{$search}%");
                         });
@@ -187,13 +182,7 @@ new #[Title('Manajemen Alumni')] class extends Component {
                     ->limit(1),
                 $direction,
             ),
-            'city' => $query->orderBy(
-                City::query()
-                    ->select('name')
-                    ->whereColumn('cities.id', 'alumni.current_city_id')
-                    ->limit(1),
-                $direction,
-            ),
+            'city' => $query->orderBy('city', $direction),
             'role' => $query->orderBy(
                 Role::query()
                     ->select('roles.name')
@@ -309,7 +298,7 @@ new #[Title('Manajemen Alumni')] class extends Component {
                         </div>
                     </flux:table.cell>
                     <flux:table.cell>{{ $profile->user?->whatsapp_number ?: '-' }}</flux:table.cell>
-                    <flux:table.cell>{{ collect([$profile->currentCity?->name, $profile->currentCountry?->name])->filter()->join(', ') ?: '-' }}</flux:table.cell>
+                    <flux:table.cell>{{ collect([$profile->city, $profile->country])->filter()->join(', ') ?: '-' }}</flux:table.cell>
                     @can('manage-user-roles')
                         <flux:table.cell>
                             <flux:badge color="{{ match ($profile->user?->role?->name) {

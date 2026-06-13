@@ -3,8 +3,6 @@
 use App\Models\Alumni;
 use App\Models\AlumniTimeline;
 use App\Models\AuditLog;
-use App\Models\City;
-use App\Models\Country;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -38,15 +36,12 @@ test('administrator users can browse and search alumni', function () {
         'student_number' => 'D096001',
         'rsvp_status' => 'pending',
     ]);
-    $country = Country::factory()->create(['name' => 'Indonesia', 'code' => 'ID']);
-    $city = City::factory()->create(['country_id' => $country->id, 'name' => 'Yogyakarta']);
-
     AlumniTimeline::factory()->create([
         'alumni_id' => $profile->id,
         'year' => 1996,
         'month' => 8,
-        'country_id' => $country->id,
-        'city_id' => $city->id,
+        'country' => 'Indonesia',
+        'city' => 'Yogyakarta',
         'notes' => 'Mulai kuliah.',
     ]);
 
@@ -282,8 +277,6 @@ test('administrator alumni creation validates unique identifiers', function () {
 });
 
 test('administrator users can update core alumni data', function () {
-    $country = Country::factory()->create(['name' => 'Indonesia', 'code' => 'ID']);
-    $city = City::factory()->create(['country_id' => $country->id, 'name' => 'Yogyakarta']);
     $administratorRole = Role::factory()->create([
         'name' => 'administrator',
         'description' => 'Administrator sistem',
@@ -311,8 +304,11 @@ test('administrator users can update core alumni data', function () {
         ->set('rsvp_status', 'attending')
         ->set('company', 'PT Titik Nol')
         ->set('job_title', 'Surveyor')
-        ->set('current_country_id', $country->id)
-        ->set('current_city_id', $city->id)
+        ->set('location_search', 'Yogyakarta, DI Yogyakarta, Indonesia')
+        ->set('country', 'Indonesia')
+        ->set('city', 'Yogyakarta')
+        ->set('latitude', -7.80139)
+        ->set('longitude', 110.36472)
         ->set('special_notes', 'Data dikonfirmasi admin.')
         ->set('is_profile_completed', true)
         ->call('updateAlumni')
@@ -326,8 +322,8 @@ test('administrator users can update core alumni data', function () {
     expect($profile->email)->toBe('baru@example.test');
     expect($profile->rsvp_status)->toBe('attending');
     expect($profile->company)->toBe('PT Titik Nol');
-    expect($profile->current_country_id)->toBe($country->id);
-    expect($profile->current_city_id)->toBe($city->id);
+    expect($profile->country)->toBe('Indonesia');
+    expect($profile->city)->toBe('Yogyakarta');
     expect($profile->is_profile_completed)->toBeTrue();
     expect($profile->user->name)->toBe('Nama Baru');
     expect($profile->user->whatsapp_number)->toBe('6281211112222');
@@ -539,10 +535,7 @@ test('administrator alumni update validates unique identifiers', function () {
         ]);
 });
 
-test('administrator alumni update rejects city outside selected country', function () {
-    $indonesia = Country::factory()->create(['name' => 'Indonesia', 'code' => 'ID']);
-    $malaysia = Country::factory()->create(['name' => 'Malaysia', 'code' => 'MY']);
-    $kualaLumpur = City::factory()->create(['country_id' => $malaysia->id, 'name' => 'Kuala Lumpur']);
+test('administrator alumni update requires a city suggestion when location text is entered', function () {
     $administratorRole = Role::factory()->create([
         'name' => 'administrator',
         'description' => 'Administrator sistem',
@@ -550,22 +543,26 @@ test('administrator alumni update rejects city outside selected country', functi
 
     $administrator = User::factory()->create(['role_id' => $administratorRole->id]);
     $profile = Alumni::factory()->create([
-        'current_country_id' => null,
-        'current_city_id' => null,
+        'country' => null,
+        'city' => null,
+        'latitude' => null,
+        'longitude' => null,
     ]);
 
     $this->actingAs($administrator);
 
     Livewire::test('pages::admin.alumni.show', ['alumni' => $profile])
-        ->set('current_country_id', $indonesia->id)
-        ->set('current_city_id', $kualaLumpur->id)
+        ->set('location_search', 'Kuala Lumpur')
         ->call('updateAlumni')
         ->assertHasErrors([
-            'current_city_id' => 'exists',
+            'city' => 'required_with',
+            'country' => 'required_with',
+            'latitude' => 'required_with',
+            'longitude' => 'required_with',
         ]);
 
     $profile->refresh();
 
-    expect($profile->current_country_id)->toBeNull();
-    expect($profile->current_city_id)->toBeNull();
+    expect($profile->country)->toBeNull();
+    expect($profile->city)->toBeNull();
 });

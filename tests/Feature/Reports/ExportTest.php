@@ -2,8 +2,6 @@
 
 use App\Models\Alumni;
 use App\Models\AlumniRsvpGuest;
-use App\Models\City;
-use App\Models\Country;
 use App\Models\Donation;
 use App\Models\Payment;
 use App\Models\Role;
@@ -44,18 +42,13 @@ test('administrator users can export alumni report', function () {
         'description' => 'Administrator sistem',
     ]);
     $administrator = User::factory()->create(['role_id' => $administratorRole->id]);
-    $country = Country::factory()->create(['name' => 'Indonesia']);
-    $city = City::factory()->create([
-        'country_id' => $country->id,
-        'name' => 'Yogyakarta',
-    ]);
     $profile = Alumni::factory()->create([
         'full_name' => 'Ade Chandra',
         'student_number' => 'D096001',
         'nickname' => 'Ade',
         'email' => 'ade@example.test',
-        'current_city_id' => $city->id,
-        'current_country_id' => $country->id,
+        'city' => 'Yogyakarta',
+        'country' => 'Indonesia',
         'company' => 'Geo Nusantara',
         'job_title' => 'Survey Manager',
         'rsvp_status' => 'attending',

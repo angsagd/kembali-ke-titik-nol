@@ -11,7 +11,7 @@ new #[Title('Profil Alumni')] class extends Component {
 
     public function mount(Alumni $alumni): void
     {
-        $this->alumni = $alumni->load(['currentCity', 'currentCountry', 'user']);
+        $this->alumni = $alumni->load('user');
     }
 
     #[Computed]
@@ -19,7 +19,6 @@ new #[Title('Profil Alumni')] class extends Component {
     {
         return $this->alumni
             ->timelines()
-            ->with(['city', 'country'])
             ->get();
     }
 
@@ -106,7 +105,7 @@ new #[Title('Profil Alumni')] class extends Component {
                                 {{ $timeline->month ? $this->monthName($timeline->month).' ' : '' }}{{ $timeline->year }}
                             </div>
                             <div class="text-sm text-zinc-600 dark:text-zinc-300">
-                                {{ collect([$timeline->city?->name, $timeline->country?->name])->filter()->join(', ') ?: __('Lokasi belum diisi') }}
+                                {{ collect([$timeline->city, $timeline->country])->filter()->join(', ') ?: __('Lokasi belum diisi') }}
                             </div>
 
                             @if ($timeline->notes)
@@ -153,11 +152,11 @@ new #[Title('Profil Alumni')] class extends Component {
                     </div>
                     <div>
                         <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Kota domisili') }}</dt>
-                        <dd class="font-medium">{{ $alumni->currentCity?->name ?: '-' }}</dd>
+                        <dd class="font-medium">{{ $alumni->city ?: '-' }}</dd>
                     </div>
                     <div>
                         <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Negara domisili') }}</dt>
-                        <dd class="font-medium">{{ $alumni->currentCountry?->name ?: '-' }}</dd>
+                        <dd class="font-medium">{{ $alumni->country ?: '-' }}</dd>
                     </div>
                 </dl>
             </div>

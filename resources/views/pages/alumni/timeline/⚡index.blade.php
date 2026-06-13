@@ -2,12 +2,9 @@
 
 use App\Models\Alumni;
 use App\Models\AlumniTimeline;
-use App\Models\City;
-use App\Models\Country;
 use Flux\Flux;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -21,39 +18,23 @@ new #[Title('Timeline Lokasi')] class extends Component {
 
     public int|string|null $year = null;
 
-    public ?int $country_id = null;
+    public ?string $city = null;
 
-    public ?int $city_id = null;
+    public ?string $country = null;
+
+    public float|string|null $latitude = null;
+
+    public float|string|null $longitude = null;
+
+    public string $location_search = '';
 
     public ?string $notes = null;
 
     public function mount(): void
     {
         $this->alumni = Auth::user()->alumni()
-            ->with(['timelines.city.country', 'timelines.country'])
+            ->with('timelines')
             ->firstOrFail();
-    }
-
-    public function updatedCountryId(): void
-    {
-        $this->city_id = null;
-    }
-
-    #[Computed]
-    public function countries(): Collection
-    {
-        return Country::query()
-            ->orderBy('name')
-            ->get(['id', 'name']);
-    }
-
-    #[Computed]
-    public function cities(): Collection
-    {
-        return City::query()
-            ->when($this->country_id, fn ($query) => $query->where('country_id', $this->country_id))
-            ->orderBy('name')
-            ->get(['id', 'name']);
     }
 
     #[Computed]
@@ -61,7 +42,6 @@ new #[Title('Timeline Lokasi')] class extends Component {
     {
         return $this->alumni
             ->timelines()
-            ->with(['city.country', 'country'])
             ->get();
     }
 
@@ -70,12 +50,11 @@ new #[Title('Timeline Lokasi')] class extends Component {
         $validated = $this->validate([
             'month' => ['nullable', 'integer', 'between:1,12'],
             'year' => ['required', 'integer', 'between:1996,2100'],
-            'country_id' => ['nullable', Rule::exists(Country::class, 'id')],
-            'city_id' => [
-                'nullable',
-                Rule::exists(City::class, 'id')
-                    ->where(fn ($query) => $query->where('country_id', $this->country_id ?? 0)),
-            ],
+            'location_search' => ['nullable', 'string', 'max:300'],
+            'city' => ['nullable', 'required_with:location_search', 'string', 'max:120'],
+            'country' => ['nullable', 'required_with:location_search', 'string', 'max:100'],
+            'latitude' => ['nullable', 'required_with:location_search', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'required_with:location_search', 'numeric', 'between:-180,180'],
             'notes' => ['nullable', 'string', 'max:255'],
         ]);
 
@@ -83,18 +62,15 @@ new #[Title('Timeline Lokasi')] class extends Component {
             ? new AlumniTimeline(['alumni_id' => $this->alumni->id])
             : $this->alumni->timelines()->whereKey($this->editing_timeline_id)->firstOrFail();
 
-        $city = filled($validated['city_id'] ?? null)
-            ? City::query()->find($validated['city_id'])
-            : null;
-        $country = filled($validated['country_id'] ?? null)
-            ? Country::query()->find($validated['country_id'])
-            : null;
-
         $timeline->fill([
-            ...$validated,
-            'latitude' => $city?->latitude ?? $country?->latitude,
-            'longitude' => $city?->longitude ?? $country?->longitude,
+            'month' => $validated['month'],
+            'year' => $validated['year'],
+            'city' => $validated['city'],
+            'country' => $validated['country'],
+            'latitude' => $validated['latitude'],
+            'longitude' => $validated['longitude'],
             'location_source' => 'geocoded',
+            'notes' => $validated['notes'],
         ])->save();
 
         $this->resetForm();
@@ -110,8 +86,11 @@ new #[Title('Timeline Lokasi')] class extends Component {
         $this->editing_timeline_id = $timeline->id;
         $this->month = $timeline->month;
         $this->year = $timeline->year;
-        $this->country_id = $timeline->country_id;
-        $this->city_id = $timeline->city_id;
+        $this->city = $timeline->city;
+        $this->country = $timeline->country;
+        $this->latitude = $timeline->latitude;
+        $this->longitude = $timeline->longitude;
+        $this->location_search = collect([$timeline->city, $timeline->country])->filter()->join(', ');
         $this->notes = $timeline->notes;
     }
 
@@ -156,8 +135,11 @@ new #[Title('Timeline Lokasi')] class extends Component {
             'editing_timeline_id',
             'month',
             'year',
-            'country_id',
-            'city_id',
+            'city',
+            'country',
+            'latitude',
+            'longitude',
+            'location_search',
             'notes',
         ]);
     }
@@ -182,7 +164,7 @@ new #[Title('Timeline Lokasi')] class extends Component {
             <flux:heading size="lg">
                 {{ $editing_timeline_id ? __('Ubah Lokasi') : __('Tambah Lokasi') }}
             </flux:heading>
-            <flux:text class="mt-2">{{ __('Minimal isi tahun. Kota dan negara bisa dilengkapi jika sudah tersedia di master lokasi.') }}</flux:text>
+            <flux:text class="mt-2">{{ __('Minimal isi tahun. Untuk menyimpan lokasi, pilih kota dari hasil pencarian.') }}</flux:text>
 
             <div class="mt-5 grid gap-5">
                 <flux:input wire:model="year" :label="__('Tahun')" type="number" min="1996" max="2100" required />
@@ -196,19 +178,16 @@ new #[Title('Timeline Lokasi')] class extends Component {
                     @endforeach
                 </flux:select>
 
-                <flux:select wire:model.live="country_id" :label="__('Negara')">
-                    <flux:select.option value="">{{ __('Belum diisi') }}</flux:select.option>
-                    @foreach ($this->countries as $country)
-                        <flux:select.option :value="$country->id">{{ $country->name }}</flux:select.option>
-                    @endforeach
-                </flux:select>
-
-                <flux:select wire:model="city_id" :label="__('Kota')" wire:key="timeline-city-{{ $country_id ?: 'none' }}">
-                    <flux:select.option value="">{{ __('Belum diisi') }}</flux:select.option>
-                    @foreach ($this->cities as $city)
-                        <flux:select.option :value="$city->id">{{ $city->name }}</flux:select.option>
-                    @endforeach
-                </flux:select>
+                <x-city-autocomplete
+                    city-model="city"
+                    country-model="country"
+                    latitude-model="latitude"
+                    longitude-model="longitude"
+                    search-model="location_search"
+                    :city="$city"
+                    :country="$country"
+                    :label="__('Kota')"
+                />
 
                 <flux:input wire:model="notes" :label="__('Catatan')" :placeholder="__('Kuliah, kerja pertama, pindah rumah, dll.')" />
             </div>
@@ -244,7 +223,7 @@ new #[Title('Timeline Lokasi')] class extends Component {
                                     {{ $timeline->month ? $this->monthName($timeline->month).' ' : '' }}{{ $timeline->year }}
                                 </div>
                                 <div class="text-sm text-zinc-600 dark:text-zinc-300">
-                                    {{ collect([$timeline->city?->name, $timeline->country?->name])->filter()->join(', ') ?: __('Lokasi belum diisi') }}
+                                    {{ collect([$timeline->city, $timeline->country])->filter()->join(', ') ?: __('Lokasi belum diisi') }}
                                 </div>
                                 @if ($timeline->latitude !== null && $timeline->longitude !== null)
                                     <div class="text-xs text-zinc-500 dark:text-zinc-400">

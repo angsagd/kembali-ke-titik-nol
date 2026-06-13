@@ -2,8 +2,6 @@
 
 use App\Models\Alumni;
 use App\Models\AlumniTimeline;
-use App\Models\City;
-use App\Models\Country;
 use App\Models\Role;
 use App\Models\User;
 
@@ -27,16 +25,14 @@ test('users without alumni profile cannot access alumni directory', function () 
 
 test('alumni users can browse and search private directory', function () {
     $viewer = Alumni::factory()->create();
-    $country = Country::factory()->create(['name' => 'Indonesia', 'code' => 'ID']);
-    $city = City::factory()->create(['country_id' => $country->id, 'name' => 'Makassar']);
 
     Alumni::factory()->create([
         'full_name' => 'Ade Chandra',
         'nickname' => 'Ade',
         'company' => 'PT Titik Nol',
         'job_title' => 'Surveyor',
-        'current_country_id' => $country->id,
-        'current_city_id' => $city->id,
+        'country' => 'Indonesia',
+        'city' => 'Makassar',
     ]);
 
     Alumni::factory()->create([
@@ -56,15 +52,13 @@ test('alumni users can browse and search private directory', function () {
 
 test('alumni users can read another alumni profile', function () {
     $viewer = Alumni::factory()->create();
-    $country = Country::factory()->create(['name' => 'Indonesia', 'code' => 'ID']);
-    $city = City::factory()->create(['country_id' => $country->id, 'name' => 'Yogyakarta']);
     $profile = Alumni::factory()->create([
         'full_name' => 'Citra Lestari',
         'nickname' => 'Citra',
         'student_number' => 'D096333',
         'company' => 'Pemetaan Mandiri',
-        'current_country_id' => $country->id,
-        'current_city_id' => $city->id,
+        'country' => 'Indonesia',
+        'city' => 'Yogyakarta',
         'short_story' => 'Sekarang mengelola proyek pemetaan.',
         'memorable_story' => 'Kenangan praktikum lapangan.',
         'message_to_friends' => 'Sampai jumpa di reuni.',
@@ -73,8 +67,8 @@ test('alumni users can read another alumni profile', function () {
         'alumni_id' => $profile->id,
         'year' => 2001,
         'month' => null,
-        'country_id' => $country->id,
-        'city_id' => $city->id,
+        'country' => 'Indonesia',
+        'city' => 'Yogyakarta',
         'notes' => 'Mulai bekerja di Yogyakarta.',
     ]);
 

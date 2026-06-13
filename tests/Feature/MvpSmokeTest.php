@@ -1,8 +1,6 @@
 <?php
 
 use App\Models\Alumni;
-use App\Models\City;
-use App\Models\Country;
 use App\Models\MediaItem;
 use App\Models\Role;
 use App\Models\Room;
@@ -19,11 +17,6 @@ test('mvp alumni journey works from login through profile rsvp room finance and 
     $alumniRole = Role::factory()->create(['name' => 'alumni']);
     $administratorRole = Role::factory()->create(['name' => 'administrator']);
     $bendaharaRole = Role::factory()->create(['name' => 'bendahara']);
-    $country = Country::factory()->create(['name' => 'Indonesia']);
-    $city = City::factory()->create([
-        'country_id' => $country->id,
-        'name' => 'Yogyakarta',
-    ]);
     $user = User::factory()->create([
         'role_id' => $alumniRole->id,
         'name' => 'Ade Chandra',
@@ -51,8 +44,11 @@ test('mvp alumni journey works from login through profile rsvp room finance and 
         ->set('email', 'ade@example.test')
         ->set('company', 'Geo Nusantara')
         ->set('job_title', 'Survey Manager')
-        ->set('current_country_id', $country->id)
-        ->set('current_city_id', $city->id)
+        ->set('location_search', 'Yogyakarta, DI Yogyakarta, Indonesia')
+        ->set('country', 'Indonesia')
+        ->set('city', 'Yogyakarta')
+        ->set('latitude', -7.80139)
+        ->set('longitude', 110.36472)
         ->set('short_story', 'Kembali menyapa teman-teman lama.')
         ->set('message_to_friends', 'Sampai jumpa di reuni.')
         ->call('updateProfile')

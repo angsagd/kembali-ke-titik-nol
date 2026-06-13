@@ -3,8 +3,6 @@
 use App\Concerns\PasswordValidationRules;
 use App\Models\Alumni;
 use App\Models\AuditLog;
-use App\Models\City;
-use App\Models\Country;
 use App\Models\Role;
 use App\Models\User;
 use Flux\Flux;
@@ -46,9 +44,15 @@ new #[Title('Detail Alumni')] class extends Component {
 
     public ?string $job_title = null;
 
-    public ?int $current_country_id = null;
+    public ?string $city = null;
 
-    public ?int $current_city_id = null;
+    public ?string $country = null;
+
+    public float|string|null $latitude = null;
+
+    public float|string|null $longitude = null;
+
+    public string $location_search = '';
 
     public ?string $special_notes = null;
 
@@ -77,33 +81,14 @@ new #[Title('Detail Alumni')] class extends Component {
         $this->rsvp_status = $this->alumni->rsvp_status;
         $this->company = $this->alumni->company;
         $this->job_title = $this->alumni->job_title;
-        $this->current_country_id = $this->alumni->current_country_id;
-        $this->current_city_id = $this->alumni->current_city_id;
+        $this->city = $this->alumni->city;
+        $this->country = $this->alumni->country;
+        $this->latitude = $this->alumni->latitude;
+        $this->longitude = $this->alumni->longitude;
+        $this->location_search = collect([$this->city, $this->country])->filter()->join(', ');
         $this->special_notes = $this->alumni->special_notes;
         $this->is_profile_completed = $this->alumni->is_profile_completed;
         $this->role_id = $this->alumni->user?->role_id;
-    }
-
-    public function updatedCurrentCountryId(): void
-    {
-        $this->current_city_id = null;
-    }
-
-    #[Computed]
-    public function countries(): Collection
-    {
-        return Country::query()
-            ->orderBy('name')
-            ->get(['id', 'name']);
-    }
-
-    #[Computed]
-    public function cities(): Collection
-    {
-        return City::query()
-            ->when($this->current_country_id, fn ($query) => $query->where('country_id', $this->current_country_id))
-            ->orderBy('name')
-            ->get(['id', 'name']);
     }
 
     #[Computed]
@@ -120,7 +105,6 @@ new #[Title('Detail Alumni')] class extends Component {
     {
         return $this->alumni
             ->timelines()
-            ->with(['city', 'country'])
             ->get();
     }
 
@@ -179,12 +163,11 @@ new #[Title('Detail Alumni')] class extends Component {
             'rsvp_status' => ['required', Rule::in(['pending', 'attending', 'not_attending'])],
             'company' => ['nullable', 'string', 'max:150'],
             'job_title' => ['nullable', 'string', 'max:150'],
-            'current_country_id' => ['nullable', Rule::exists(Country::class, 'id')],
-            'current_city_id' => [
-                'nullable',
-                Rule::exists(City::class, 'id')
-                    ->where(fn ($query) => $query->where('country_id', $this->current_country_id ?? 0)),
-            ],
+            'location_search' => ['nullable', 'string', 'max:300'],
+            'city' => ['nullable', 'required_with:location_search', 'string', 'max:120'],
+            'country' => ['nullable', 'required_with:location_search', 'string', 'max:100'],
+            'latitude' => ['nullable', 'required_with:location_search', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'required_with:location_search', 'numeric', 'between:-180,180'],
             'special_notes' => ['nullable', 'string', 'max:5000'],
             'is_profile_completed' => ['boolean'],
         ]);
@@ -199,8 +182,10 @@ new #[Title('Detail Alumni')] class extends Component {
                 'rsvp_status' => $validated['rsvp_status'],
                 'company' => $validated['company'],
                 'job_title' => $validated['job_title'],
-                'current_country_id' => $validated['current_country_id'],
-                'current_city_id' => $validated['current_city_id'],
+                'city' => $validated['city'],
+                'country' => $validated['country'],
+                'latitude' => $validated['latitude'],
+                'longitude' => $validated['longitude'],
                 'special_notes' => $validated['special_notes'],
                 'is_profile_completed' => $validated['is_profile_completed'],
             ]);
@@ -460,19 +445,15 @@ new #[Title('Detail Alumni')] class extends Component {
                     <flux:input wire:model="company" :label="__('Instansi / Perusahaan')" />
                     <flux:input wire:model="job_title" :label="__('Jabatan / Pekerjaan')" />
 
-                    <flux:select wire:model.live="current_country_id" :label="__('Negara domisili')">
-                        <flux:select.option value="">{{ __('Belum diisi') }}</flux:select.option>
-                        @foreach ($this->countries as $country)
-                            <flux:select.option :value="$country->id">{{ $country->name }}</flux:select.option>
-                        @endforeach
-                    </flux:select>
-
-                    <flux:select wire:model="current_city_id" :label="__('Kota domisili')" wire:key="admin-city-{{ $current_country_id ?: 'none' }}">
-                        <flux:select.option value="">{{ __('Belum diisi') }}</flux:select.option>
-                        @foreach ($this->cities as $city)
-                            <flux:select.option :value="$city->id">{{ $city->name }}</flux:select.option>
-                        @endforeach
-                    </flux:select>
+                    <x-city-autocomplete
+                        city-model="city"
+                        country-model="country"
+                        latitude-model="latitude"
+                        longitude-model="longitude"
+                        search-model="location_search"
+                        :city="$city"
+                        :country="$country"
+                    />
 
                     <flux:select wire:model="alumni_status" :label="__('Status alumni')">
                         <flux:select.option value="active">{{ __('Aktif') }}</flux:select.option>
@@ -527,11 +508,11 @@ new #[Title('Detail Alumni')] class extends Component {
                     </div>
                     <div>
                         <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Kota domisili') }}</dt>
-                        <dd class="font-medium">{{ $alumni->currentCity?->name ?: '-' }}</dd>
+                        <dd class="font-medium">{{ $alumni->city ?: '-' }}</dd>
                     </div>
                     <div>
                         <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Negara domisili') }}</dt>
-                        <dd class="font-medium">{{ $alumni->currentCountry?->name ?: '-' }}</dd>
+                        <dd class="font-medium">{{ $alumni->country ?: '-' }}</dd>
                     </div>
                 </dl>
             </div>
@@ -574,7 +555,7 @@ new #[Title('Detail Alumni')] class extends Component {
                                         {{ $timeline->month ? $this->monthName($timeline->month).' ' : '' }}{{ $timeline->year }}
                                     </div>
                                     <div class="text-sm text-zinc-600 dark:text-zinc-300">
-                                        {{ collect([$timeline->city?->name, $timeline->country?->name])->filter()->join(', ') ?: __('Lokasi belum diisi') }}
+                                        {{ collect([$timeline->city, $timeline->country])->filter()->join(', ') ?: __('Lokasi belum diisi') }}
                                     </div>
                                 </div>
 

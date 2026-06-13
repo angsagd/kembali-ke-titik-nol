@@ -1,20 +1,10 @@
 <?php
 
-use App\Models\City;
-use App\Models\Country;
-use Database\Seeders\LocationSeeder;
+use Illuminate\Support\Facades\Schema;
 
-test('location seeder creates countries and cities for alumni profiles', function () {
-    $this->seed(LocationSeeder::class);
-
-    $indonesia = Country::query()->where('name', 'Indonesia')->firstOrFail();
-    $yogyakarta = City::query()
-        ->where('country_id', $indonesia->id)
-        ->where('name', 'Yogyakarta')
-        ->firstOrFail();
-
-    expect($indonesia->code)->toBe('ID');
-    expect($indonesia->latitude)->not->toBeNull();
-    expect($indonesia->longitude)->not->toBeNull();
-    expect($yogyakarta->country->is($indonesia))->toBeTrue();
+test('location snapshots are stored without local country and city masters', function () {
+    expect(Schema::hasTable('countries'))->toBeFalse()
+        ->and(Schema::hasTable('cities'))->toBeFalse()
+        ->and(Schema::hasColumns('alumni', ['city', 'country', 'latitude', 'longitude']))->toBeTrue()
+        ->and(Schema::hasColumns('alumni_timelines', ['city', 'country', 'latitude', 'longitude']))->toBeTrue();
 });

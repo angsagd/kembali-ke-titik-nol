@@ -2,16 +2,12 @@
 
 use App\Models\Alumni;
 use App\Models\ApplicationSetting;
-use App\Models\City;
-use App\Models\Country;
 use App\Models\User;
 use Flux\Flux;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator as ValidatorFacade;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
-use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -49,9 +45,15 @@ new #[Layout('layouts::public')]
 
     public ?string $job_title = null;
 
-    public ?int $current_country_id = null;
+    public ?string $city = null;
 
-    public ?int $current_city_id = null;
+    public ?string $country = null;
+
+    public float|string|null $latitude = null;
+
+    public float|string|null $longitude = null;
+
+    public string $location_search = '';
 
     public ?string $short_story = null;
 
@@ -90,11 +92,6 @@ new #[Layout('layouts::public')]
         $this->fillForm();
     }
 
-    public function updatedCurrentCountryId(): void
-    {
-        $this->current_city_id = null;
-    }
-
     public function updatedRsvpStatus(): void
     {
         if ($this->rsvp_status !== 'attending') {
@@ -127,23 +124,6 @@ new #[Layout('layouts::public')]
         }
 
         $this->syncFamilyMembers();
-    }
-
-    #[Computed]
-    public function countries(): Collection
-    {
-        return Country::query()
-            ->orderBy('name')
-            ->get(['id', 'name']);
-    }
-
-    #[Computed]
-    public function cities(): Collection
-    {
-        return City::query()
-            ->when($this->current_country_id, fn ($query) => $query->where('country_id', $this->current_country_id))
-            ->orderBy('name')
-            ->get(['id', 'name']);
     }
 
     public function save(): void
@@ -190,12 +170,11 @@ new #[Layout('layouts::public')]
             'family_members.*.shirt_type' => ['nullable', Rule::in(['child', 'male', 'female'])],
             'company' => ['nullable', 'string', 'max:150'],
             'job_title' => ['nullable', 'string', 'max:150'],
-            'current_country_id' => ['nullable', Rule::exists(Country::class, 'id')],
-            'current_city_id' => [
-                'nullable',
-                Rule::exists(City::class, 'id')
-                    ->where(fn ($query) => $query->where('country_id', $this->current_country_id ?? 0)),
-            ],
+            'location_search' => ['nullable', 'string', 'max:300'],
+            'city' => ['nullable', 'required_with:location_search', 'string', 'max:120'],
+            'country' => ['nullable', 'required_with:location_search', 'string', 'max:100'],
+            'latitude' => ['nullable', 'required_with:location_search', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'required_with:location_search', 'numeric', 'between:-180,180'],
             'short_story' => ['nullable', 'string', 'max:5000'],
             'memorable_story' => ['nullable', 'string', 'max:5000'],
             'message_to_friends' => ['nullable', 'string', 'max:5000'],
@@ -223,8 +202,10 @@ new #[Layout('layouts::public')]
                 'shirt_type' => $validated['shirt_type'],
                 'company' => $validated['company'],
                 'job_title' => $validated['job_title'],
-                'current_country_id' => $validated['current_country_id'],
-                'current_city_id' => $validated['current_city_id'],
+                'city' => $validated['city'],
+                'country' => $validated['country'],
+                'latitude' => $validated['latitude'],
+                'longitude' => $validated['longitude'],
                 'short_story' => $validated['short_story'],
                 'memorable_story' => $validated['memorable_story'],
                 'message_to_friends' => $validated['message_to_friends'],
@@ -286,8 +267,11 @@ new #[Layout('layouts::public')]
 
         $this->company = $this->alumni->company;
         $this->job_title = $this->alumni->job_title;
-        $this->current_country_id = $this->alumni->current_country_id;
-        $this->current_city_id = $this->alumni->current_city_id;
+        $this->city = $this->alumni->city;
+        $this->country = $this->alumni->country;
+        $this->latitude = $this->alumni->latitude;
+        $this->longitude = $this->alumni->longitude;
+        $this->location_search = collect([$this->city, $this->country])->filter()->join(', ');
         $this->short_story = $this->alumni->short_story;
         $this->memorable_story = $this->alumni->memorable_story;
         $this->message_to_friends = $this->alumni->message_to_friends;
@@ -307,8 +291,11 @@ new #[Layout('layouts::public')]
             'shirt_type',
             'company',
             'job_title',
-            'current_country_id',
-            'current_city_id',
+            'city',
+            'country',
+            'latitude',
+            'longitude',
+            'location_search',
             'short_story',
             'memorable_story',
             'message_to_friends',
@@ -429,8 +416,11 @@ new #[Layout('layouts::public')]
                 ->all(),
             'company' => $this->company,
             'job_title' => $this->job_title,
-            'current_country_id' => $this->current_country_id,
-            'current_city_id' => $this->current_city_id,
+            'location_search' => $this->location_search,
+            'city' => $this->city,
+            'country' => $this->country,
+            'latitude' => $this->latitude,
+            'longitude' => $this->longitude,
             'short_story' => $this->short_story,
             'memorable_story' => $this->memorable_story,
             'message_to_friends' => $this->message_to_friends,
@@ -450,6 +440,10 @@ new #[Layout('layouts::public')]
             'shirt_type' => __('jenis kaos alumni'),
             'family_members.*.shirt_size' => __('ukuran kaos keluarga'),
             'family_members.*.shirt_type' => __('jenis kaos keluarga'),
+            'city' => __('kota domisili'),
+            'country' => __('negara domisili'),
+            'latitude' => __('koordinat latitude'),
+            'longitude' => __('koordinat longitude'),
         ];
     }
 }; ?>
@@ -510,19 +504,15 @@ new #[Layout('layouts::public')]
                                 <flux:input wire:model="company" :label="__('Instansi / Perusahaan')" />
                                 <flux:input wire:model="job_title" :label="__('Jabatan / Pekerjaan')" />
 
-                                <flux:select wire:model.live="current_country_id" :label="__('Negara domisili')">
-                                    <flux:select.option value="">{{ __('Belum diisi') }}</flux:select.option>
-                                    @foreach ($this->countries as $country)
-                                        <flux:select.option :value="$country->id">{{ $country->name }}</flux:select.option>
-                                    @endforeach
-                                </flux:select>
-
-                                <flux:select wire:model="current_city_id" :label="__('Kota domisili')" wire:key="public-rsvp-city-{{ $current_country_id ?: 'none' }}">
-                                    <flux:select.option value="">{{ __('Belum diisi') }}</flux:select.option>
-                                    @foreach ($this->cities as $city)
-                                        <flux:select.option :value="$city->id">{{ $city->name }}</flux:select.option>
-                                    @endforeach
-                                </flux:select>
+                                <x-city-autocomplete
+                                    city-model="city"
+                                    country-model="country"
+                                    latitude-model="latitude"
+                                    longitude-model="longitude"
+                                    search-model="location_search"
+                                    :city="$city"
+                                    :country="$country"
+                                />
 
                                 <flux:select wire:model.live="rsvp_status" :label="__('Status RSVP')">
                                     <flux:select.option value="pending">{{ __('Belum memastikan') }}</flux:select.option>

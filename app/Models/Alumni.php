@@ -18,8 +18,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'full_name',
     'nickname',
     'email',
-    'current_city_id',
-    'current_country_id',
+    'city',
+    'country',
+    'latitude',
+    'longitude',
     'company',
     'job_title',
     'alumni_status',
@@ -53,6 +55,8 @@ class Alumni extends Model
         return [
             'is_profile_completed' => 'boolean',
             'family_members_count' => 'integer',
+            'latitude' => 'decimal:7',
+            'longitude' => 'decimal:7',
         ];
     }
 
@@ -64,26 +68,6 @@ class Alumni extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    /**
-     * Get the current city of the alumni profile.
-     *
-     * @return BelongsTo<City, $this>
-     */
-    public function currentCity(): BelongsTo
-    {
-        return $this->belongsTo(City::class, 'current_city_id');
-    }
-
-    /**
-     * Get the current country of the alumni profile.
-     *
-     * @return BelongsTo<Country, $this>
-     */
-    public function currentCountry(): BelongsTo
-    {
-        return $this->belongsTo(Country::class, 'current_country_id');
     }
 
     /**

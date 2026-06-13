@@ -33,7 +33,7 @@ new #[Title('Direktori Alumni')] class extends Component {
         $search = trim($this->search);
 
         return Alumni::query()
-            ->with(['currentCity', 'currentCountry', 'user'])
+            ->with('user')
             ->when($search !== '', function ($query) use ($search): void {
                 $query->where(function ($query) use ($search): void {
                     $query
@@ -43,12 +43,8 @@ new #[Title('Direktori Alumni')] class extends Component {
                         ->orWhere('email', 'like', "%{$search}%")
                         ->orWhere('company', 'like', "%{$search}%")
                         ->orWhere('job_title', 'like', "%{$search}%")
-                        ->orWhereHas('currentCity', function ($query) use ($search): void {
-                            $query->where('name', 'like', "%{$search}%");
-                        })
-                        ->orWhereHas('currentCountry', function ($query) use ($search): void {
-                            $query->where('name', 'like', "%{$search}%");
-                        })
+                        ->orWhere('city', 'like', "%{$search}%")
+                        ->orWhere('country', 'like', "%{$search}%")
                         ->orWhereHas('user', function ($query) use ($search): void {
                             $query->where('whatsapp_number', 'like', "%{$search}%");
                         });
@@ -115,7 +111,7 @@ new #[Title('Direktori Alumni')] class extends Component {
                     <div>
                         <dt class="text-zinc-500 dark:text-zinc-400">{{ __('Domisili') }}</dt>
                         <dd class="font-medium">
-                            {{ collect([$profile->currentCity?->name, $profile->currentCountry?->name])->filter()->join(', ') ?: '-' }}
+                            {{ collect([$profile->city, $profile->country])->filter()->join(', ') ?: '-' }}
                         </dd>
                     </div>
                     <div>

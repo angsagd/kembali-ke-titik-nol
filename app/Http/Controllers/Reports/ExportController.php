@@ -33,7 +33,7 @@ class ExportController extends Controller
             'Terakhir Diperbarui',
         ], function (): void {
             Alumni::query()
-                ->with(['user', 'currentCity', 'currentCountry', 'payment', 'donation', 'roomAssignment.room'])
+                ->with(['user', 'payment', 'donation', 'roomAssignment.room'])
                 ->orderBy('full_name')
                 ->lazy()
                 ->each(function (Alumni $alumni): void {
@@ -43,8 +43,8 @@ class ExportController extends Controller
                         $alumni->nickname,
                         $alumni->user?->whatsapp_number,
                         $alumni->email,
-                        $alumni->currentCity?->name,
-                        $alumni->currentCountry?->name,
+                        $alumni->city,
+                        $alumni->country,
                         $alumni->company,
                         $alumni->job_title,
                         $this->alumniStatusLabel($alumni->alumni_status),

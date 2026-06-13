@@ -1,9 +1,8 @@
 <?php
 
 use App\Models\Alumni;
-use App\Models\City;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -21,7 +20,7 @@ new #[Title('Buku Kenangan')] class extends Component {
     public string $status = 'all';
 
     #[Url(as: 'city')]
-    public int|string|null $cityId = null;
+    public ?string $city = null;
 
     #[Url]
     public string $section = 'all';
@@ -36,7 +35,7 @@ new #[Title('Buku Kenangan')] class extends Component {
         $this->resetPage();
     }
 
-    public function updatedCityId(): void
+    public function updatedCity(): void
     {
         $this->resetPage();
     }
@@ -56,7 +55,6 @@ new #[Title('Buku Kenangan')] class extends Component {
         $search = trim($this->search);
 
         return Alumni::query()
-            ->with(['currentCity', 'currentCountry'])
             ->withCount(['uploadedMediaItems', 'taggedMediaItems'])
             ->when($search !== '', function ($query) use ($search): void {
                 $query->where(function ($query) use ($search): void {
@@ -65,6 +63,8 @@ new #[Title('Buku Kenangan')] class extends Component {
                         ->orWhere('nickname', 'like', "%{$search}%")
                         ->orWhere('company', 'like', "%{$search}%")
                         ->orWhere('job_title', 'like', "%{$search}%")
+                        ->orWhere('city', 'like', "%{$search}%")
+                        ->orWhere('country', 'like', "%{$search}%")
                         ->orWhere('short_story', 'like', "%{$search}%")
                         ->orWhere('memorable_story', 'like', "%{$search}%")
                         ->orWhere('message_to_friends', 'like', "%{$search}%");
@@ -73,8 +73,8 @@ new #[Title('Buku Kenangan')] class extends Component {
             ->when(in_array($this->status, ['active', 'deceased'], true), function ($query): void {
                 $query->where('alumni_status', $this->status);
             })
-            ->when(filled($this->cityId), function ($query): void {
-                $query->where('current_city_id', $this->cityId);
+            ->when(filled($this->city), function ($query): void {
+                $query->where('city', $this->city);
             })
             ->when($this->section === 'story', function ($query): void {
                 $query->whereNotNull('short_story')->where('short_story', '!=', '');
@@ -95,10 +95,12 @@ new #[Title('Buku Kenangan')] class extends Component {
     #[Computed]
     public function cities(): Collection
     {
-        return City::query()
-            ->whereHas('alumni')
-            ->orderBy('name')
-            ->get(['id', 'name']);
+        return Alumni::query()
+            ->whereNotNull('city')
+            ->where('city', '!=', '')
+            ->distinct()
+            ->orderBy('city')
+            ->pluck('city');
     }
 
     public function profilePhotoUrl(Alumni $alumni): ?string
@@ -148,10 +150,10 @@ new #[Title('Buku Kenangan')] class extends Component {
                 :placeholder="__('Nama, cerita, perusahaan')"
             />
 
-            <flux:select wire:model.live="cityId" :label="__('Kota')">
+            <flux:select wire:model.live="city" :label="__('Kota')">
                 <flux:select.option value="">{{ __('Semua kota') }}</flux:select.option>
                 @foreach ($this->cities as $city)
-                    <flux:select.option :value="$city->id">{{ $city->name }}</flux:select.option>
+                    <flux:select.option :value="$city">{{ $city }}</flux:select.option>
                 @endforeach
             </flux:select>
 
@@ -207,7 +209,7 @@ new #[Title('Buku Kenangan')] class extends Component {
                     <div>
                         <flux:heading size="lg">{{ $profile->full_name }}</flux:heading>
                         <flux:text>
-                            {{ collect([$profile->nickname, $profile->currentCity?->name, $profile->currentCountry?->name])->filter()->join(' / ') ?: __('Profil alumni Geodesi 96') }}
+                            {{ collect([$profile->nickname, $profile->city, $profile->country])->filter()->join(' / ') ?: __('Profil alumni Geodesi 96') }}
                         </flux:text>
                     </div>
 

@@ -16,7 +16,6 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             RoleSeeder::class,
-            LocationSeeder::class,
             SuperadminSeeder::class,
             AlumniContactSeeder::class,
             EventScheduleItemSeeder::class,

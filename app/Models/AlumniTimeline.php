@@ -13,8 +13,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'alumni_id',
     'month',
     'year',
-    'city_id',
-    'country_id',
+    'city',
+    'country',
     'latitude',
     'longitude',
     'location_source',
@@ -48,25 +48,5 @@ class AlumniTimeline extends Model
     public function alumni(): BelongsTo
     {
         return $this->belongsTo(Alumni::class);
-    }
-
-    /**
-     * Get the city for this timeline entry.
-     *
-     * @return BelongsTo<City, $this>
-     */
-    public function city(): BelongsTo
-    {
-        return $this->belongsTo(City::class);
-    }
-
-    /**
-     * Get the country for this timeline entry.
-     *
-     * @return BelongsTo<Country, $this>
-     */
-    public function country(): BelongsTo
-    {
-        return $this->belongsTo(Country::class);
     }
 }

@@ -1,8 +1,6 @@
 <?php
 
 use App\Models\Alumni;
-use App\Models\City;
-use App\Models\Country;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -42,8 +40,6 @@ test('alumni users can view their self service profile page', function () {
 });
 
 test('alumni users can update their own profile and rsvp', function () {
-    $country = Country::factory()->create(['name' => 'Indonesia', 'code' => 'ID']);
-    $city = City::factory()->create(['country_id' => $country->id, 'name' => 'Makassar']);
     $profile = Alumni::factory()->create([
         'full_name' => 'Nama Lama',
         'student_number' => 'D096010',
@@ -63,8 +59,11 @@ test('alumni users can update their own profile and rsvp', function () {
         ->set('rsvp_status', 'attending')
         ->set('company', 'PT Titik Nol')
         ->set('job_title', 'Surveyor')
-        ->set('current_country_id', $country->id)
-        ->set('current_city_id', $city->id)
+        ->set('location_search', 'Makassar, Sulawesi Selatan, Indonesia')
+        ->set('country', 'Indonesia')
+        ->set('city', 'Makassar')
+        ->set('latitude', -5.147665)
+        ->set('longitude', 119.432732)
         ->set('short_story', 'Sekarang tinggal di Makassar.')
         ->set('memorable_story', 'Kenangan praktikum lapangan.')
         ->set('message_to_friends', 'Sampai jumpa di reuni.')
@@ -77,8 +76,10 @@ test('alumni users can update their own profile and rsvp', function () {
     expect($profile->full_name)->toBe('Nama Baru');
     expect($profile->student_number)->toBe('D096777');
     expect($profile->rsvp_status)->toBe('attending');
-    expect($profile->current_country_id)->toBe($country->id);
-    expect($profile->current_city_id)->toBe($city->id);
+    expect($profile->country)->toBe('Indonesia');
+    expect($profile->city)->toBe('Makassar');
+    expect((string) $profile->latitude)->toBe('-5.1476650');
+    expect((string) $profile->longitude)->toBe('119.4327320');
     expect($profile->short_story)->toBe('Sekarang tinggal di Makassar.');
     expect($profile->is_profile_completed)->toBeTrue();
     expect($profile->user->name)->toBe('Nama Baru');
@@ -151,27 +152,28 @@ test('alumni profile update validates unique identifiers', function () {
         ]);
 });
 
-test('alumni profile update rejects city outside selected country', function () {
-    $indonesia = Country::factory()->create(['name' => 'Indonesia', 'code' => 'ID']);
-    $malaysia = Country::factory()->create(['name' => 'Malaysia', 'code' => 'MY']);
-    $kualaLumpur = City::factory()->create(['country_id' => $malaysia->id, 'name' => 'Kuala Lumpur']);
+test('alumni profile requires a city suggestion when location text is entered', function () {
     $profile = Alumni::factory()->create([
-        'current_country_id' => null,
-        'current_city_id' => null,
+        'country' => null,
+        'city' => null,
+        'latitude' => null,
+        'longitude' => null,
     ]);
 
     $this->actingAs($profile->user);
 
     Livewire::test('pages::alumni.profile')
-        ->set('current_country_id', $indonesia->id)
-        ->set('current_city_id', $kualaLumpur->id)
+        ->set('location_search', 'Kuala Lumpur')
         ->call('updateProfile')
         ->assertHasErrors([
-            'current_city_id' => 'exists',
+            'city' => 'required_with',
+            'country' => 'required_with',
+            'latitude' => 'required_with',
+            'longitude' => 'required_with',
         ]);
 
     $profile->refresh();
 
-    expect($profile->current_country_id)->toBeNull();
-    expect($profile->current_city_id)->toBeNull();
+    expect($profile->country)->toBeNull();
+    expect($profile->city)->toBeNull();
 });

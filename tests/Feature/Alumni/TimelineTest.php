@@ -2,8 +2,6 @@
 
 use App\Models\Alumni;
 use App\Models\AlumniTimeline;
-use App\Models\City;
-use App\Models\Country;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -41,21 +39,17 @@ test('alumni users can view their timeline page', function () {
 
 test('alumni users can create update and delete their own timeline entries', function () {
     $profile = Alumni::factory()->create();
-    $country = Country::factory()->create(['name' => 'Indonesia', 'code' => 'ID']);
-    $city = City::factory()->create([
-        'country_id' => $country->id,
-        'name' => 'Yogyakarta',
-        'latitude' => -7.7956,
-        'longitude' => 110.3695,
-    ]);
 
     $this->actingAs($profile->user);
 
     Livewire::test('pages::alumni.timeline.index')
         ->set('year', 1996)
         ->set('month', 8)
-        ->set('country_id', $country->id)
-        ->set('city_id', $city->id)
+        ->set('location_search', 'Yogyakarta, DI Yogyakarta, Indonesia')
+        ->set('country', 'Indonesia')
+        ->set('city', 'Yogyakarta')
+        ->set('latitude', -7.7956)
+        ->set('longitude', 110.3695)
         ->set('notes', 'Mulai kuliah di Geodesi.')
         ->call('saveTimeline')
         ->assertHasNoErrors();
@@ -64,8 +58,8 @@ test('alumni users can create update and delete their own timeline entries', fun
 
     expect($timeline->year)->toBe(1996);
     expect($timeline->month)->toBe(8);
-    expect($timeline->city_id)->toBe($city->id);
-    expect($timeline->country_id)->toBe($country->id);
+    expect($timeline->city)->toBe('Yogyakarta');
+    expect($timeline->country)->toBe('Indonesia');
     expect((string) $timeline->latitude)->toBe('-7.7956000');
     expect((string) $timeline->longitude)->toBe('110.3695000');
 
@@ -110,21 +104,20 @@ test('alumni users cannot mutate another alumni timeline entry', function () {
     expect($timeline->fresh())->not->toBeNull();
 });
 
-test('alumni timeline rejects city outside selected country', function () {
+test('alumni timeline requires a city suggestion when location text is entered', function () {
     $profile = Alumni::factory()->create();
-    $indonesia = Country::factory()->create(['name' => 'Indonesia', 'code' => 'ID']);
-    $malaysia = Country::factory()->create(['name' => 'Malaysia', 'code' => 'MY']);
-    $kualaLumpur = City::factory()->create(['country_id' => $malaysia->id, 'name' => 'Kuala Lumpur']);
 
     $this->actingAs($profile->user);
 
     Livewire::test('pages::alumni.timeline.index')
         ->set('year', 2001)
-        ->set('country_id', $indonesia->id)
-        ->set('city_id', $kualaLumpur->id)
+        ->set('location_search', 'Kuala Lumpur')
         ->call('saveTimeline')
         ->assertHasErrors([
-            'city_id' => 'exists',
+            'city' => 'required_with',
+            'country' => 'required_with',
+            'latitude' => 'required_with',
+            'longitude' => 'required_with',
         ]);
 
     expect(AlumniTimeline::query()->where('alumni_id', $profile->id)->exists())->toBeFalse();
