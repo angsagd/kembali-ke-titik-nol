@@ -153,3 +153,50 @@ test('administrator users can search rsvp monitoring', function () {
         ->assertSee('Ade Chandra')
         ->assertDontSee('Budi Santoso');
 });
+
+test('administrator users can sort rsvp monitoring table', function () {
+    $administratorRole = Role::factory()->create([
+        'name' => 'administrator',
+        'description' => 'Administrator sistem',
+    ]);
+    $administrator = User::factory()->create(['role_id' => $administratorRole->id]);
+
+    Alumni::factory()->create([
+        'full_name' => 'Ade Chandra Sort',
+        'rsvp_status' => 'pending',
+    ]);
+    Alumni::factory()->create([
+        'full_name' => 'Budi Santoso Sort',
+        'rsvp_status' => 'attending',
+    ]);
+    Alumni::factory()->create([
+        'full_name' => 'Citra Lestari Sort',
+        'rsvp_status' => 'not_attending',
+    ]);
+
+    $this->actingAs($administrator);
+
+    Livewire::test('pages::admin.rsvp.index')
+        ->assertSet('sort_by', 'full_name')
+        ->assertSet('sort_direction', 'asc')
+        ->assertSeeInOrder([
+            'Ade Chandra Sort',
+            'Budi Santoso Sort',
+            'Citra Lestari Sort',
+        ])
+        ->call('sort', 'full_name')
+        ->assertSet('sort_direction', 'desc')
+        ->assertSeeInOrder([
+            'Citra Lestari Sort',
+            'Budi Santoso Sort',
+            'Ade Chandra Sort',
+        ])
+        ->call('sort', 'rsvp_status')
+        ->assertSet('sort_by', 'rsvp_status')
+        ->assertSet('sort_direction', 'asc')
+        ->assertSeeInOrder([
+            'Budi Santoso Sort',
+            'Citra Lestari Sort',
+            'Ade Chandra Sort',
+        ]);
+});

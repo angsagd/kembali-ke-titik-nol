@@ -4,8 +4,10 @@ use App\Models\Alumni;
 use App\Models\AlumniRsvpGuest;
 use App\Models\ApplicationSetting;
 use App\Models\AuditLog;
+use App\Models\User;
 use Flux\Flux;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -21,6 +23,12 @@ new #[Title('Monitoring RSVP')] class extends Component {
     #[Url]
     public string $status = 'all';
 
+    #[Url(as: 'sort')]
+    public string $sort_by = 'full_name';
+
+    #[Url(as: 'direction')]
+    public string $sort_direction = 'asc';
+
     public bool $public_rsvp_form_enabled = true;
 
     public function mount(): void
@@ -35,6 +43,22 @@ new #[Title('Monitoring RSVP')] class extends Component {
 
     public function updatedStatus(): void
     {
+        $this->resetPage();
+    }
+
+    public function sort(string $column): void
+    {
+        if (! array_key_exists($column, $this->sortableColumns())) {
+            return;
+        }
+
+        if ($this->sort_by === $column) {
+            $this->sort_direction = $this->sort_direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sort_by = $column;
+            $this->sort_direction = 'asc';
+        }
+
         $this->resetPage();
     }
 
@@ -147,7 +171,7 @@ new #[Title('Monitoring RSVP')] class extends Component {
             ->when(in_array($this->status, ['pending', 'attending', 'not_attending'], true), function ($query): void {
                 $query->where('rsvp_status', $this->status);
             })
-            ->orderBy('full_name')
+            ->tap(fn ($query) => $this->applySorting($query))
             ->paginate(15);
     }
 
@@ -205,6 +229,46 @@ new #[Title('Monitoring RSVP')] class extends Component {
             'female' => __('Wanita'),
             default => '-',
         };
+    }
+
+    private function applySorting(Builder $query): void
+    {
+        $direction = $this->sort_direction === 'desc' ? 'desc' : 'asc';
+        $column = $this->sortableColumns()[$this->sort_by] ?? 'full_name';
+
+        match ($column) {
+            'whatsapp_number' => $query->orderBy(
+                User::query()
+                    ->select('whatsapp_number')
+                    ->whereColumn('users.id', 'alumni.user_id')
+                    ->limit(1),
+                $direction,
+            ),
+            'attendance' => $query
+                ->orderBy('rsvp_party_type', $direction)
+                ->orderBy('family_members_count', $direction),
+            'shirt' => $query
+                ->orderBy('shirt_type', $direction)
+                ->orderBy('shirt_size', $direction),
+            default => $query->orderBy($column, $direction),
+        };
+
+        $query->orderBy('id');
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function sortableColumns(): array
+    {
+        return [
+            'full_name' => 'full_name',
+            'whatsapp_number' => 'whatsapp_number',
+            'rsvp_status' => 'rsvp_status',
+            'attendance' => 'attendance',
+            'shirt' => 'shirt',
+            'updated_at' => 'updated_at',
+        ];
     }
 }; ?>
 
@@ -334,12 +398,12 @@ new #[Title('Monitoring RSVP')] class extends Component {
 
     <flux:table :paginate="$this->alumniProfiles" pagination:scroll-to="body">
         <flux:table.columns>
-            <flux:table.column>{{ __('Nama') }}</flux:table.column>
-            <flux:table.column>{{ __('WhatsApp') }}</flux:table.column>
-            <flux:table.column>{{ __('Status RSVP') }}</flux:table.column>
-            <flux:table.column>{{ __('Kehadiran & Keluarga') }}</flux:table.column>
-            <flux:table.column>{{ __('Data Kaos') }}</flux:table.column>
-            <flux:table.column>{{ __('Terakhir Diperbarui') }}</flux:table.column>
+            <flux:table.column sortable :sorted="$sort_by === 'full_name'" :direction="$sort_direction" wire:click="sort('full_name')">{{ __('Nama') }}</flux:table.column>
+            <flux:table.column sortable :sorted="$sort_by === 'whatsapp_number'" :direction="$sort_direction" wire:click="sort('whatsapp_number')">{{ __('WhatsApp') }}</flux:table.column>
+            <flux:table.column sortable :sorted="$sort_by === 'rsvp_status'" :direction="$sort_direction" wire:click="sort('rsvp_status')">{{ __('Status RSVP') }}</flux:table.column>
+            <flux:table.column sortable :sorted="$sort_by === 'attendance'" :direction="$sort_direction" wire:click="sort('attendance')">{{ __('Kehadiran & Keluarga') }}</flux:table.column>
+            <flux:table.column sortable :sorted="$sort_by === 'shirt'" :direction="$sort_direction" wire:click="sort('shirt')">{{ __('Data Kaos') }}</flux:table.column>
+            <flux:table.column sortable :sorted="$sort_by === 'updated_at'" :direction="$sort_direction" wire:click="sort('updated_at')">{{ __('Terakhir Diperbarui') }}</flux:table.column>
             <flux:table.column align="end">{{ __('Aksi') }}</flux:table.column>
         </flux:table.columns>
 

@@ -27,6 +27,8 @@ new #[Title('Detail Dokumentasi')] class extends Component {
     /** @var array<int, int|string> */
     public array $tagged_alumni_ids = [];
 
+    public string $alumni_tag_search = '';
+
     public function mount(MediaItem $mediaItem): void
     {
         $this->mediaItem = $mediaItem->load(['uploader', 'taggedAlumni']);
@@ -40,12 +42,66 @@ new #[Title('Detail Dokumentasi')] class extends Component {
     }
 
     #[Computed]
-    public function alumniOptions(): Collection
+    public function alumniTagSuggestions(): Collection
     {
+        $search = trim($this->alumni_tag_search);
+
+        if ($search === '') {
+            return new Collection;
+        }
+
         return Alumni::query()
             ->where('alumni_status', 'active')
+            ->whereNotIn('id', array_map('intval', $this->tagged_alumni_ids))
+            ->where(function ($query) use ($search): void {
+                $query
+                    ->whereLike('full_name', "%{$search}%")
+                    ->orWhereLike('nickname', "%{$search}%");
+            })
             ->orderBy('full_name')
-            ->get(['id', 'full_name', 'student_number']);
+            ->limit(8)
+            ->get(['id', 'full_name', 'nickname']);
+    }
+
+    #[Computed]
+    public function selectedTaggedAlumni(): Collection
+    {
+        $selectedIds = array_values(array_unique(array_map('intval', $this->tagged_alumni_ids)));
+
+        if ($selectedIds === []) {
+            return new Collection;
+        }
+
+        return Alumni::query()
+            ->whereKey($selectedIds)
+            ->get(['id', 'full_name'])
+            ->sortBy(fn (Alumni $alumni): int => array_search($alumni->id, $selectedIds, true))
+            ->values();
+    }
+
+    public function addTaggedAlumni(int $alumniId): void
+    {
+        Alumni::query()
+            ->where('alumni_status', 'active')
+            ->findOrFail($alumniId);
+
+        $this->tagged_alumni_ids = array_values(array_unique([
+            ...array_map('intval', $this->tagged_alumni_ids),
+            $alumniId,
+        ]));
+        $this->alumni_tag_search = '';
+
+        unset($this->alumniTagSuggestions, $this->selectedTaggedAlumni);
+    }
+
+    public function removeTaggedAlumni(int $alumniId): void
+    {
+        $this->tagged_alumni_ids = array_values(array_filter(
+            array_map('intval', $this->tagged_alumni_ids),
+            fn (int $selectedId): bool => $selectedId !== $alumniId,
+        ));
+
+        unset($this->alumniTagSuggestions, $this->selectedTaggedAlumni);
     }
 
     public function isUploader(): bool
@@ -161,6 +217,9 @@ new #[Title('Detail Dokumentasi')] class extends Component {
         $this->year = $this->mediaItem->year;
         $this->visibility = $this->mediaItem->visibility;
         $this->tagged_alumni_ids = $this->mediaItem->taggedAlumni->pluck('id')->all();
+        $this->alumni_tag_search = '';
+
+        unset($this->alumniTagSuggestions, $this->selectedTaggedAlumni);
     }
 }; ?>
 
@@ -251,13 +310,53 @@ new #[Title('Detail Dokumentasi')] class extends Component {
                             <flux:select.option value="public">{{ __('Publik') }}</flux:select.option>
                         </flux:select>
 
-                        <flux:select wire:model="tagged_alumni_ids" :label="__('Tag alumni')" multiple>
-                            @foreach ($this->alumniOptions as $profile)
-                                <flux:select.option value="{{ $profile->id }}">
-                                    {{ $profile->full_name }}{{ $profile->student_number ? ' - '.$profile->student_number : '' }}
-                                </flux:select.option>
-                            @endforeach
-                        </flux:select>
+                        <div>
+                            <div class="relative">
+                                <flux:input
+                                    wire:model.live.debounce.250ms="alumni_tag_search"
+                                    :label="__('Tag alumni')"
+                                    icon="magnifying-glass"
+                                    :placeholder="__('Ketik nama alumni')"
+                                    autocomplete="off"
+                                />
+
+                                @if (trim($alumni_tag_search) !== '')
+                                    <div class="absolute z-20 mt-2 max-h-64 w-full overflow-y-auto rounded-lg border border-zinc-200 bg-white py-1 shadow-lg">
+                                        @forelse ($this->alumniTagSuggestions as $profile)
+                                            <button
+                                                type="button"
+                                                wire:key="alumni-tag-suggestion-{{ $profile->id }}"
+                                                wire:click="addTaggedAlumni({{ $profile->id }})"
+                                                class="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-amber-50 focus:bg-amber-50 focus:outline-none"
+                                            >
+                                                <span class="font-medium text-zinc-900">{{ $profile->full_name }}</span>
+                                                @if ($profile->nickname)
+                                                    <span class="text-xs text-zinc-500">{{ $profile->nickname }}</span>
+                                                @endif
+                                            </button>
+                                        @empty
+                                            <div class="px-3 py-2 text-sm text-zinc-500">{{ __('Alumni tidak ditemukan.') }}</div>
+                                        @endforelse
+                                    </div>
+                                @endif
+                            </div>
+
+                            @if ($this->selectedTaggedAlumni->isNotEmpty())
+                                <div class="mt-3 flex flex-wrap gap-2">
+                                    @foreach ($this->selectedTaggedAlumni as $profile)
+                                        <flux:badge wire:key="selected-alumni-tag-{{ $profile->id }}" color="amber">
+                                            {{ $profile->full_name }}
+                                            <flux:badge.close
+                                                wire:click="removeTaggedAlumni({{ $profile->id }})"
+                                                :aria-label="__('Hapus tag :name', ['name' => $profile->full_name])"
+                                            />
+                                        </flux:badge>
+                                    @endforeach
+                                </div>
+                            @endif
+
+                            <flux:error name="tagged_alumni_ids" />
+                        </div>
 
                         <div class="flex flex-wrap gap-2">
                             <flux:button type="submit" variant="primary" icon="check" wire:loading.attr="disabled">

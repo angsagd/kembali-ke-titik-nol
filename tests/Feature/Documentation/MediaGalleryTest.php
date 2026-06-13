@@ -73,6 +73,28 @@ test('alumni users can filter uploaded and tagged documentation', function () {
         ->assertDontSee('Foto Orang Lain');
 });
 
+test('alumni users can search add and remove documentation tags', function () {
+    $profile = Alumni::factory()->create(['full_name' => 'Ade Chandra']);
+    $tagged = Alumni::factory()->create([
+        'full_name' => 'Budi Santoso Unik',
+        'nickname' => 'Budi',
+    ]);
+    Alumni::factory()->create(['full_name' => 'Citra Lestari Unik']);
+
+    $this->actingAs($profile->user);
+
+    Livewire::test('pages::documentation.index')
+        ->set('alumni_tag_search', 'Budi Santoso')
+        ->assertSee('Budi Santoso Unik')
+        ->assertDontSee('Citra Lestari Unik')
+        ->call('addTaggedAlumni', $tagged->id)
+        ->assertSet('tagged_alumni_ids', [$tagged->id])
+        ->assertSet('alumni_tag_search', '')
+        ->assertSee('Budi Santoso Unik')
+        ->call('removeTaggedAlumni', $tagged->id)
+        ->assertSet('tagged_alumni_ids', []);
+});
+
 test('alumni users can upload photo documentation', function () {
     Storage::fake('public');
 
@@ -167,12 +189,15 @@ test('alumni users can view and update their documentation detail', function () 
         ->assertSee('Edit Dokumentasi');
 
     Livewire::test('pages::documentation.show', ['mediaItem' => $mediaItem])
+        ->set('alumni_tag_search', 'Budi')
+        ->assertSee('Budi Santoso')
+        ->call('addTaggedAlumni', $tagged->id)
+        ->assertSet('tagged_alumni_ids', [$tagged->id])
         ->set('title', 'Foto Baru')
         ->set('description', 'Cerita foto diperbarui.')
         ->set('month', 8)
         ->set('year', 2026)
         ->set('visibility', 'public')
-        ->set('tagged_alumni_ids', [$tagged->id])
         ->call('saveDetails')
         ->assertHasNoErrors();
 
