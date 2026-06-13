@@ -396,7 +396,7 @@ new #[Title('Monitoring RSVP')] class extends Component {
         </div>
     </div>
 
-    <flux:table :paginate="$this->alumniProfiles" pagination:scroll-to="body">
+    <flux:table :paginate="$this->alumniProfiles">
         <flux:table.columns>
             <flux:table.column sortable :sorted="$sort_by === 'full_name'" :direction="$sort_direction" wire:click="sort('full_name')">{{ __('Nama') }}</flux:table.column>
             <flux:table.column sortable :sorted="$sort_by === 'whatsapp_number'" :direction="$sort_direction" wire:click="sort('whatsapp_number')">{{ __('WhatsApp') }}</flux:table.column>

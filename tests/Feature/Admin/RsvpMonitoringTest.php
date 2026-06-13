@@ -200,3 +200,19 @@ test('administrator users can sort rsvp monitoring table', function () {
             'Ade Chandra Sort',
         ]);
 });
+
+test('rsvp monitoring pagination does not scroll the page', function () {
+    $administratorRole = Role::factory()->create([
+        'name' => 'administrator',
+        'description' => 'Administrator sistem',
+    ]);
+    $administrator = User::factory()->create(['role_id' => $administratorRole->id]);
+
+    Alumni::factory()->count(16)->create();
+
+    $this->actingAs($administrator);
+
+    Livewire::test('pages::admin.rsvp.index')
+        ->assertSee('Showing')
+        ->assertDontSee('scrollIntoView', escape: false);
+});
