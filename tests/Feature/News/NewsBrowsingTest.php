@@ -27,7 +27,7 @@ test('guests can read published news detail', function () {
     $news = News::factory()->published()->create([
         'title' => 'Pengumuman Reuni',
         'slug' => 'pengumuman-reuni',
-        'content' => 'Konten pengumuman resmi.',
+        'content' => "## Agenda Reuni\n\n**Konten pengumuman resmi.**\n\n<script>alert('xss')</script>\n\n[Tautan berbahaya](javascript:alert('xss'))",
     ]);
 
     $this->get(route('news.show', $news->slug))
@@ -39,7 +39,10 @@ test('guests can read published news detail', function () {
         ->assertSee('Donatur')
         ->assertSee('fixed inset-x-0 top-0', false)
         ->assertSee('Pengumuman Reuni')
-        ->assertSee('Konten pengumuman resmi.');
+        ->assertSee('<h2>Agenda Reuni</h2>', false)
+        ->assertSee('<strong>Konten pengumuman resmi.</strong>', false)
+        ->assertDontSee("alert('xss')")
+        ->assertDontSee('href="javascript:', false);
 });
 
 test('draft news detail is not visible to guests', function () {

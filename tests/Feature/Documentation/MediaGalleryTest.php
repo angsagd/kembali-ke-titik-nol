@@ -27,19 +27,32 @@ test('users without alumni profile cannot access documentation page', function (
 });
 
 test('alumni users can view documentation gallery', function () {
-    $profile = Alumni::factory()->create();
-    MediaItem::factory()->photo()->create([
+    $profile = Alumni::factory()->create(['full_name' => 'Pengunggah Galeri']);
+    $tagged = Alumni::factory()->create(['full_name' => 'Alumni Tag Hanya Detail']);
+    $mediaItem = MediaItem::factory()->photo()->create([
         'uploaded_by_alumni_id' => $profile->id,
         'title' => 'Foto Reuni',
+        'description' => 'Deskripsi hanya ditampilkan pada halaman detail.',
         'year' => 2026,
     ]);
+    $mediaItem->taggedAlumni()->attach($tagged->id, ['tagged_by_alumni_id' => $profile->id]);
 
     $this->actingAs($profile->user)
         ->get(route('documentation.index'))
         ->assertOk()
         ->assertSee('Dokumentasi')
         ->assertSee('Foto Reuni')
+        ->assertSee('Pengunggah Galeri')
+        ->assertSee('data-documentation-gallery-metadata', false)
+        ->assertSee('bottom-2 right-2 z-20', false)
+        ->assertDontSee('Deskripsi hanya ditampilkan pada halaman detail.')
+        ->assertDontSee('Alumni Tag Hanya Detail')
         ->assertSee('Simpan Dokumentasi');
+
+    $this->get(route('documentation.show', $mediaItem))
+        ->assertOk()
+        ->assertSee('Deskripsi hanya ditampilkan pada halaman detail.')
+        ->assertSee('Alumni Tag Hanya Detail');
 });
 
 test('alumni users can filter uploaded and tagged documentation', function () {

@@ -5,16 +5,19 @@ use App\Models\News;
 use Flux\Flux;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 new #[Title('Manajemen Berita')] class extends Component {
-    use WithPagination;
+    use WithFileUploads, WithPagination;
 
     #[Url(as: 'q')]
     public string $search = '';
@@ -31,6 +34,8 @@ new #[Title('Manajemen Berita')] class extends Component {
     public ?string $excerpt = null;
 
     public string $content = '';
+
+    public ?TemporaryUploadedFile $content_image = null;
 
     public string $form_status = 'draft';
 
@@ -101,6 +106,29 @@ new #[Title('Manajemen Berita')] class extends Component {
     public function cancelEdit(): void
     {
         $this->resetForm();
+    }
+
+    public function updatedContentImage(): void
+    {
+        $this->validateOnly('content_image', [
+            'content_image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+        ]);
+
+        $originalName = pathinfo($this->content_image->getClientOriginalName(), PATHINFO_FILENAME);
+        $altText = Str::of($originalName)
+            ->replace(['[', ']', '(', ')'], '')
+            ->squish()
+            ->limit(100, '')
+            ->value();
+        $path = $this->content_image->store('news/content', 'public');
+        $url = Storage::disk('public')->url($path);
+
+        $this->reset('content_image');
+        $this->dispatch(
+            'news-content-image-uploaded',
+            editorId: 'news-content',
+            markdown: sprintf('![%s](%s)', $altText ?: __('Gambar berita'), $url),
+        );
     }
 
     public function save(): void
@@ -211,7 +239,7 @@ new #[Title('Manajemen Berita')] class extends Component {
 
     private function resetForm(): void
     {
-        $this->reset(['editing_id', 'title', 'slug', 'excerpt', 'content']);
+        $this->reset(['editing_id', 'title', 'slug', 'excerpt', 'content', 'content_image']);
         $this->form_status = 'draft';
         $this->resetErrorBag();
     }
@@ -261,7 +289,13 @@ new #[Title('Manajemen Berita')] class extends Component {
                 <flux:input wire:model.live="title" :label="__('Judul')" />
                 <flux:input wire:model="slug" :label="__('Slug')" />
                 <flux:textarea wire:model="excerpt" :label="__('Ringkasan')" rows="3" />
-                <flux:textarea wire:model="content" :label="__('Konten')" rows="8" />
+                <x-rich-text-editor
+                    wire:model="content"
+                    :label="__('Konten')"
+                    name="content"
+                    editor-id="news-content"
+                    image-model="content_image"
+                />
 
                 <flux:select wire:model="form_status" :label="__('Status')">
                     <flux:select.option value="draft">{{ __('Draft') }}</flux:select.option>

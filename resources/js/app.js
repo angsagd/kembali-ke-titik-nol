@@ -8,6 +8,8 @@ const publicHeaderStates = new WeakMap();
 const landingVideoObservers = new WeakMap();
 const echartsInstances = new WeakMap();
 const cityAutocompleteStates = new WeakMap();
+const richTextEditorStates = new WeakMap();
+const richTextSelections = new Map();
 
 function updateCountdown(countdown) {
     const targetDate = new Date(countdown.dataset.countdownTarget);
@@ -451,15 +453,143 @@ function initializeEcharts() {
     });
 }
 
+function updateRichTextValue(textarea, value, selectionStart, selectionEnd = selectionStart) {
+    textarea.value = value;
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    textarea.focus();
+    textarea.setSelectionRange(selectionStart, selectionEnd);
+}
+
+function wrapRichTextSelection(textarea, prefix, suffix, placeholder) {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = textarea.value.slice(start, end) || placeholder;
+    const replacement = `${prefix}${selectedText}${suffix}`;
+    const value = `${textarea.value.slice(0, start)}${replacement}${textarea.value.slice(end)}`;
+    const selectionStart = start + prefix.length;
+
+    updateRichTextValue(textarea, value, selectionStart, selectionStart + selectedText.length);
+}
+
+function prefixRichTextLines(textarea, prefixForIndex) {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const lineStart = textarea.value.lastIndexOf('\n', Math.max(start - 1, 0)) + 1;
+    const nextLineBreak = textarea.value.indexOf('\n', end);
+    const lineEnd = nextLineBreak === -1 ? textarea.value.length : nextLineBreak;
+    const selectedLines = textarea.value.slice(lineStart, lineEnd).split('\n');
+    const replacement = selectedLines
+        .map((line, index) => `${prefixForIndex(index)}${line}`)
+        .join('\n');
+    const value = `${textarea.value.slice(0, lineStart)}${replacement}${textarea.value.slice(lineEnd)}`;
+
+    updateRichTextValue(textarea, value, lineStart, lineStart + replacement.length);
+}
+
+function applyRichTextAction(textarea, action) {
+    const actions = {
+        heading: () => prefixRichTextLines(textarea, () => '## '),
+        bold: () => wrapRichTextSelection(textarea, '**', '**', 'teks tebal'),
+        italic: () => wrapRichTextSelection(textarea, '_', '_', 'teks miring'),
+        'bullet-list': () => prefixRichTextLines(textarea, () => '- '),
+        'numbered-list': () => prefixRichTextLines(textarea, (index) => `${index + 1}. `),
+        quote: () => prefixRichTextLines(textarea, () => '> '),
+        link: () => wrapRichTextSelection(textarea, '[', '](https://)', 'teks tautan'),
+    };
+
+    actions[action]?.();
+}
+
+function rememberRichTextSelection(editor, textarea) {
+    richTextSelections.set(editor.dataset.richTextEditorId, {
+        start: textarea.selectionStart,
+        end: textarea.selectionEnd,
+    });
+}
+
+function initializeRichTextEditors() {
+    document.querySelectorAll('[data-rich-text-editor]').forEach((editor) => {
+        if (richTextEditorStates.has(editor)) {
+            return;
+        }
+
+        const textarea = editor.querySelector('[data-rich-text-input]');
+
+        if (!textarea) {
+            return;
+        }
+
+        const handleAction = (event) => {
+            const button = event.target.closest('[data-rich-text-action]');
+
+            if (!button || !editor.contains(button)) {
+                return;
+            }
+
+            event.preventDefault();
+
+            if (button.dataset.richTextAction === 'image') {
+                rememberRichTextSelection(editor, textarea);
+                editor.querySelector('[data-rich-text-image-input]')?.click();
+
+                return;
+            }
+
+            applyRichTextAction(textarea, button.dataset.richTextAction);
+            rememberRichTextSelection(editor, textarea);
+        };
+
+        const rememberSelection = () => rememberRichTextSelection(editor, textarea);
+
+        editor.addEventListener('click', handleAction);
+        textarea.addEventListener('click', rememberSelection);
+        textarea.addEventListener('keyup', rememberSelection);
+        textarea.addEventListener('select', rememberSelection);
+        textarea.addEventListener('input', rememberSelection);
+        rememberSelection();
+        richTextEditorStates.set(editor, { handleAction, rememberSelection });
+    });
+}
+
+document.addEventListener('news-content-image-uploaded', (event) => {
+    window.queueMicrotask(() => {
+        initializeRichTextEditors();
+
+        const editor = document.querySelector(`[data-rich-text-editor-id="${CSS.escape(event.detail.editorId)}"]`);
+        const textarea = editor?.querySelector('[data-rich-text-input]');
+
+        if (!editor || !textarea) {
+            return;
+        }
+
+        const selection = richTextSelections.get(event.detail.editorId) ?? {
+            start: textarea.value.length,
+            end: textarea.value.length,
+        };
+        const prefix = selection.start > 0 && textarea.value[selection.start - 1] !== '\n' ? '\n\n' : '';
+        const suffix = selection.end < textarea.value.length && textarea.value[selection.end] !== '\n' ? '\n\n' : '';
+        const markdown = `${prefix}${event.detail.markdown}${suffix}`;
+        const value = `${textarea.value.slice(0, selection.start)}${markdown}${textarea.value.slice(selection.end)}`;
+        const cursor = selection.start + markdown.length;
+
+        updateRichTextValue(textarea, value, cursor);
+        rememberRichTextSelection(editor, textarea);
+    });
+});
+
 document.addEventListener('DOMContentLoaded', initializeCountdowns);
 document.addEventListener('DOMContentLoaded', initializeDistributionMaps);
 document.addEventListener('DOMContentLoaded', initializePublicHeaderNavigation);
 document.addEventListener('DOMContentLoaded', initializeLandingVideos);
 document.addEventListener('DOMContentLoaded', initializeEcharts);
 document.addEventListener('DOMContentLoaded', initializeCityAutocompletes);
+document.addEventListener('DOMContentLoaded', initializeRichTextEditors);
 document.addEventListener('livewire:init', () => {
     window.Livewire.interceptMessage(({ onSuccess }) => {
-        onSuccess(() => window.queueMicrotask(initializeCityAutocompletes));
+        onSuccess(() => window.queueMicrotask(() => {
+            initializeCityAutocompletes();
+            initializeRichTextEditors();
+        }));
     });
 });
 document.addEventListener('visibilitychange', updateLandingVideoVisibility);
@@ -470,4 +600,5 @@ document.addEventListener('livewire:navigated', () => {
     initializeLandingVideos();
     initializeEcharts();
     initializeCityAutocompletes();
+    initializeRichTextEditors();
 });

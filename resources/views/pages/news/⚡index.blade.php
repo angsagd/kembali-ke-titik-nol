@@ -2,6 +2,7 @@
 
 use App\Models\News;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -44,7 +45,9 @@ new #[Layout('layouts::public')]
                             <flux:heading size="lg">{{ $news->title }}</flux:heading>
                             <flux:text>{{ $news->published_at?->translatedFormat('d F Y') }} · {{ $news->author?->name }}</flux:text>
                         </div>
-                        <flux:text>{{ $news->excerpt ?: str($news->content)->limit(140) }}</flux:text>
+                        <flux:text>
+                            {{ $news->excerpt ?: Str::of(Str::markdown($news->content, ['html_input' => 'strip', 'allow_unsafe_links' => false]))->stripTags()->squish()->limit(140) }}
+                        </flux:text>
                         <flux:button variant="ghost" icon="arrow-right" :href="route('news.show', $news->slug)" wire:navigate>
                             {{ __('Baca') }}
                         </flux:button>
