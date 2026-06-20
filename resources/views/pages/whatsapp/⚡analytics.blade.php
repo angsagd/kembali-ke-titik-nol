@@ -8,12 +8,18 @@ use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 new #[Title('WhatsApp Analytics')] class extends Component {
     public string $tab = 'group';
+
+    public ?int $selectedDigitalYear = null;
+
+    public ?string $selectedDigitalDate = null;
 
     /**
      * @var array<int, int>
@@ -23,13 +29,51 @@ new #[Title('WhatsApp Analytics')] class extends Component {
     public function mount(): void
     {
         $this->selectedWhatsappMemberIds = $this->defaultSelectedPersonalMemberIds();
+        $this->selectedDigitalYear = $this->defaultDigitalYear();
     }
 
     public function selectTab(string $tab): void
     {
-        if (in_array($tab, ['group', 'top10', 'personal'], true)) {
+        if ($tab === 'mapping' && ! $this->canMapWhatsappAlumni()) {
+            return;
+        }
+
+        if (in_array($tab, ['group', 'top10', 'personal', 'mapping'], true)) {
             $this->tab = $tab;
         }
+    }
+
+    public function downloadAnalysisSource(): BinaryFileResponse
+    {
+        abort_if($this->latestImport === null || ! $this->latestImport->file_path, 404);
+
+        $disk = Storage::disk('local');
+        abort_unless($disk->exists($this->latestImport->file_path), 404);
+
+        $sourcePath = $disk->path($this->latestImport->file_path);
+        $baseName = $this->analysisSourceBaseName();
+
+        if (str_ends_with(strtolower($this->latestImport->file_path), '.zip')) {
+            return response()->download($sourcePath, "{$baseName}.zip");
+        }
+
+        $zipDirectory = storage_path('framework/cache/whatsapp-downloads');
+
+        if (! is_dir($zipDirectory)) {
+            mkdir($zipDirectory, 0755, true);
+        }
+
+        $zipPath = $zipDirectory.'/'.uniqid('whatsapp-analysis-', true).'.txt.zip';
+        $zip = new \ZipArchive();
+
+        abort_unless($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === true, 500);
+
+        $zip->addFile($sourcePath, "{$baseName}.txt");
+        $zip->close();
+
+        return response()
+            ->download($zipPath, "{$baseName}.txt.zip")
+            ->deleteFileAfterSend(true);
     }
 
     public function togglePersonalMember(int $memberId): void
@@ -45,6 +89,36 @@ new #[Title('WhatsApp Analytics')] class extends Component {
 
         $this->selectedWhatsappMemberIds[] = $memberId;
         $this->selectedWhatsappMemberIds = array_slice(array_values(array_unique($this->selectedWhatsappMemberIds)), -10);
+    }
+
+    public function selectDigitalYear(int $year): void
+    {
+        if (! in_array($year, $this->digitalYears(), true)) {
+            return;
+        }
+
+        $this->selectedDigitalYear = $year;
+        $this->selectedDigitalDate = null;
+    }
+
+    public function selectDigitalDate(string $date): void
+    {
+        if ($this->selectedDigitalYear === null || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            return;
+        }
+
+        $clickedDate = CarbonImmutable::parse($date);
+
+        if ((int) $clickedDate->format('Y') !== $this->selectedDigitalYear) {
+            return;
+        }
+
+        $this->selectedDigitalDate = $date;
+    }
+
+    public function canMapWhatsappAlumni(): bool
+    {
+        return auth()->user()?->canManageAlumni() ?? false;
     }
 
     #[Computed]
@@ -180,12 +254,12 @@ new #[Title('WhatsApp Analytics')] class extends Component {
             ],
             [
                 'metric' => 'member_left',
-                'title' => __('Top 10 Keluar Group'),
+                'title' => __('Top 10 Titik Hilang dari Jaringan'),
                 'description' => __('Pernah menjadi bagian dari jaringan pengamatan, lalu menghilang dari peta grup. Namun jejaknya tetap tercatat dalam sejarah.'),
             ],
             [
                 'metric' => 'security_code_changed',
-                'title' => __('Top 10 Pindah HP'),
+                'title' => __('Top 10 Reobservasi Perangkat'),
                 'description' => __('Instrumen boleh berganti, tetapi pengamatnya tetap sama. Statistik ini mencatat mereka yang paling sering melakukan kalibrasi digital.'),
             ],
         ];
@@ -593,6 +667,179 @@ new #[Title('WhatsApp Analytics')] class extends Component {
     }
 
     /**
+     * @return array<int, int>
+     */
+    public function digitalYears(): array
+    {
+        if ($this->latestImport === null) {
+            return [];
+        }
+
+        $firstYear = (int) ($this->latestImport->first_activity_at?->format('Y') ?? now()->format('Y'));
+        $lastYear = (int) ($this->latestImport->last_activity_at?->format('Y') ?? $firstYear);
+
+        return range($lastYear, $firstYear);
+    }
+
+    /**
+     * @return array<int, array<int, array{date: string, day: int, in_year: bool, count: int, intensity: int, selected: bool}>>
+     */
+    public function digitalCalendarWeeks(): array
+    {
+        if ($this->latestImport === null) {
+            return [];
+        }
+
+        $year = $this->selectedDigitalYear ?? $this->defaultDigitalYear();
+        $start = CarbonImmutable::create($year, 1, 1)->startOfWeek();
+        $end = CarbonImmutable::create($year, 12, 31)->endOfWeek();
+        $counts = $this->digitalCalendarCounts($year);
+        $max = max($counts ?: [1]);
+        $weeks = [];
+        $cursor = $start;
+
+        while ($cursor->lessThanOrEqualTo($end)) {
+            $week = [];
+
+            for ($day = 0; $day < 7; $day++) {
+                $date = $cursor->toDateString();
+                $count = $counts[$date] ?? 0;
+
+                $week[] = [
+                    'date' => $date,
+                    'day' => $day,
+                    'in_year' => (int) $cursor->format('Y') === $year,
+                    'count' => $count,
+                    'intensity' => $this->calendarIntensity($count, $max),
+                    'selected' => $this->selectedDigitalDate === $date,
+                ];
+
+                $cursor = $cursor->addDay();
+            }
+
+            $weeks[] = $week;
+        }
+
+        return $weeks;
+    }
+
+    /**
+     * @return Collection<int, WhatsappActivity>
+     */
+    public function selectedDigitalDateActivities(): Collection
+    {
+        if ($this->latestImport === null || $this->selectedDigitalDate === null) {
+            return new Collection();
+        }
+
+        return WhatsappActivity::query()
+            ->with('whatsappMember:id,display_name')
+            ->whereBelongsTo($this->latestImport)
+            ->whereDate('occurred_at_display', $this->selectedDigitalDate)
+            ->orderBy('occurred_at_display')
+            ->get();
+    }
+
+    /**
+     * @return array<int, array{word: string, count: int, size: int, opacity: string, x: float, y: float, rotation: int, color: string, weight: int}>
+     */
+    public function groupWordCloud(): array
+    {
+        if ($this->latestImport === null) {
+            return [];
+        }
+
+        $stopWords = $this->wordCloudStopWords();
+        $counts = [];
+
+        WhatsappActivity::query()
+            ->whereBelongsTo($this->latestImport)
+            ->where('activity_type', 'message')
+            ->whereNotNull('message_text')
+            ->select('message_text')
+            ->cursor()
+            ->each(function (WhatsappActivity $activity) use (&$counts, $stopWords): void {
+                preg_match_all('/[\pL\pN]{3,}/u', mb_strtolower($activity->message_text ?? ''), $matches);
+
+                foreach ($matches[0] ?? [] as $word) {
+                    if (isset($stopWords[$word]) || is_numeric($word)) {
+                        continue;
+                    }
+
+                    $counts[$word] = ($counts[$word] ?? 0) + 1;
+                }
+            });
+
+        arsort($counts);
+        $topCounts = array_slice($counts, 0, 80, true);
+        $max = max($topCounts ?: [1]);
+        $palette = ['#173f25', '#1f5133', '#5f7f63', '#c5a059', '#96783d', '#7c2d12', '#4b574d', '#0e2d1a'];
+        $words = [];
+        $index = 0;
+
+        foreach ($topCounts as $word => $count) {
+            $ratio = $count / $max;
+            $angle = $index * 2.399963229728653;
+            $radius = $index === 0 ? 0 : sqrt($index / 80);
+            $x = 50 + (cos($angle) * $radius * 44);
+            $y = 50 + (sin($angle) * $radius * 31);
+            $rotation = match ($index % 9) {
+                0, 1, 2, 3, 4 => 0,
+                5 => -90,
+                6 => 90,
+                7 => -12,
+                default => 12,
+            };
+
+            $words[] = [
+                'word' => $word,
+                'count' => $count,
+                'size' => 12 + (int) round($ratio * 44),
+                'opacity' => (string) round(0.52 + ($ratio * 0.48), 2),
+                'x' => round(max(5, min(95, $x)), 2),
+                'y' => round(max(10, min(90, $y)), 2),
+                'rotation' => $rotation,
+                'color' => $palette[$index % count($palette)],
+                'weight' => $ratio > 0.55 ? 900 : ($ratio > 0.25 ? 800 : 700),
+            ];
+
+            $index++;
+        }
+
+        return $words;
+    }
+
+    /**
+     * @param  array<int, array{word: string, count: int, size: int, opacity: string, x: float, y: float, rotation: int, color: string, weight: int}>  $words
+     * @return array<int, array{width: int, words: array<int, array{word: string, count: int, size: int, opacity: string, x: float, y: float, rotation: int, color: string, weight: int}>}>
+     */
+    public function groupWordCloudRows(array $words): array
+    {
+        $rowLimits = [4, 7, 10, 13, 15, 13, 10, 7, 4];
+        $rowWidths = [38, 58, 76, 90, 100, 90, 76, 58, 38];
+        $fillOrder = [4, 3, 5, 2, 6, 1, 7, 0, 8];
+        $rows = array_map(
+            fn (int $width): array => ['width' => $width, 'words' => []],
+            $rowWidths,
+        );
+
+        foreach ($words as $word) {
+            foreach ($fillOrder as $rowIndex) {
+                if (count($rows[$rowIndex]['words']) < $rowLimits[$rowIndex]) {
+                    $rows[$rowIndex]['words'][] = $word;
+
+                    break;
+                }
+            }
+        }
+
+        return array_values(array_filter(
+            $rows,
+            fn (array $row): bool => $row['words'] !== [],
+        ));
+    }
+
+    /**
      * @param  array<int, string>  $labels
      * @param  array<int, int>  $values
      * @param  array<int, string>|null  $tooltipLabels
@@ -821,6 +1068,116 @@ new #[Title('WhatsApp Analytics')] class extends Component {
             ->all();
     }
 
+    private function defaultDigitalYear(): ?int
+    {
+        return $this->latestImport?->last_activity_at
+            ? (int) $this->latestImport->last_activity_at->format('Y')
+            : null;
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function digitalCalendarCounts(int $year): array
+    {
+        if ($this->latestImport === null) {
+            return [];
+        }
+
+        return $this->latestImport->dailyStats()
+            ->whereYear('stat_date', $year)
+            ->pluck('total_activities', 'stat_date')
+            ->mapWithKeys(fn (mixed $count, mixed $date): array => [
+                CarbonImmutable::parse((string) $date)->toDateString() => (int) $count,
+            ])
+            ->all();
+    }
+
+    private function calendarIntensity(int $count, int $max): int
+    {
+        if ($count <= 0) {
+            return 0;
+        }
+
+        return max(1, min(4, (int) ceil(($count / max(1, $max)) * 4)));
+    }
+
+    public function digitalCalendarDayClass(array $day): string
+    {
+        $classes = [
+            'h-4 w-4 rounded-[3px] border transition hover:scale-125 focus:outline-none focus:ring-2 focus:ring-ktn-forest/40',
+            $day['in_year'] ? 'cursor-pointer' : 'cursor-default opacity-25',
+            $day['selected'] ? 'border-orange-500 ring-2 ring-orange-500' : 'border-transparent',
+        ];
+
+        $classes[] = match ($day['intensity']) {
+            4 => 'bg-ktn-forest',
+            3 => 'bg-ktn-forest/75',
+            2 => 'bg-ktn-forest/50',
+            1 => 'bg-ktn-forest/25',
+            default => 'bg-zinc-100 dark:bg-zinc-800',
+        };
+
+        return implode(' ', $classes);
+    }
+
+    public function digitalConversationAlignment(WhatsappActivity $activity): string
+    {
+        $memberId = $this->currentMappedWhatsappMemberId();
+
+        if ($memberId === null || $activity->activity_type !== 'message') {
+            return 'left';
+        }
+
+        return $activity->whatsapp_member_id === $memberId ? 'right' : 'left';
+    }
+
+    private function currentMappedWhatsappMemberId(): ?int
+    {
+        if ($this->latestImport === null) {
+            return null;
+        }
+
+        $alumniId = auth()->user()?->alumni()->value('id');
+
+        if ($alumniId === null) {
+            return null;
+        }
+
+        return WhatsappMemberStat::query()
+            ->whereBelongsTo($this->latestImport)
+            ->where('alumni_id', $alumniId)
+            ->value('whatsapp_member_id');
+    }
+
+    public function digitalConversationDateLabel(): string
+    {
+        if ($this->selectedDigitalDate === null) {
+            return __('Pilih salah satu kotak hari untuk melihat percakapan.');
+        }
+
+        return CarbonImmutable::parse($this->selectedDigitalDate)->translatedFormat('d F Y');
+    }
+
+    public function digitalConversationText(WhatsappActivity $activity): string
+    {
+        if ($activity->activity_type === 'message') {
+            return $activity->message_text ?: $activity->raw_text;
+        }
+
+        return $activity->raw_text;
+    }
+
+    /**
+     * @return array<string, true>
+     */
+    private function wordCloudStopWords(): array
+    {
+        return array_fill_keys([
+            'yang', 'dan', 'dari', 'untuk', 'dengan', 'atau', 'ini', 'itu', 'ada', 'jadi', 'sudah', 'belum', 'bisa', 'tidak', 'akan', 'kalau', 'karena', 'saya', 'kita', 'kami', 'anda', 'aku', 'nya', 'the', 'and', 'for', 'you', 'are', 'this', 'that', 'with', 'not', 'was', 'have', 'has', 'but', 'from', 'media', 'omitted', 'message', 'deleted',
+        ], true);
+    }
+
     private function dateValue(?CarbonInterface $date): string
     {
         return $date?->format('d/m/y') ?? '-';
@@ -829,6 +1186,14 @@ new #[Title('WhatsApp Analytics')] class extends Component {
     private function timeUnit(?CarbonInterface $date): ?string
     {
         return $date ? $date->format('H:i').' WIB' : null;
+    }
+
+    private function analysisSourceBaseName(): string
+    {
+        $name = pathinfo($this->latestImport?->file_name ?: 'whatsapp-analysis', PATHINFO_FILENAME);
+        $name = preg_replace('/[^A-Za-z0-9._-]+/', '-', $name) ?: 'whatsapp-analysis';
+
+        return trim($name, '.-') ?: 'whatsapp-analysis';
     }
 
     private function formatNumber(int|float $value): string
@@ -1260,12 +1625,21 @@ new #[Title('WhatsApp Analytics')] class extends Component {
     </div>
 
     <div class="flex flex-wrap gap-2">
-        <flux:button size="sm" variant="{{ $tab === 'group' ? 'primary' : 'ghost' }}" wire:click="selectTab('group')">{{ __('Statistik Grup') }}</flux:button>
-        <flux:button size="sm" variant="{{ $tab === 'top10' ? 'primary' : 'ghost' }}" wire:click="selectTab('top10')">{{ __('Top 10') }}</flux:button>
-        <flux:button size="sm" variant="{{ $tab === 'personal' ? 'primary' : 'ghost' }}" wire:click="selectTab('personal')">{{ __('Statistik Personal') }}</flux:button>
+        <flux:button class="cursor-pointer" size="sm" variant="{{ $tab === 'group' ? 'primary' : 'ghost' }}" wire:click="selectTab('group')">{{ __('Statistik Grup') }}</flux:button>
+        <flux:button class="cursor-pointer" size="sm" variant="{{ $tab === 'top10' ? 'primary' : 'ghost' }}" wire:click="selectTab('top10')">{{ __('Top 10 Alumni') }}</flux:button>
+        <flux:button class="cursor-pointer" size="sm" variant="{{ $tab === 'personal' ? 'primary' : 'ghost' }}" wire:click="selectTab('personal')">{{ __('Statistik Personal') }}</flux:button>
+        @if ($this->canMapWhatsappAlumni())
+            <flux:button class="cursor-pointer" size="sm" variant="{{ $tab === 'mapping' ? 'primary' : 'ghost' }}" wire:click="selectTab('mapping')">{{ __('Mapping Alumni') }}</flux:button>
+        @endif
+        <flux:button class="cursor-pointer" size="sm" variant="ghost" wire:click="downloadAnalysisSource">{{ __('Bahan Analisis') }}</flux:button>
     </div>
 
-    @if ($this->latestImport)
+    @if ($tab === 'mapping' && $this->canMapWhatsappAlumni())
+        <flux:card class="space-y-3">
+            <flux:heading size="lg">{{ __('Mapping Alumni') }}</flux:heading>
+            <flux:text>{{ __('Pemetaan anggota WhatsApp ke data alumni akan disiapkan pada tahap berikutnya.') }}</flux:text>
+        </flux:card>
+    @elseif ($this->latestImport)
         @if ($tab === 'group')
             <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 @foreach ($this->groupFactCards() as $card)
@@ -1323,6 +1697,140 @@ new #[Title('WhatsApp Analytics')] class extends Component {
                         <div class="h-80 w-full" data-echarts data-echarts-option='@json($this->monthRadarOption())'></div>
                     </flux:card>
                 </div>
+
+                <flux:card class="space-y-4">
+                    <div>
+                        <flux:heading size="lg">{{ __('Word Cloud Grup') }}</flux:heading>
+                        <flux:text>{{ __('Kata-kata yang paling sering muncul dalam percakapan grup, setelah kata umum disaring.') }}</flux:text>
+                    </div>
+                    @php
+                        $wordCloud = $this->groupWordCloud();
+                        $wordCloudRows = $this->groupWordCloudRows($wordCloud);
+                    @endphp
+                    @if ($wordCloud)
+                        <div class="mx-auto flex min-h-[24rem] w-full max-w-5xl flex-col justify-center gap-1 overflow-hidden rounded-[50%] border border-ktn-forest/10 bg-ktn-forest/[0.03] px-4 py-8 text-center dark:border-ktn-sage/10 dark:bg-white/[0.02] sm:min-h-[30rem] sm:gap-2 sm:px-8">
+                            @foreach ($wordCloudRows as $row)
+                                <div class="mx-auto flex flex-wrap items-center justify-center gap-x-4 gap-y-1 sm:gap-x-5" style="width: {{ $row['width'] }}%;">
+                                    @foreach ($row['words'] as $word)
+                                        <span
+                                            class="inline-block shrink-0 font-display uppercase leading-none tracking-normal transition-transform hover:scale-110"
+                                            style="transform: rotate({{ $word['rotation'] }}deg); font-size: clamp(0.75rem, {{ $word['size'] / 16 }}rem, 3.5rem); font-weight: {{ $word['weight'] }}; color: {{ $word['color'] }}; opacity: {{ $word['opacity'] }};"
+                                            title="{{ $word['count'] }} kali"
+                                        >
+                                            {{ $word['word'] }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <flux:text>{{ __('Belum cukup kata untuk membentuk word cloud.') }}</flux:text>
+                    @endif
+                </flux:card>
+
+                <flux:card class="space-y-4">
+                    <div>
+                        <flux:heading size="lg">{{ __('Jejak Digital Tahunan') }}</flux:heading>
+                        <flux:text>{{ __('Seperti commit GitHub, tapi isinya nostalgia, guyonan, foto lawas, dan rencana reuni.') }}</flux:text>
+                    </div>
+
+                    @php
+                        $weeks = $this->digitalCalendarWeeks();
+                    @endphp
+                    <div class="overflow-x-auto pb-2">
+                        <div class="flex min-w-max gap-1">
+                            <div class="mr-1 grid grid-rows-7 gap-1 pt-0 text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
+                                <span>{{ __('Sen') }}</span>
+                                <span></span>
+                                <span>{{ __('Rab') }}</span>
+                                <span></span>
+                                <span>{{ __('Jum') }}</span>
+                                <span></span>
+                                <span>{{ __('Min') }}</span>
+                            </div>
+
+                            @foreach ($weeks as $weekIndex => $week)
+                                <div class="grid grid-rows-7 gap-1" wire:key="digital-week-{{ $selectedDigitalYear }}-{{ $weekIndex }}">
+                                    @foreach ($week as $day)
+                                        @if ($day['in_year'])
+                                            <button
+                                                type="button"
+                                                class="{{ $this->digitalCalendarDayClass($day) }}"
+                                                title="{{ Carbon\CarbonImmutable::parse($day['date'])->format('d/m/Y') }}: {{ number_format($day['count'], 0, ',', '.') }} aktivitas"
+                                                wire:click="selectDigitalDate('{{ $day['date'] }}')"
+                                                aria-label="{{ Carbon\CarbonImmutable::parse($day['date'])->format('d/m/Y') }}: {{ number_format($day['count'], 0, ',', '.') }} aktivitas"
+                                            ></button>
+                                        @else
+                                            <button
+                                                type="button"
+                                                class="{{ $this->digitalCalendarDayClass($day) }}"
+                                                title="{{ Carbon\CarbonImmutable::parse($day['date'])->format('d/m/Y') }}: {{ number_format($day['count'], 0, ',', '.') }} aktivitas"
+                                                aria-label="{{ Carbon\CarbonImmutable::parse($day['date'])->format('d/m/Y') }}: {{ number_format($day['count'], 0, ',', '.') }} aktivitas"
+                                                disabled
+                                            ></button>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2">
+                        @foreach ($this->digitalYears() as $year)
+                            <flux:button
+                                class="cursor-pointer"
+                                size="xs"
+                                variant="{{ $selectedDigitalYear === $year ? 'primary' : 'ghost' }}"
+                                wire:click="selectDigitalYear({{ $year }})"
+                            >
+                                {{ $year }}
+                            </flux:button>
+                        @endforeach
+                    </div>
+
+                    <div class="space-y-3 rounded-xl border border-zinc-200 bg-[#efe7d7] p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                        <div class="text-center text-xs font-semibold text-zinc-600 dark:text-zinc-300">
+                            {{ $this->digitalConversationDateLabel() }}
+                        </div>
+
+                        @php
+                            $selectedDayActivities = $this->selectedDigitalDateActivities();
+                        @endphp
+                        @if ($selectedDigitalDate && $selectedDayActivities->isNotEmpty())
+                            <div class="max-h-[32rem] space-y-3 overflow-y-auto pr-2">
+                                @foreach ($selectedDayActivities as $activity)
+                                    @php
+                                        $alignment = $this->digitalConversationAlignment($activity);
+                                    @endphp
+
+                                    @if ($activity->activity_type === 'system')
+                                        <div class="flex justify-center" wire:key="digital-chat-system-{{ $activity->id }}">
+                                            <div class="max-w-[85%] rounded-full bg-white/80 px-3 py-1 text-center text-xs font-medium text-zinc-600 shadow-sm dark:bg-zinc-800 dark:text-zinc-300">
+                                                {{ $this->digitalConversationText($activity) }}
+                                            </div>
+                                        </div>
+                                    @else
+                                        <div class="flex {{ $alignment === 'right' ? 'justify-end' : 'justify-start' }}" wire:key="digital-chat-message-{{ $activity->id }}">
+                                            <div class="max-w-[82%] rounded-2xl px-4 py-2 shadow-sm {{ $alignment === 'right' ? 'rounded-br-sm bg-[#d9fdd3] text-zinc-900' : 'rounded-bl-sm bg-white text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100' }}">
+                                                <div class="mb-1 text-xs font-semibold {{ $alignment === 'right' ? 'text-ktn-forest' : 'text-orange-700 dark:text-orange-300' }}">
+                                                    {{ $activity->whatsappMember?->display_name ?? $activity->sender_name ?? '-' }}
+                                                </div>
+                                                <div class="whitespace-pre-wrap break-words text-sm leading-relaxed">{{ $this->digitalConversationText($activity) }}</div>
+                                                <div class="mt-1 text-right text-[10px] text-zinc-500">
+                                                    {{ $activity->occurred_at_display->format('H:i') }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+                                @endforeach
+                            </div>
+                        @elseif ($selectedDigitalDate)
+                            <flux:text>{{ __('Tidak ada aktivitas pada tanggal ini.') }}</flux:text>
+                        @else
+                            <flux:text>{{ __('Klik salah satu kotak hari untuk membuka percakapan pada tanggal tersebut.') }}</flux:text>
+                        @endif
+                    </div>
+                </flux:card>
             </div>
         @elseif ($tab === 'top10')
             <div class="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">

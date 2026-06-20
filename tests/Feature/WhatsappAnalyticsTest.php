@@ -9,6 +9,7 @@ use App\Models\WhatsappImport;
 use App\Models\WhatsappMember;
 use App\Models\WhatsappMemberEventStat;
 use App\Models\WhatsappMemberStat;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 test('guests are redirected from whatsapp analytics page', function () {
@@ -42,6 +43,7 @@ test('alumni users can view whatsapp analytics', function () {
 
     $member = WhatsappMember::factory()->create([
         'whatsapp_import_id' => $whatsappImport->id,
+        'alumni_id' => $profile->id,
         'display_name' => 'Budi',
         'normalized_name' => 'budi',
         'total_messages' => 20,
@@ -96,7 +98,7 @@ test('alumni users can view whatsapp analytics', function () {
     WhatsappActivity::factory()->forMember($member)->create([
         'whatsapp_import_id' => $whatsappImport->id,
         'has_emoji' => true,
-        'message_text' => 'Mantap 😊',
+        'message_text' => 'Mantap reuni nostalgia 😊',
     ]);
     WhatsappActivity::factory()->forMember($member)->create([
         'whatsapp_import_id' => $whatsappImport->id,
@@ -120,6 +122,8 @@ test('alumni users can view whatsapp analytics', function () {
         ->assertSee('Statistik Grup')
         ->assertSee('Top 10')
         ->assertSee('Statistik Personal')
+        ->assertSee('Bahan Analisis')
+        ->assertDontSee('Mapping Alumni')
         ->assertSee('Denyut Nadi Grup')
         ->assertSee('Kontur Keramaian Grup')
         ->assertSee('Aktivitas Terakhir')
@@ -130,8 +134,18 @@ test('alumni users can view whatsapp analytics', function () {
         ->assertSee('Anggota Keluar')
         ->assertSee('Hari Favorit Buat Rame-Rame')
         ->assertSee('Kalender Keramaian Alumni')
+        ->assertSee('Word Cloud Grup')
+        ->assertSee('mantap')
+        ->assertSee('Jejak Digital Tahunan')
         ->assertDontSee('Ganti Perangkat')
         ->assertDontSee('raw chat');
+
+    Livewire::actingAs($profile->user)
+        ->test('pages::whatsapp.analytics')
+        ->call('selectDigitalDate', now()->toDateString())
+        ->assertSet('selectedDigitalDate', now()->toDateString())
+        ->assertSee('Mantap reuni nostalgia')
+        ->assertSee('Budi');
 
     Livewire::actingAs($profile->user)
         ->test('pages::whatsapp.analytics')
@@ -185,7 +199,34 @@ test('administrator users can view whatsapp analytics', function () {
         ->get(route('whatsapp.analytics'))
         ->assertOk()
         ->assertSee('WhatsApp Group Analyzer')
+        ->assertSee('Mapping Alumni')
+        ->assertSee('Bahan Analisis')
         ->assertDontSee('Kelola Import');
+
+    Livewire::actingAs($administrator)
+        ->test('pages::whatsapp.analytics')
+        ->call('selectTab', 'mapping')
+        ->assertSet('tab', 'mapping')
+        ->assertSee('Pemetaan anggota WhatsApp ke data alumni akan disiapkan pada tahap berikutnya.');
+});
+
+test('alumni users can download whatsapp analytics source as txt zip', function () {
+    Storage::fake('local');
+
+    $profile = Alumni::factory()->create(['full_name' => 'Budi Santoso']);
+    Storage::disk('local')->put('whatsapp-imports/source.txt', 'raw chat content');
+
+    WhatsappImport::factory()->create([
+        'status' => 'completed',
+        'file_name' => 'whatsapp-chat.txt',
+        'file_path' => 'whatsapp-imports/source.txt',
+        'processed_at' => now(),
+    ]);
+
+    Livewire::actingAs($profile->user)
+        ->test('pages::whatsapp.analytics')
+        ->call('downloadAnalysisSource')
+        ->assertFileDownloaded('whatsapp-chat.txt.zip');
 });
 
 test('regular users without alumni profile cannot view whatsapp analytics', function () {
