@@ -141,7 +141,7 @@ new #[Title('WhatsApp Analytics')] class extends Component {
             [
                 'metric' => 'working_hour_messages',
                 'title' => __('Top 10 Produktif Tapi Fleksibel'),
-                'description' => __('Aktif di weekday jam 08.00-16.00 WIB. Antara kerja, break, atau multitasking tingkat alumni.'),
+                'description' => __('Aktif di weekday jam 08.00-16.00 WIB. Antara kerja, break, multitasking atau makan gaji buta?'),
             ],
             [
                 'metric' => 'after_work_messages',
@@ -180,12 +180,12 @@ new #[Title('WhatsApp Analytics')] class extends Component {
             ],
             [
                 'metric' => 'member_left',
-                'title' => __('Top 10 Titik Hilang dari Jaringan'),
+                'title' => __('Top 10 Keluar Group'),
                 'description' => __('Pernah menjadi bagian dari jaringan pengamatan, lalu menghilang dari peta grup. Namun jejaknya tetap tercatat dalam sejarah.'),
             ],
             [
                 'metric' => 'security_code_changed',
-                'title' => __('Top 10 Reobservasi Perangkat'),
+                'title' => __('Top 10 Pindah HP'),
                 'description' => __('Instrumen boleh berganti, tetapi pengamatnya tetap sama. Statistik ini mencatat mereka yang paling sering melakukan kalibrasi digital.'),
             ],
         ];
