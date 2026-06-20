@@ -36,13 +36,14 @@ new #[Title('WhatsApp Analytics')] class extends Component {
      */
     public function topMembers(string $metric = 'total_messages', int $limit = 10): Collection
     {
-        if ($this->latestImport === null) {
+        if ($this->latestImport === null || ! in_array($metric, $this->memberStatMetricKeys(), true)) {
             return new Collection();
         }
 
         return WhatsappMemberStat::query()
             ->with('whatsappMember:id,display_name')
             ->whereBelongsTo($this->latestImport)
+            ->where($metric, '>', 0)
             ->orderByDesc($metric)
             ->limit($limit)
             ->get();
@@ -66,23 +67,248 @@ new #[Title('WhatsApp Analytics')] class extends Component {
     }
 
     /**
-     * @return array<string, string>
+     * @return array<int, array{metric: string, title: string, description: string}>
      */
-    public function topMetricLabels(): array
+    public function topMetricDefinitions(): array
     {
         return [
-            'total_messages' => __('Tukang Ketik'),
-            'media_messages' => __('Juragan Dokumentasi'),
-            'sticker_messages' => __('Stikerwan-Stikerwati'),
-            'link_messages' => __('Agen Link Nasional'),
-            'emoji_messages' => __('Duta Emoji'),
-            'deleted_messages' => __('Jejak Terhapus'),
-            'morning_messages' => __('Pasukan Subuh Produktif'),
-            'working_hour_messages' => __('Produktif Tapi Fleksibel'),
-            'after_work_messages' => __('After Office Club'),
-            'midnight_messages' => __('Kalong Digital'),
-            'weekend_messages' => __('Weekend Warrior'),
+            [
+                'metric' => 'total_messages',
+                'title' => __('Top 10 Tukang Ketik'),
+                'description' => __('Mereka bukan sekadar anggota grup. Mereka adalah mesin penggerak percakapan.'),
+            ],
+            [
+                'metric' => 'media_messages',
+                'title' => __('Top 10 Juragan Dokumentasi'),
+                'description' => __('Foto, video, dokumen, dan segala bentuk kenangan visual biasanya lewat tangan mereka.'),
+            ],
+            [
+                'metric' => 'sticker_messages',
+                'title' => __('Top 10 Stikerwan-Stikerwati'),
+                'description' => __('Saat kata-kata tidak cukup, sticker mengambil alih percakapan.'),
+            ],
+            [
+                'metric' => 'link_messages',
+                'title' => __('Top 10 Agen Link Nasional'),
+                'description' => __('Mulai dari berita penting, undangan acara, sampai link yang entah valid entah hoax.'),
+            ],
+            [
+                'metric' => 'emoji_messages',
+                'title' => __('Top 10 Duta Emoji'),
+                'description' => __('Karena ekspresi wajah tidak kelihatan, emoji pun bekerja lembur.'),
+            ],
+            [
+                'metric' => 'deleted_messages',
+                'title' => __('Top 10 Jejak Terhapus'),
+                'description' => __('Pernah ada. Lalu hilang. Tapi statistik tetap mencatat.'),
+            ],
+            [
+                'metric' => 'location_messages',
+                'title' => __('Top 10 Shareloc Warrior'),
+                'description' => __('Mereka tidak banyak menjelaskan. Cukup kirim lokasi, semua paham arah perjuangan.'),
+            ],
+            [
+                'metric' => 'morning_messages',
+                'title' => __('Top 10 Pasukan Subuh Produktif'),
+                'description' => __('Aktif antara jam 04.00-08.00 WIB. Saat sebagian masih mimpi, mereka sudah mengetik.'),
+            ],
+            [
+                'metric' => 'working_hour_messages',
+                'title' => __('Top 10 Produktif Tapi Fleksibel'),
+                'description' => __('Aktif di weekday jam 08.00-16.00 WIB. Antara kerja, break, atau multitasking tingkat alumni.'),
+            ],
+            [
+                'metric' => 'after_work_messages',
+                'title' => __('Top 10 After Office Club'),
+                'description' => __('Aktif jam 16.00-23.00 WIB. Saat laptop mulai ditutup, grup mulai dibuka.'),
+            ],
+            [
+                'metric' => 'midnight_messages',
+                'title' => __('Top 10 Kalong Digital'),
+                'description' => __('Aktif jam 23.00-04.00 WIB. Grup tidur? Mereka belum tentu.'),
+            ],
+            [
+                'metric' => 'weekend_messages',
+                'title' => __('Top 10 Weekend Warrior'),
+                'description' => __('Sabtu-Minggu bukan libur dari grup. Justru kadang makin rame.'),
+            ],
+            [
+                'metric' => 'total_words',
+                'title' => __('Top 10 Kultum Terpanjang'),
+                'description' => __('Mereka bukan cuma sering muncul, tapi juga meninggalkan jejak kata paling panjang.'),
+            ],
+            [
+                'metric' => 'active_days',
+                'title' => __('Top 10 Paling Konsisten'),
+                'description' => __('Tidak selalu paling ramai, tapi paling sering hadir dari hari ke hari.'),
+            ],
+            [
+                'metric' => 'average_words_per_message_low',
+                'title' => __('Top 10 Mode Hemat Kata'),
+                'description' => __('Singkat, padat, dan langsung selesai. Ranking ini memakai rata-rata kata per pesan paling rendah.'),
+            ],
         ];
+    }
+
+    /**
+     * @return array<int, array{metric: string, title: string, description: string}>
+     */
+    public function visibleTopMetricDefinitions(): array
+    {
+        return array_values(array_filter(
+            $this->topMetricDefinitions(),
+            fn (array $definition): bool => $this->hasTopMetricData($definition['metric']),
+        ));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function topMetricKeys(): array
+    {
+        return array_column($this->topMetricDefinitions(), 'metric');
+    }
+
+    private function hasTopMetricData(string $metric): bool
+    {
+        return $this->topMemberRankingRows($metric, 1) !== [];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function topMemberChartOption(string $metric): array
+    {
+        $rows = $this->topMemberRankingRows($metric);
+        $labels = array_column($rows, 'label');
+        $values = array_column($rows, 'value');
+
+        return [
+            'color' => ['#173f25'],
+            'topBarTooltip' => true,
+            'tooltip' => ['trigger' => 'axis', 'axisPointer' => ['type' => 'shadow']],
+            'grid' => ['left' => 8, 'right' => 24, 'top' => 12, 'bottom' => 24, 'containLabel' => true],
+            'xAxis' => [
+                'type' => 'value',
+                'splitLine' => ['lineStyle' => ['color' => 'rgba(23, 63, 37, 0.12)']],
+            ],
+            'yAxis' => [
+                'type' => 'category',
+                'data' => $labels,
+                'inverse' => true,
+                'axisTick' => ['show' => false],
+            ],
+            'series' => [[
+                'name' => __('Aktivitas'),
+                'type' => 'bar',
+                'barMaxWidth' => 22,
+                'data' => $values,
+                'itemStyle' => ['borderRadius' => [0, 6, 6, 0]],
+            ]],
+        ];
+    }
+
+    /**
+     * @return array<int, array{label: string, value: int|float}>
+     */
+    private function topMemberRankingRows(string $metric, int $limit = 10): array
+    {
+        if ($this->latestImport === null || ! in_array($metric, $this->topMetricKeys(), true)) {
+            return [];
+        }
+
+        if (array_key_exists($metric, $this->activityFlagMetricColumns())) {
+            return $this->topActivityFlagRows($metric, $limit);
+        }
+
+        if ($metric === 'average_words_per_message_low') {
+            return $this->topLowAverageWordRows($limit);
+        }
+
+        return $this->topMembers($metric, $limit)
+            ->map(fn (WhatsappMemberStat $row): array => [
+                'label' => $this->memberLabel($row),
+                'value' => (int) $row->{$metric},
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function activityFlagMetricColumns(): array
+    {
+        return [
+            'media_messages' => 'has_media',
+            'sticker_messages' => 'has_sticker',
+            'link_messages' => 'has_link',
+            'emoji_messages' => 'has_emoji',
+            'deleted_messages' => 'is_deleted_message',
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function memberStatMetricKeys(): array
+    {
+        return [
+            'total_messages',
+            'location_messages',
+            'morning_messages',
+            'working_hour_messages',
+            'after_work_messages',
+            'midnight_messages',
+            'weekend_messages',
+            'total_words',
+            'active_days',
+        ];
+    }
+
+    /**
+     * @return array<int, array{label: string, value: int}>
+     */
+    private function topActivityFlagRows(string $metric, int $limit): array
+    {
+        $column = $this->activityFlagMetricColumns()[$metric];
+
+        return WhatsappActivity::query()
+            ->with('whatsappMember:id,display_name')
+            ->whereBelongsTo($this->latestImport)
+            ->whereNotNull('whatsapp_member_id')
+            ->where($column, true)
+            ->select('whatsapp_member_id')
+            ->selectRaw('COUNT(*) as metric_value')
+            ->groupBy('whatsapp_member_id')
+            ->orderByDesc('metric_value')
+            ->limit($limit)
+            ->get()
+            ->map(fn (WhatsappActivity $row): array => [
+                'label' => $row->whatsappMember?->display_name ?? '-',
+                'value' => (int) $row->metric_value,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array<int, array{label: string, value: float}>
+     */
+    private function topLowAverageWordRows(int $limit): array
+    {
+        return WhatsappMemberStat::query()
+            ->with('whatsappMember:id,display_name')
+            ->whereBelongsTo($this->latestImport)
+            ->where('total_messages', '>=', 5)
+            ->where('total_words', '>', 0)
+            ->get()
+            ->map(fn (WhatsappMemberStat $row): array => [
+                'label' => $this->memberLabel($row),
+                'value' => round($row->total_words / $row->total_messages, 1),
+            ])
+            ->sortBy('value')
+            ->take($limit)
+            ->values()
+            ->all();
     }
 
     /**
@@ -616,22 +842,21 @@ new #[Title('WhatsApp Analytics')] class extends Component {
                 </div>
             </div>
         @elseif ($tab === 'top10')
-            <div class="grid gap-4 xl:grid-cols-2">
-                @foreach ($this->topMetricLabels() as $metric => $title)
-                    <flux:card class="space-y-4" wire:key="top-{{ $metric }}">
-                        <flux:heading size="lg">{{ __('Top 10') }} {{ $title }}</flux:heading>
-                        <div class="space-y-3">
-                            @forelse ($this->topMembers($metric) as $row)
-                                <div class="flex items-center justify-between gap-4 rounded-lg border border-zinc-200 p-3 dark:border-zinc-700" wire:key="{{ $metric }}-{{ $row->id }}">
-                                    <span class="truncate font-medium">{{ $this->memberLabel($row) }}</span>
-                                    <span class="font-semibold tabular-nums">{{ (int) $row->{$metric} }}</span>
-                                </div>
-                            @empty
-                                <flux:text>{{ __('Belum ada data untuk metric ini.') }}</flux:text>
-                            @endforelse
+            <div class="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+                @forelse ($this->visibleTopMetricDefinitions() as $definition)
+                    <flux:card class="space-y-4" wire:key="top-{{ $definition['metric'] }}">
+                        <div>
+                            <flux:heading size="lg">{{ $definition['title'] }}</flux:heading>
+                            <flux:text>{{ $definition['description'] }}</flux:text>
                         </div>
+                        <div class="h-80 w-full" data-echarts data-echarts-option='@json($this->topMemberChartOption($definition['metric']))'></div>
                     </flux:card>
-                @endforeach
+                @empty
+                    <flux:card class="space-y-3 lg:col-span-2 2xl:col-span-3">
+                        <flux:heading size="lg">{{ __('Belum ada Top 10') }}</flux:heading>
+                        <flux:text>{{ __('Ranking akan muncul setelah import memiliki statistik anggota yang bernilai lebih dari nol.') }}</flux:text>
+                    </flux:card>
+                @endforelse
             </div>
         @else
             <div class="grid gap-4 xl:grid-cols-2">

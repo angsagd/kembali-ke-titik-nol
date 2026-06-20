@@ -8,6 +8,7 @@ use App\Models\WhatsappDailyStat;
 use App\Models\WhatsappImport;
 use App\Models\WhatsappMember;
 use App\Models\WhatsappMemberStat;
+use Livewire\Livewire;
 
 test('guests are redirected from whatsapp analytics page', function () {
     $this->get(route('whatsapp.analytics'))
@@ -43,6 +44,7 @@ test('alumni users can view whatsapp analytics', function () {
         'display_name' => 'Budi',
         'normalized_name' => 'budi',
         'total_messages' => 20,
+        'total_words' => 120,
     ]);
 
     WhatsappMemberStat::factory()->create([
@@ -50,8 +52,48 @@ test('alumni users can view whatsapp analytics', function () {
         'whatsapp_member_id' => $member->id,
         'alumni_id' => $member->alumni_id,
         'total_messages' => 20,
+        'media_messages' => 8,
+        'sticker_messages' => 6,
         'emoji_messages' => 4,
         'link_messages' => 3,
+        'deleted_messages' => 2,
+        'location_messages' => 1,
+        'morning_messages' => 7,
+        'working_hour_messages' => 9,
+        'after_work_messages' => 11,
+        'midnight_messages' => 5,
+        'weekend_messages' => 10,
+        'active_days' => 12,
+        'total_words' => 120,
+    ]);
+
+    WhatsappActivity::factory()->forMember($member)->create([
+        'whatsapp_import_id' => $whatsappImport->id,
+        'has_media' => true,
+        'message_text' => '<Media omitted>',
+    ]);
+    WhatsappActivity::factory()->forMember($member)->create([
+        'whatsapp_import_id' => $whatsappImport->id,
+        'has_sticker' => true,
+        'has_media' => true,
+        'message_text' => '<Sticker omitted>',
+    ]);
+    WhatsappActivity::factory()->forMember($member)->create([
+        'whatsapp_import_id' => $whatsappImport->id,
+        'has_link' => true,
+        'message_text' => 'https://example.test',
+    ]);
+    WhatsappActivity::factory()->forMember($member)->create([
+        'whatsapp_import_id' => $whatsappImport->id,
+        'has_emoji' => true,
+        'message_text' => 'Mantap 😊',
+    ]);
+    WhatsappActivity::factory()->forMember($member)->create([
+        'whatsapp_import_id' => $whatsappImport->id,
+        'activity_type' => 'system',
+        'system_event_type' => 'deleted_message',
+        'message_text' => 'This message was deleted',
+        'is_deleted_message' => true,
     ]);
 
     WhatsappActivity::factory()->create([
@@ -80,6 +122,25 @@ test('alumni users can view whatsapp analytics', function () {
         ->assertSee('Kalender Keramaian Alumni')
         ->assertDontSee('Ganti Perangkat')
         ->assertDontSee('raw chat');
+
+    Livewire::actingAs($profile->user)
+        ->test('pages::whatsapp.analytics')
+        ->call('selectTab', 'top10')
+        ->assertSee('Top 10 Tukang Ketik')
+        ->assertSee('Top 10 Juragan Dokumentasi')
+        ->assertSee('Top 10 Stikerwan-Stikerwati')
+        ->assertSee('Top 10 Agen Link Nasional')
+        ->assertSee('Top 10 Duta Emoji')
+        ->assertSee('Top 10 Jejak Terhapus')
+        ->assertSee('Top 10 Shareloc Warrior')
+        ->assertSee('Top 10 Pasukan Subuh Produktif')
+        ->assertSee('Top 10 Produktif Tapi Fleksibel')
+        ->assertSee('Top 10 After Office Club')
+        ->assertSee('Top 10 Kalong Digital')
+        ->assertSee('Top 10 Weekend Warrior')
+        ->assertSee('Top 10 Kultum Terpanjang')
+        ->assertSee('Top 10 Paling Konsisten')
+        ->assertSee('Top 10 Mode Hemat Kata');
 });
 
 test('administrator users can view whatsapp analytics', function () {

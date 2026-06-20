@@ -438,12 +438,15 @@ function initializeEcharts() {
 
         const radarTooltip = prepareRadarTooltip(option);
         applyHeatmapTooltipFormatter(option);
+        applyTopBarTooltipFormatter(option);
 
         if (!echartsInstances.has(element)) {
             const chart = echarts.init(element);
 
             chart.setOption(option);
             syncRadarTooltip(element, option, radarTooltip);
+            window.setTimeout(() => chart.resize(), 50);
+            window.setTimeout(() => chart.resize(), 250);
 
             const resize = () => chart.resize();
             window.addEventListener('resize', resize);
@@ -456,6 +459,15 @@ function initializeEcharts() {
         existing.chart.setOption(option, true);
         syncRadarTooltip(element, option, radarTooltip);
         window.setTimeout(() => existing.chart.resize(), 50);
+        window.setTimeout(() => existing.chart.resize(), 250);
+    });
+}
+
+function initializeEchartsAfterRender() {
+    window.queueMicrotask(() => {
+        initializeEcharts();
+        window.setTimeout(initializeEcharts, 50);
+        window.setTimeout(initializeEcharts, 250);
     });
 }
 
@@ -498,6 +510,27 @@ function applyHeatmapTooltipFormatter(option) {
     };
 
     delete option.heatmapTooltip;
+}
+
+function applyTopBarTooltipFormatter(option) {
+    if (option.topBarTooltip !== true) {
+        return;
+    }
+
+    const numberFormatter = new Intl.NumberFormat('id-ID');
+
+    option.tooltip = {
+        ...(option.tooltip || {}),
+        formatter(params) {
+            const item = Array.isArray(params) ? params[0] : params;
+            const name = item?.name ?? '-';
+            const value = numberFormatter.format(Number(item?.value) || 0);
+
+            return `${name}<br><strong>${value}</strong> aktivitas`;
+        },
+    };
+
+    delete option.topBarTooltip;
 }
 
 function syncRadarTooltip(element, option, tooltipData) {
@@ -714,6 +747,7 @@ document.addEventListener('livewire:init', () => {
         onSuccess(() => window.queueMicrotask(() => {
             initializeCityAutocompletes();
             initializeRichTextEditors();
+            initializeEchartsAfterRender();
         }));
     });
 });
