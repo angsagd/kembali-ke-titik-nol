@@ -7,6 +7,7 @@ use App\Models\WhatsappActivity;
 use App\Models\WhatsappDailyStat;
 use App\Models\WhatsappImport;
 use App\Models\WhatsappMember;
+use App\Models\WhatsappMemberEventStat;
 use App\Models\WhatsappMemberStat;
 use Livewire\Livewire;
 
@@ -65,6 +66,15 @@ test('alumni users can view whatsapp analytics', function () {
         'weekend_messages' => 10,
         'active_days' => 12,
         'total_words' => 120,
+    ]);
+
+    WhatsappMemberEventStat::factory()->create([
+        'whatsapp_import_id' => $whatsappImport->id,
+        'whatsapp_member_id' => $member->id,
+        'alumni_id' => $member->alumni_id,
+        'member_added_as_actor' => 4,
+        'member_left' => 1,
+        'security_code_changed' => 3,
     ]);
 
     WhatsappActivity::factory()->forMember($member)->create([
@@ -140,7 +150,21 @@ test('alumni users can view whatsapp analytics', function () {
         ->assertSee('Top 10 Weekend Warrior')
         ->assertSee('Top 10 Kultum Terpanjang')
         ->assertSee('Top 10 Paling Konsisten')
-        ->assertSee('Top 10 Mode Hemat Kata');
+        ->assertSee('Top 10 Mode Hemat Kata')
+        ->assertSee('Top 10 Menambahkan Anggota')
+        ->assertSee('Top 10 Keluar Grup')
+        ->assertSee('Top 10 Ganti Perangkat');
+
+    Livewire::actingAs($profile->user)
+        ->test('pages::whatsapp.analytics')
+        ->call('selectTab', 'personal')
+        ->assertSee('Budi')
+        ->assertSet('selectedWhatsappMemberIds', [$member->id])
+        ->call('togglePersonalMember', $member->id)
+        ->assertSet('selectedWhatsappMemberIds', [])
+        ->assertDontSee('Menambahkan Anggota')
+        ->assertDontSee('Keluar Grup')
+        ->assertDontSee('Ganti Perangkat');
 });
 
 test('administrator users can view whatsapp analytics', function () {

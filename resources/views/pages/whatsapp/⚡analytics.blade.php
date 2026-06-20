@@ -15,11 +15,36 @@ use Livewire\Component;
 new #[Title('WhatsApp Analytics')] class extends Component {
     public string $tab = 'group';
 
+    /**
+     * @var array<int, int>
+     */
+    public array $selectedWhatsappMemberIds = [];
+
+    public function mount(): void
+    {
+        $this->selectedWhatsappMemberIds = $this->defaultSelectedPersonalMemberIds();
+    }
+
     public function selectTab(string $tab): void
     {
         if (in_array($tab, ['group', 'top10', 'personal'], true)) {
             $this->tab = $tab;
         }
+    }
+
+    public function togglePersonalMember(int $memberId): void
+    {
+        if (in_array($memberId, $this->selectedWhatsappMemberIds, true)) {
+            $this->selectedWhatsappMemberIds = array_values(array_filter(
+                $this->selectedWhatsappMemberIds,
+                fn (int $selectedMemberId): bool => $selectedMemberId !== $memberId,
+            ));
+
+            return;
+        }
+
+        $this->selectedWhatsappMemberIds[] = $memberId;
+        $this->selectedWhatsappMemberIds = array_slice(array_values(array_unique($this->selectedWhatsappMemberIds)), -10);
     }
 
     #[Computed]
@@ -54,13 +79,14 @@ new #[Title('WhatsApp Analytics')] class extends Component {
      */
     public function topEventMembers(string $metric, int $limit = 10): Collection
     {
-        if ($this->latestImport === null) {
+        if ($this->latestImport === null || ! in_array($metric, $this->eventMetricKeys(), true)) {
             return new Collection();
         }
 
         return WhatsappMemberEventStat::query()
             ->with('whatsappMember:id,display_name')
             ->whereBelongsTo($this->latestImport)
+            ->where($metric, '>', 0)
             ->orderByDesc($metric)
             ->limit($limit)
             ->get();
@@ -147,6 +173,21 @@ new #[Title('WhatsApp Analytics')] class extends Component {
                 'title' => __('Top 10 Mode Hemat Kata'),
                 'description' => __('Singkat, padat, dan langsung selesai. Ranking ini memakai rata-rata kata per pesan paling rendah.'),
             ],
+            [
+                'metric' => 'member_added_as_actor',
+                'title' => __('Top 10 Menambahkan Anggota'),
+                'description' => __('Mereka yang paling sering membuka pintu grup untuk anggota lain.'),
+            ],
+            [
+                'metric' => 'member_left',
+                'title' => __('Top 10 Keluar Grup'),
+                'description' => __('Jejak anggota yang pernah pamit dari grup dan tetap tercatat sebagai peristiwa sistem.'),
+            ],
+            [
+                'metric' => 'security_code_changed',
+                'title' => __('Top 10 Ganti Perangkat'),
+                'description' => __('Aktivitas ganti perangkat atau security code yang paling sering muncul di riwayat grup.'),
+            ],
         ];
     }
 
@@ -225,6 +266,15 @@ new #[Title('WhatsApp Analytics')] class extends Component {
             return $this->topLowAverageWordRows($limit);
         }
 
+        if (in_array($metric, $this->eventMetricKeys(), true)) {
+            return $this->topEventMembers($metric, $limit)
+                ->map(fn (WhatsappMemberEventStat $row): array => [
+                    'label' => $this->memberLabel($row),
+                    'value' => (int) $row->{$metric},
+                ])
+                ->all();
+        }
+
         return $this->topMembers($metric, $limit)
             ->map(fn (WhatsappMemberStat $row): array => [
                 'label' => $this->memberLabel($row),
@@ -262,6 +312,20 @@ new #[Title('WhatsApp Analytics')] class extends Component {
             'weekend_messages',
             'total_words',
             'active_days',
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function eventMetricKeys(): array
+    {
+        return [
+            'member_added_as_actor',
+            'member_added_as_target',
+            'member_removed_as_actor',
+            'member_left',
+            'security_code_changed',
         ];
     }
 
@@ -754,6 +818,52 @@ new #[Title('WhatsApp Analytics')] class extends Component {
         ];
     }
 
+    /**
+     * @return Collection<int, WhatsappMemberStat>
+     */
+    public function personalMemberButtons(): Collection
+    {
+        if ($this->latestImport === null) {
+            return new Collection();
+        }
+
+        return WhatsappMemberStat::query()
+            ->with('whatsappMember:id,display_name')
+            ->whereBelongsTo($this->latestImport)
+            ->where('total_messages', '>', 0)
+            ->get()
+            ->sortBy(fn (WhatsappMemberStat $row): string => mb_strtolower($this->memberLabel($row)))
+            ->values();
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function defaultSelectedPersonalMemberIds(): array
+    {
+        if ($this->latestImport === null) {
+            return [];
+        }
+
+        return WhatsappMemberStat::query()
+            ->whereBelongsTo($this->latestImport)
+            ->where('total_messages', '>', 0)
+            ->orderByDesc('total_messages')
+            ->limit(5)
+            ->pluck('whatsapp_member_id')
+            ->map(fn (mixed $id): int => (int) $id)
+            ->all();
+    }
+
+    public function personalMemberButtonStyle(WhatsappMemberStat $row, int $maxMessages): string
+    {
+        $intensity = max(0.12, min(1, $row->total_messages / $maxMessages));
+        $startOpacity = round(0.08 + ($intensity * 0.22), 3);
+        $endOpacity = round(0.16 + ($intensity * 0.48), 3);
+
+        return "background: linear-gradient(135deg, rgba(23, 63, 37, {$startOpacity}), rgba(31, 81, 51, {$endOpacity}));";
+    }
+
     public function memberLabel(WhatsappMemberStat|WhatsappMemberEventStat $row): string
     {
         return $row->whatsappMember?->display_name ?? '-';
@@ -859,41 +969,69 @@ new #[Title('WhatsApp Analytics')] class extends Component {
                 @endforelse
             </div>
         @else
-            <div class="grid gap-4 xl:grid-cols-2">
-                <flux:card class="space-y-4">
-                    <div>
-                        <flux:heading size="lg">{{ __('Pola Chat Personal') }}</flux:heading>
-                        <flux:text>{{ __('Default menampilkan top 5 paling aktif agar chart tetap terbaca.') }}</flux:text>
-                    </div>
-                    <div class="h-96 w-full" data-echarts data-echarts-option='@json($this->personalMessageChartOption())'></div>
-                </flux:card>
+            <div class="space-y-4">
+                @php
+                    $personalMembers = $this->personalMemberButtons();
+                    $maxPersonalMessages = max(1, (int) $personalMembers->max('total_messages'));
+                @endphp
 
-                <flux:card class="space-y-4">
-                    <flux:heading size="lg">{{ __('Jejak Sistem Personal') }}</flux:heading>
-                    <div class="space-y-3">
-                        @foreach ([
-                            'member_added_as_actor' => __('Menambahkan Anggota'),
-                            'member_added_as_target' => __('Ditambahkan'),
-                            'member_removed_as_actor' => __('Mengeluarkan Anggota'),
-                            'member_left' => __('Keluar Grup'),
-                            'security_code_changed' => __('Ganti Perangkat'),
-                        ] as $metric => $title)
-                            <div wire:key="event-{{ $metric }}">
-                                <div class="mb-2 flex items-center justify-between gap-3">
-                                    <span class="font-medium">{{ $title }}</span>
-                                </div>
-                                <div class="space-y-2">
-                                    @foreach ($this->topEventMembers($metric, 5) as $row)
-                                        <div class="flex items-center justify-between gap-4 rounded-lg border border-zinc-200 p-3 dark:border-zinc-700" wire:key="{{ $metric }}-{{ $row->id }}">
-                                            <span class="truncate">{{ $this->memberLabel($row) }}</span>
-                                            <span class="font-semibold tabular-nums">{{ (int) $row->{$metric} }}</span>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
+                <flux:card class="overflow-visible">
+                    <div class="grid grid-cols-2 gap-1 overflow-visible md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
+                        @foreach ($personalMembers as $memberRow)
+                            @php
+                                $isSelected = in_array($memberRow->whatsapp_member_id, $selectedWhatsappMemberIds, true);
+                            @endphp
+                            <flux:tooltip
+                                position="top"
+                                content="{{ number_format($memberRow->total_messages, 0, ',', '.') }}"
+                                wire:key="personal-member-tooltip-{{ $memberRow->whatsapp_member_id }}"
+                            >
+                                <button
+                                    type="button"
+                                    wire:click="togglePersonalMember({{ $memberRow->whatsapp_member_id }})"
+                                    class="flex h-12 w-full items-center justify-center rounded-lg border p-2 text-center text-sm font-semibold leading-none shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ktn-forest/40 sm:text-base {{ $isSelected ? 'border-orange-500 text-orange-700 ring-2 ring-orange-500 dark:text-orange-300' : 'border-zinc-200 text-zinc-900 dark:border-zinc-700 dark:text-zinc-100' }}"
+                                    style="{{ $this->personalMemberButtonStyle($memberRow, $maxPersonalMessages) }}"
+                                >
+                                    <span class="block w-full truncate whitespace-nowrap text-center">{{ $this->memberLabel($memberRow) }}</span>
+                                </button>
+                            </flux:tooltip>
                         @endforeach
                     </div>
                 </flux:card>
+
+                <div class="grid gap-4 xl:grid-cols-2">
+                    <flux:card class="space-y-4">
+                        <div>
+                            <flux:heading size="lg">{{ __('Pola Chat Personal') }}</flux:heading>
+                            <flux:text>{{ __('Default menampilkan top 5 paling aktif agar chart tetap terbaca.') }}</flux:text>
+                        </div>
+                        <div class="h-96 w-full" data-echarts data-echarts-option='@json($this->personalMessageChartOption())'></div>
+                    </flux:card>
+
+                    <flux:card class="space-y-4">
+                        <flux:heading size="lg">{{ __('Jejak Sistem Personal') }}</flux:heading>
+                        <div class="space-y-3">
+                            @foreach ([
+                                'member_added_as_target' => __('Ditambahkan'),
+                                'member_removed_as_actor' => __('Mengeluarkan Anggota'),
+                            ] as $metric => $title)
+                                <div wire:key="event-{{ $metric }}">
+                                    <div class="mb-2 flex items-center justify-between gap-3">
+                                        <span class="font-medium">{{ $title }}</span>
+                                    </div>
+                                    <div class="space-y-2">
+                                        @foreach ($this->topEventMembers($metric, 5) as $row)
+                                            <div class="flex items-center justify-between gap-4 rounded-lg border border-zinc-200 p-3 dark:border-zinc-700" wire:key="{{ $metric }}-{{ $row->id }}">
+                                                <span class="truncate">{{ $this->memberLabel($row) }}</span>
+                                                <span class="font-semibold tabular-nums">{{ (int) $row->{$metric} }}</span>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </flux:card>
+                </div>
             </div>
         @endif
     @else
