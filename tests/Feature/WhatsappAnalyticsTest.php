@@ -121,7 +121,7 @@ test('alumni users can view whatsapp analytics', function () {
         ->assertSee('Top 10')
         ->assertSee('Statistik Personal')
         ->assertSee('Denyut Nadi Grup')
-        ->assertSee('Peta Panas Aktivitas Grup')
+        ->assertSee('Kontur Keramaian Grup')
         ->assertSee('Aktivitas Terakhir')
         ->assertSee('Total Kata')
         ->assertSee('75.364')
@@ -152,19 +152,26 @@ test('alumni users can view whatsapp analytics', function () {
         ->assertSee('Top 10 Paling Konsisten')
         ->assertSee('Top 10 Mode Hemat Kata')
         ->assertSee('Top 10 Menambahkan Anggota')
-        ->assertSee('Top 10 Keluar Grup')
-        ->assertSee('Top 10 Ganti Perangkat');
+        ->assertSee('Top 10 Titik Hilang dari Jaringan')
+        ->assertSee('Top 10 Reobservasi Perangkat');
 
     Livewire::actingAs($profile->user)
         ->test('pages::whatsapp.analytics')
         ->call('selectTab', 'personal')
         ->assertSee('Budi')
+        ->assertSee('Produktivitas Titik Kontrol')
+        ->assertSee('Observasi Non-Verbal')
+        ->assertSee('Ephemeris Kehadiran')
+        ->assertSee('Azimuth Aktivitas Harian')
+        ->assertSee('Jadwal Survei Sosial')
+        ->assertSee('Musim Pengamatan Personal')
+        ->assertSee('Menambahkan Anggota')
+        ->assertSee('Keluar Grup')
+        ->assertSee('Mengganti Perangkat')
+        ->assertDontSee('Jejak Sistem Personal')
         ->assertSet('selectedWhatsappMemberIds', [$member->id])
         ->call('togglePersonalMember', $member->id)
-        ->assertSet('selectedWhatsappMemberIds', [])
-        ->assertDontSee('Menambahkan Anggota')
-        ->assertDontSee('Keluar Grup')
-        ->assertDontSee('Ganti Perangkat');
+        ->assertSet('selectedWhatsappMemberIds', []);
 });
 
 test('administrator users can view whatsapp analytics', function () {

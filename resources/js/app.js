@@ -438,6 +438,7 @@ function initializeEcharts() {
 
         const radarTooltip = prepareRadarTooltip(option);
         applyHeatmapTooltipFormatter(option);
+        applyPersonalStackedBarTooltipFormatter(option);
         applyTopBarTooltipFormatter(option);
 
         if (!echartsInstances.has(element)) {
@@ -477,7 +478,14 @@ function prepareRadarTooltip(option) {
     }
 
     const labels = option.radarTooltipLabels.slice();
-    const values = option.series?.[0]?.data?.[0]?.value;
+    const series = Array.isArray(option.series)
+        ? option.series
+            .map((item) => ({
+                name: item?.name ?? item?.data?.[0]?.name ?? 'Aktivitas',
+                values: item?.data?.[0]?.value,
+            }))
+            .filter((item) => Array.isArray(item.values))
+        : [];
 
     option.tooltip = {
         ...(option.tooltip || {}),
@@ -486,7 +494,7 @@ function prepareRadarTooltip(option) {
 
     delete option.radarTooltipLabels;
 
-    return Array.isArray(values) ? { labels, values } : null;
+    return series.length > 0 ? { labels, series } : null;
 }
 
 function applyHeatmapTooltipFormatter(option) {
@@ -533,6 +541,29 @@ function applyTopBarTooltipFormatter(option) {
     delete option.topBarTooltip;
 }
 
+function applyPersonalStackedBarTooltipFormatter(option) {
+    if (option.personalStackedBarTooltip !== true) {
+        return;
+    }
+
+    const numberFormatter = new Intl.NumberFormat('id-ID');
+
+    option.tooltip = {
+        ...(option.tooltip || {}),
+        trigger: 'item',
+        formatter(params) {
+            const value = numberFormatter.format(Number(params?.value) || 0);
+            const marker = params?.marker ?? '';
+            const name = params?.name ?? '-';
+            const seriesName = params?.seriesName ?? '-';
+
+            return `${name}<br>${marker} ${seriesName} <strong>${value}</strong> aktivitas`;
+        },
+    };
+
+    delete option.personalStackedBarTooltip;
+}
+
 function syncRadarTooltip(element, option, tooltipData) {
     const existing = radarTooltipStates.get(element);
 
@@ -562,7 +593,7 @@ function syncRadarTooltip(element, option, tooltipData) {
             return;
         }
 
-        tooltip.innerHTML = `${nearest.label}<br><strong>${nearest.value}</strong> aktivitas`;
+        tooltip.innerHTML = `${nearest.series}<br>${nearest.label}<br><strong>${nearest.value}</strong> aktivitas`;
         tooltip.style.left = `${Math.min(nearest.cursorX + 12, element.clientWidth - tooltip.offsetWidth - 8)}px`;
         tooltip.style.top = `${Math.max(nearest.cursorY - tooltip.offsetHeight - 12, 8)}px`;
         tooltip.classList.remove('hidden');
@@ -585,27 +616,31 @@ function nearestRadarPoint(event, element, option, tooltipData) {
     const indicators = option.radar.indicator;
     const max = Math.max(...indicators.map((indicator) => Number(indicator.max) || 1), 1);
     const startAngle = Number(option.radar.startAngle ?? 90);
-    const step = 360 / tooltipData.values.length;
+    const pointCount = tooltipData.series[0]?.values?.length ?? 0;
+    const step = pointCount > 0 ? 360 / pointCount : 0;
 
     let nearest = null;
 
-    tooltipData.values.forEach((rawValue, index) => {
-        const value = Number(rawValue) || 0;
-        const angle = ((startAngle + (index * step)) * Math.PI) / 180;
-        const distance = radius * Math.min(value / max, 1);
-        const pointX = centerX + Math.cos(angle) * distance;
-        const pointY = centerY - Math.sin(angle) * distance;
-        const pointDistance = Math.hypot(cursorX - pointX, cursorY - pointY);
+    tooltipData.series.forEach((series) => {
+        series.values.forEach((rawValue, index) => {
+            const value = Number(rawValue) || 0;
+            const angle = ((startAngle + (index * step)) * Math.PI) / 180;
+            const distance = radius * Math.min(value / max, 1);
+            const pointX = centerX + Math.cos(angle) * distance;
+            const pointY = centerY - Math.sin(angle) * distance;
+            const pointDistance = Math.hypot(cursorX - pointX, cursorY - pointY);
 
-        if (!nearest || pointDistance < nearest.distance) {
-            nearest = {
-                distance: pointDistance,
-                label: tooltipData.labels[index],
-                value,
-                cursorX,
-                cursorY,
-            };
-        }
+            if (!nearest || pointDistance < nearest.distance) {
+                nearest = {
+                    distance: pointDistance,
+                    series: series.name,
+                    label: tooltipData.labels[index],
+                    value,
+                    cursorX,
+                    cursorY,
+                };
+            }
+        });
     });
 
     return nearest && nearest.distance <= 26 ? nearest : null;

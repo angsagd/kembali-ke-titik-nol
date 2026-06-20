@@ -180,13 +180,13 @@ new #[Title('WhatsApp Analytics')] class extends Component {
             ],
             [
                 'metric' => 'member_left',
-                'title' => __('Top 10 Keluar Grup'),
-                'description' => __('Jejak anggota yang pernah pamit dari grup dan tetap tercatat sebagai peristiwa sistem.'),
+                'title' => __('Top 10 Titik Hilang dari Jaringan'),
+                'description' => __('Pernah menjadi bagian dari jaringan pengamatan, lalu menghilang dari peta grup. Namun jejaknya tetap tercatat dalam sejarah.'),
             ],
             [
                 'metric' => 'security_code_changed',
-                'title' => __('Top 10 Ganti Perangkat'),
-                'description' => __('Aktivitas ganti perangkat atau security code yang paling sering muncul di riwayat grup.'),
+                'title' => __('Top 10 Reobservasi Perangkat'),
+                'description' => __('Instrumen boleh berganti, tetapi pengamatnya tetap sama. Statistik ini mencatat mereka yang paling sering melakukan kalibrasi digital.'),
             ],
         ];
     }
@@ -609,6 +609,8 @@ new #[Title('WhatsApp Analytics')] class extends Component {
             'radarTooltipLabels' => $radarData['tooltipLabels'],
             'radar' => [
                 'shape' => 'circle',
+                'center' => ['50%', '43%'],
+                'radius' => '70%',
                 'startAngle' => 90,
                 'splitNumber' => 4,
                 'axisName' => ['color' => '#4b574d'],
@@ -628,6 +630,55 @@ new #[Title('WhatsApp Analytics')] class extends Component {
                 'emphasis' => ['lineStyle' => ['width' => 3]],
                 'data' => [['name' => __('Aktivitas'), 'value' => $radarData['values']]],
             ]],
+        ];
+    }
+
+    /**
+     * @param  array<int, string>  $labels
+     * @param  array<string, array<int, int>>  $memberValues
+     * @param  array<int, string>|null  $tooltipLabels
+     * @return array<string, mixed>
+     */
+    private function multiRadarOption(array $labels, array $memberValues, ?array $tooltipLabels = null): array
+    {
+        $orderedLabels = $this->clockwiseRadarOrder($labels);
+        $orderedTooltipLabels = $this->clockwiseRadarOrder($tooltipLabels ?? $labels);
+        $allValues = collect($memberValues)
+            ->flatMap(fn (array $values): array => $values)
+            ->all();
+        $max = $allValues === [] ? 1 : (max($allValues) ?: 1);
+
+        return [
+            'color' => $this->chartPalette(),
+            'tooltip' => ['trigger' => 'item'],
+            'radarTooltipLabels' => $orderedTooltipLabels,
+            'legend' => ['type' => 'scroll', 'bottom' => 0],
+            'radar' => [
+                'shape' => 'circle',
+                'center' => ['50%', '42%'],
+                'radius' => '75%',
+                'startAngle' => 90,
+                'splitNumber' => 4,
+                'axisName' => ['color' => '#4b574d'],
+                'axisLine' => ['lineStyle' => ['color' => 'rgba(23, 63, 37, 0.18)']],
+                'splitLine' => ['lineStyle' => ['color' => 'rgba(23, 63, 37, 0.14)']],
+                'splitArea' => ['areaStyle' => ['color' => ['rgba(23, 63, 37, 0.03)', 'rgba(23, 63, 37, 0.07)']]],
+                'indicator' => collect($orderedLabels)
+                    ->map(fn (string $label): array => ['name' => $label, 'max' => $max])
+                    ->all(),
+            ],
+            'series' => collect($memberValues)
+                ->map(fn (array $values, string $member): array => [
+                    'name' => $member,
+                    'type' => 'radar',
+                    'symbolSize' => 4,
+                    'lineStyle' => ['width' => 2.5],
+                    'areaStyle' => ['opacity' => 0.12],
+                    'emphasis' => ['lineStyle' => ['width' => 3]],
+                    'data' => [['name' => $member, 'value' => $this->clockwiseRadarOrder($values)]],
+                ])
+                ->values()
+                ->all(),
         ];
     }
 
@@ -798,24 +849,195 @@ new #[Title('WhatsApp Analytics')] class extends Component {
      */
     public function personalMessageChartOption(): array
     {
-        $rows = $this->topMembers('total_messages', 5);
-        $members = $rows->map(fn (WhatsappMemberStat $row): string => $row->whatsappMember?->display_name ?? '-')->all();
+        $rows = $this->selectedPersonalMemberStats();
+        $members = $rows->map(fn (WhatsappMemberStat $row): string => $this->memberLabel($row))->all();
 
         return [
-            'tooltip' => ['trigger' => 'axis', 'axisPointer' => ['type' => 'shadow']],
-            'legend' => [],
-            'grid' => ['left' => 120, 'right' => 24, 'top' => 48, 'bottom' => 24],
-            'xAxis' => ['type' => 'value'],
-            'yAxis' => ['type' => 'category', 'data' => $members],
+            'color' => $this->chartPalette(),
+            'personalStackedBarTooltip' => true,
+            'tooltip' => ['trigger' => 'item'],
+            'legend' => ['type' => 'scroll', 'bottom' => 0],
+            'grid' => ['left' => 8, 'right' => 24, 'top' => 16, 'bottom' => 56, 'containLabel' => true],
+            'xAxis' => [
+                'type' => 'value',
+                'name' => __('Jumlah Aktivitas'),
+                'nameLocation' => 'end',
+                'splitLine' => ['lineStyle' => ['color' => 'rgba(23, 63, 37, 0.1)']],
+            ],
+            'yAxis' => [
+                'type' => 'category',
+                'data' => $members,
+                'inverse' => true,
+                'axisTick' => ['show' => false],
+            ],
             'series' => [
                 ['name' => __('Teks Murni'), 'type' => 'bar', 'stack' => 'total', 'data' => $rows->pluck('pure_text_messages')->all()],
-                ['name' => __('Emoji'), 'type' => 'bar', 'stack' => 'total', 'data' => $rows->pluck('emoji_messages')->all()],
-                ['name' => __('Media'), 'type' => 'bar', 'stack' => 'total', 'data' => $rows->pluck('media_messages')->all()],
-                ['name' => __('Sticker'), 'type' => 'bar', 'stack' => 'total', 'data' => $rows->pluck('sticker_messages')->all()],
-                ['name' => __('Link'), 'type' => 'bar', 'stack' => 'total', 'data' => $rows->pluck('link_messages')->all()],
-                ['name' => __('Deleted'), 'type' => 'bar', 'stack' => 'total', 'data' => $rows->pluck('deleted_messages')->all()],
+                ['name' => __('Berbagi Media'), 'type' => 'bar', 'stack' => 'total', 'data' => $rows->pluck('media_messages')->all()],
+                ['name' => __('Teks dengan Emoji'), 'type' => 'bar', 'stack' => 'total', 'data' => $rows->pluck('emoji_messages')->all()],
+                ['name' => __('Teks dengan Link'), 'type' => 'bar', 'stack' => 'total', 'data' => $rows->pluck('link_messages')->all()],
+                ['name' => __('Berbagi Lokasi'), 'type' => 'bar', 'stack' => 'total', 'data' => $rows->pluck('location_messages')->all()],
+                ['name' => __('Menghapus Pesan'), 'type' => 'bar', 'stack' => 'total', 'data' => $rows->pluck('deleted_messages')->all()],
             ],
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function personalSystemActivityChartOption(): array
+    {
+        $memberRows = $this->selectedPersonalMemberStats();
+        $eventRows = $this->selectedPersonalMemberEventStats()->keyBy('whatsapp_member_id');
+
+        return [
+            'color' => $this->chartPalette(),
+            'personalStackedBarTooltip' => true,
+            'tooltip' => ['trigger' => 'item'],
+            'legend' => ['type' => 'scroll', 'bottom' => 0],
+            'grid' => ['left' => 8, 'right' => 24, 'top' => 16, 'bottom' => 56, 'containLabel' => true],
+            'xAxis' => [
+                'type' => 'value',
+                'name' => __('Jumlah Aktivitas'),
+                'nameLocation' => 'end',
+                'splitLine' => ['lineStyle' => ['color' => 'rgba(23, 63, 37, 0.1)']],
+            ],
+            'yAxis' => [
+                'type' => 'category',
+                'data' => $memberRows->map(fn (WhatsappMemberStat $row): string => $this->memberLabel($row))->all(),
+                'inverse' => true,
+                'axisTick' => ['show' => false],
+            ],
+            'series' => [
+                ['name' => __('Mengganti Deskripsi Grup'), 'type' => 'bar', 'stack' => 'total', 'data' => $this->personalEventMetricValues($memberRows, $eventRows, 'group_description_changed')],
+                ['name' => __('Menambahkan Anggota'), 'type' => 'bar', 'stack' => 'total', 'data' => $this->personalEventMetricValues($memberRows, $eventRows, 'member_added_as_actor')],
+                ['name' => __('Mengeluarkan Anggota'), 'type' => 'bar', 'stack' => 'total', 'data' => $this->personalEventMetricValues($memberRows, $eventRows, 'member_removed_as_actor')],
+                ['name' => __('Keluar Grup'), 'type' => 'bar', 'stack' => 'total', 'data' => $this->personalEventMetricValues($memberRows, $eventRows, 'member_left')],
+                ['name' => __('Mengganti Perangkat'), 'type' => 'bar', 'stack' => 'total', 'data' => $this->personalEventMetricValues($memberRows, $eventRows, 'security_code_changed')],
+                ['name' => __('Lainnya'), 'type' => 'bar', 'stack' => 'total', 'data' => $this->personalOtherEventValues($memberRows, $eventRows)],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function personalMonthlyActivityChartOption(): array
+    {
+        $memberRows = $this->selectedPersonalMemberStats();
+
+        if ($this->latestImport === null || $memberRows->isEmpty()) {
+            return ['series' => []];
+        }
+
+        $activities = WhatsappActivity::query()
+            ->whereBelongsTo($this->latestImport)
+            ->whereIn('whatsapp_member_id', $memberRows->pluck('whatsapp_member_id'))
+            ->orderBy('occurred_at_display')
+            ->get(['whatsapp_member_id', 'occurred_at_display']);
+
+        $monthKeys = $this->personalMonthlyActivityKeys($activities);
+        $activityCounts = $activities
+            ->groupBy(fn (WhatsappActivity $activity): string => $activity->whatsapp_member_id.'|'.$activity->occurred_at_display->format('Y-m'))
+            ->map(fn (Collection $rows): int => $rows->count());
+
+        return [
+            'color' => $this->chartPalette(),
+            'tooltip' => ['trigger' => 'axis', 'axisPointer' => ['type' => 'cross']],
+            'legend' => ['type' => 'scroll', 'right' => 8, 'top' => 32, 'orient' => 'vertical'],
+            'dataZoom' => [
+                ['type' => 'inside', 'xAxisIndex' => 0, 'filterMode' => 'none'],
+                ['type' => 'slider', 'xAxisIndex' => 0, 'height' => 24, 'bottom' => 8, 'filterMode' => 'none'],
+            ],
+            'grid' => ['left' => 8, 'right' => 220, 'top' => 32, 'bottom' => 64, 'containLabel' => true],
+            'xAxis' => [
+                'type' => 'category',
+                'name' => __('Bulan/Tahun'),
+                'nameLocation' => 'end',
+                'boundaryGap' => false,
+                'data' => array_map(fn (string $month): string => CarbonImmutable::createFromFormat('Y-m-d', $month.'-01')->format('m/Y'), $monthKeys),
+            ],
+            'yAxis' => [
+                'type' => 'value',
+                'name' => __('Jumlah'),
+                'splitLine' => ['lineStyle' => ['color' => 'rgba(23, 63, 37, 0.1)']],
+            ],
+            'series' => $memberRows
+                ->map(fn (WhatsappMemberStat $row): array => [
+                    'name' => $this->memberLabel($row),
+                    'type' => 'line',
+                    'smooth' => true,
+                    'showSymbol' => false,
+                    'emphasis' => ['focus' => 'series'],
+                    'lineStyle' => ['width' => 2.5],
+                    'areaStyle' => ['opacity' => 0.1],
+                    'data' => array_map(
+                        fn (string $month): int => (int) ($activityCounts->get($row->whatsapp_member_id.'|'.$month) ?? 0),
+                        $monthKeys,
+                    ),
+                ])
+                ->all(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function personalHourlyRadarOption(): array
+    {
+        $memberRows = $this->selectedPersonalMemberStats();
+        $memberValues = $this->personalRadarValuesByExpression($memberRows, $this->hourExpression(), 24);
+
+        $labels = collect(range(0, 23))
+            ->map(fn (int $hour): string => $hour % 3 === 0 ? str_pad((string) $hour, 2, '0', STR_PAD_LEFT) : '')
+            ->all();
+        $tooltipLabels = collect(range(0, 23))
+            ->map(fn (int $hour): string => str_pad((string) $hour, 2, '0', STR_PAD_LEFT).'.00')
+            ->all();
+
+        return $this->multiRadarOption($labels, $memberValues, $tooltipLabels);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function personalDayRadarOption(): array
+    {
+        $memberRows = $this->selectedPersonalMemberStats();
+        $memberValues = $this->personalRadarValuesByExpression($memberRows, $this->dayOfWeekExpression(), 7, -1);
+
+        return $this->multiRadarOption([
+            __('Senin'),
+            __('Selasa'),
+            __('Rabu'),
+            __('Kamis'),
+            __('Jumat'),
+            __('Sabtu'),
+            __('Minggu'),
+        ], $memberValues);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function personalMonthRadarOption(): array
+    {
+        $memberRows = $this->selectedPersonalMemberStats();
+        $memberValues = $this->personalRadarValuesByExpression($memberRows, $this->monthExpression(), 12, -1);
+
+        return $this->multiRadarOption([
+            __('Jan'),
+            __('Feb'),
+            __('Mar'),
+            __('Apr'),
+            __('Mei'),
+            __('Jun'),
+            __('Jul'),
+            __('Agu'),
+            __('Sep'),
+            __('Okt'),
+            __('Nov'),
+            __('Des'),
+        ], $memberValues);
     }
 
     /**
@@ -853,6 +1075,157 @@ new #[Title('WhatsApp Analytics')] class extends Component {
             ->pluck('whatsapp_member_id')
             ->map(fn (mixed $id): int => (int) $id)
             ->all();
+    }
+
+    /**
+     * @return Collection<int, WhatsappMemberStat>
+     */
+    private function selectedPersonalMemberStats(): Collection
+    {
+        if ($this->latestImport === null || $this->selectedWhatsappMemberIds === []) {
+            return new Collection();
+        }
+
+        return WhatsappMemberStat::query()
+            ->with('whatsappMember:id,display_name')
+            ->whereBelongsTo($this->latestImport)
+            ->whereIn('whatsapp_member_id', $this->selectedWhatsappMemberIds)
+            ->get()
+            ->sortBy(fn (WhatsappMemberStat $row): string => mb_strtolower($this->memberLabel($row)))
+            ->values();
+    }
+
+    /**
+     * @return Collection<int, WhatsappMemberEventStat>
+     */
+    private function selectedPersonalMemberEventStats(): Collection
+    {
+        if ($this->latestImport === null || $this->selectedWhatsappMemberIds === []) {
+            return new Collection();
+        }
+
+        return WhatsappMemberEventStat::query()
+            ->whereBelongsTo($this->latestImport)
+            ->whereIn('whatsapp_member_id', $this->selectedWhatsappMemberIds)
+            ->get();
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int|string, int>
+     */
+    /**
+     * @param  Collection<int, WhatsappMemberStat>  $memberRows
+     * @return array<string, array<int, int>>
+     */
+    private function personalRadarValuesByExpression(Collection $memberRows, string $expression, int $bucketCount, int $bucketOffset = 0): array
+    {
+        if ($this->latestImport === null || $memberRows->isEmpty()) {
+            return [];
+        }
+
+        $counts = WhatsappActivity::query()
+            ->whereBelongsTo($this->latestImport)
+            ->whereIn('whatsapp_member_id', $memberRows->pluck('whatsapp_member_id'))
+            ->selectRaw("whatsapp_member_id, {$expression} as activity_bucket, COUNT(*) as total")
+            ->groupBy('whatsapp_member_id', DB::raw($expression))
+            ->get()
+            ->groupBy('whatsapp_member_id');
+
+        return $memberRows
+            ->mapWithKeys(function (WhatsappMemberStat $row) use ($bucketCount, $bucketOffset, $counts): array {
+                $values = array_fill(0, $bucketCount, 0);
+
+                foreach ($counts->get($row->whatsapp_member_id, collect()) as $countRow) {
+                    $bucketIndex = ((int) $countRow->activity_bucket) + $bucketOffset;
+
+                    if ($bucketIndex >= 0 && $bucketIndex < $bucketCount) {
+                        $values[$bucketIndex] = (int) $countRow->total;
+                    }
+                }
+
+                return [$this->memberLabel($row) => $values];
+            })
+            ->all();
+    }
+
+    /**
+     * @param  Collection<int, WhatsappMemberStat>  $memberRows
+     * @param  Collection<int, WhatsappMemberEventStat>  $eventRows
+     * @return array<int, int>
+     */
+    private function personalEventMetricValues(Collection $memberRows, Collection $eventRows, string $metric): array
+    {
+        return $memberRows
+            ->map(fn (WhatsappMemberStat $row): int => (int) ($eventRows->get($row->whatsapp_member_id)?->{$metric} ?? 0))
+            ->all();
+    }
+
+    /**
+     * @param  Collection<int, WhatsappMemberStat>  $memberRows
+     * @param  Collection<int, WhatsappMemberEventStat>  $eventRows
+     * @return array<int, int>
+     */
+    private function personalOtherEventValues(Collection $memberRows, Collection $eventRows): array
+    {
+        return $memberRows
+            ->map(function (WhatsappMemberStat $row) use ($eventRows): int {
+                $eventRow = $eventRows->get($row->whatsapp_member_id);
+
+                if ($eventRow === null) {
+                    return 0;
+                }
+
+                return $eventRow->member_added_as_target
+                    + $eventRow->member_removed_as_target
+                    + $eventRow->phone_number_changed
+                    + $eventRow->group_name_changed
+                    + $eventRow->group_icon_changed
+                    + $eventRow->disappearing_message_changed;
+            })
+            ->all();
+    }
+
+    /**
+     * @param  Collection<int, WhatsappActivity>  $activities
+     * @return array<int, string>
+     */
+    private function personalMonthlyActivityKeys(Collection $activities): array
+    {
+        $dates = $activities->pluck('occurred_at_display')->filter();
+
+        $start = $dates->isNotEmpty()
+            ? CarbonImmutable::parse($dates->min())->startOfMonth()
+            : CarbonImmutable::parse($this->latestImport?->first_activity_at ?? now())->startOfMonth();
+        $end = $dates->isNotEmpty()
+            ? CarbonImmutable::parse($dates->max())->startOfMonth()
+            : CarbonImmutable::parse($this->latestImport?->last_activity_at ?? now())->startOfMonth();
+        $months = [];
+
+        while ($start->lessThanOrEqualTo($end)) {
+            $months[] = $start->format('Y-m');
+            $start = $start->addMonth();
+        }
+
+        return $months;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function chartPalette(): array
+    {
+        return [
+            '#173f25',
+            '#c5a059',
+            '#5f7f63',
+            '#0e2d1a',
+            '#dfc27a',
+            '#4b574d',
+            '#8cb58f',
+            '#96783d',
+            '#2f6840',
+            '#d7ddd5',
+        ];
     }
 
     public function personalMemberButtonStyle(WhatsappMemberStat $row, int $maxMessages): string
@@ -919,8 +1292,8 @@ new #[Title('WhatsApp Analytics')] class extends Component {
 
                 <flux:card class="space-y-4">
                     <div>
-                        <flux:heading size="lg">{{ __('Peta Panas Aktivitas Grup') }}</flux:heading>
-                        <flux:text>{{ __('Pola keramaian grup berdasarkan hari dan jam, lengkap dengan legenda intensitas di bawah chart.') }}</flux:text>
+                        <flux:heading size="lg">{{ __('Kontur Keramaian Grup') }}</flux:heading>
+                        <flux:text>{{ __('Seperti peta kontur, warna dan pola aktivitas ini menunjukkan puncak, lereng, dan lembah percakapan sepanjang sejarah grup.') }}</flux:text>
                     </div>
                     <div class="h-96 w-full" data-echarts data-echarts-option='@json($this->activityHeatmapOption())'></div>
                 </flux:card>
@@ -973,6 +1346,7 @@ new #[Title('WhatsApp Analytics')] class extends Component {
                 @php
                     $personalMembers = $this->personalMemberButtons();
                     $maxPersonalMessages = max(1, (int) $personalMembers->max('total_messages'));
+                    $selectedPersonalMemberKey = implode('-', $selectedWhatsappMemberIds);
                 @endphp
 
                 <flux:card class="overflow-visible">
@@ -999,37 +1373,86 @@ new #[Title('WhatsApp Analytics')] class extends Component {
                     </div>
                 </flux:card>
 
-                <div class="grid gap-4 xl:grid-cols-2">
+                <flux:card class="space-y-4">
+                    <div>
+                        <flux:heading size="lg">{{ __('Produktivitas Titik Kontrol') }}</flux:heading>
+                        <flux:text>{{ __('Mengukur seberapa aktif setiap titik kontrol berkontribusi dalam membangun jaringan percakapan grup.') }}</flux:text>
+                    </div>
+                    <div
+                        class="w-full"
+                        style="height: 32rem;"
+                        wire:key="personal-message-chart-{{ $selectedPersonalMemberKey }}"
+                        data-echarts
+                        data-echarts-option='@json($this->personalMessageChartOption())'
+                    ></div>
+                </flux:card>
+
+                <flux:card class="space-y-4">
+                    <div>
+                        <flux:heading size="lg">{{ __('Observasi Non-Verbal') }}</flux:heading>
+                        <flux:text>{{ __('Tidak semua pengamatan dilakukan dengan kata-kata. Sticker, emoji, media, dan reaksi juga meninggalkan jejak.') }}</flux:text>
+                    </div>
+                    <div
+                        class="w-full"
+                        style="height: 32rem;"
+                        wire:key="personal-system-chart-{{ $selectedPersonalMemberKey }}"
+                        data-echarts
+                        data-echarts-option='@json($this->personalSystemActivityChartOption())'
+                    ></div>
+                </flux:card>
+
+                <flux:card class="space-y-4">
+                    <div>
+                        <flux:heading size="lg">{{ __('Ephemeris Kehadiran') }}</flux:heading>
+                        <flux:text>{{ __('Pola kemunculan anggota sepanjang siklus tahunan, memperlihatkan kapan sebuah titik paling sering teramati.') }}</flux:text>
+                    </div>
+                    <div
+                        class="w-full"
+                        style="height: 32rem;"
+                        wire:key="personal-monthly-chart-{{ $selectedPersonalMemberKey }}"
+                        data-echarts
+                        data-echarts-option='@json($this->personalMonthlyActivityChartOption())'
+                    ></div>
+                </flux:card>
+
+                <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     <flux:card class="space-y-4">
                         <div>
-                            <flux:heading size="lg">{{ __('Pola Chat Personal') }}</flux:heading>
-                            <flux:text>{{ __('Default menampilkan top 5 paling aktif agar chart tetap terbaca.') }}</flux:text>
+                            <flux:heading size="lg">{{ __('Azimuth Aktivitas Harian') }}</flux:heading>
+                            <flux:text>{{ __('Menunjukkan arah waktu favorit seseorang untuk muncul, merespons, atau memulai percakapan.') }}</flux:text>
                         </div>
-                        <div class="h-96 w-full" data-echarts data-echarts-option='@json($this->personalMessageChartOption())'></div>
+                        <div
+                            class="h-96 w-full"
+                            wire:key="personal-hourly-radar-{{ $selectedPersonalMemberKey }}"
+                            data-echarts
+                            data-echarts-option='@json($this->personalHourlyRadarOption())'
+                        ></div>
                     </flux:card>
 
                     <flux:card class="space-y-4">
-                        <flux:heading size="lg">{{ __('Jejak Sistem Personal') }}</flux:heading>
-                        <div class="space-y-3">
-                            @foreach ([
-                                'member_added_as_target' => __('Ditambahkan'),
-                                'member_removed_as_actor' => __('Mengeluarkan Anggota'),
-                            ] as $metric => $title)
-                                <div wire:key="event-{{ $metric }}">
-                                    <div class="mb-2 flex items-center justify-between gap-3">
-                                        <span class="font-medium">{{ $title }}</span>
-                                    </div>
-                                    <div class="space-y-2">
-                                        @foreach ($this->topEventMembers($metric, 5) as $row)
-                                            <div class="flex items-center justify-between gap-4 rounded-lg border border-zinc-200 p-3 dark:border-zinc-700" wire:key="{{ $metric }}-{{ $row->id }}">
-                                                <span class="truncate">{{ $this->memberLabel($row) }}</span>
-                                                <span class="font-semibold tabular-nums">{{ (int) $row->{$metric} }}</span>
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            @endforeach
+                        <div>
+                            <flux:heading size="lg">{{ __('Jadwal Survei Sosial') }}</flux:heading>
+                            <flux:text>{{ __('Memetakan hari-hari ketika seorang anggota paling sering turun ke lapangan percakapan.') }}</flux:text>
                         </div>
+                        <div
+                            class="h-96 w-full"
+                            wire:key="personal-day-radar-{{ $selectedPersonalMemberKey }}"
+                            data-echarts
+                            data-echarts-option='@json($this->personalDayRadarOption())'
+                        ></div>
+                    </flux:card>
+
+                    <flux:card class="space-y-4">
+                        <div>
+                            <flux:heading size="lg">{{ __('Musim Pengamatan Personal') }}</flux:heading>
+                            <flux:text>{{ __('Ada yang aktif sepanjang tahun, ada yang hanya muncul ketika musim nostalgia kembali datang.') }}</flux:text>
+                        </div>
+                        <div
+                            class="h-96 w-full"
+                            wire:key="personal-month-radar-{{ $selectedPersonalMemberKey }}"
+                            data-echarts
+                            data-echarts-option='@json($this->personalMonthRadarOption())'
+                        ></div>
                     </flux:card>
                 </div>
             </div>

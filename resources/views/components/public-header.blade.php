@@ -34,10 +34,16 @@
             @endforeach
         </div>
 
-        @if (Route::has('login'))
-            <a href="{{ route('login') }}" class="rounded-lg bg-ktn-forest px-5 py-2.5 text-sm font-bold text-white transition hover:bg-ktn-forest-strong focus:outline-none focus:ring-2 focus:ring-ktn-forest focus:ring-offset-2 focus:ring-offset-ktn-surface">
-                {{ __('Login') }}
+        @auth
+            <a href="{{ route('dashboard') }}" class="rounded-lg bg-ktn-forest px-5 py-2.5 text-sm font-bold text-white transition hover:bg-ktn-forest-strong focus:outline-none focus:ring-2 focus:ring-ktn-forest focus:ring-offset-2 focus:ring-offset-ktn-surface">
+                {{ __('Dashboard') }}
             </a>
-        @endif
+        @else
+            @if (Route::has('login'))
+                <a href="{{ route('login') }}" class="rounded-lg bg-ktn-forest px-5 py-2.5 text-sm font-bold text-white transition hover:bg-ktn-forest-strong focus:outline-none focus:ring-2 focus:ring-ktn-forest focus:ring-offset-2 focus:ring-offset-ktn-surface">
+                    {{ __('Login') }}
+                </a>
+            @endif
+        @endauth
     </nav>
 </header>
