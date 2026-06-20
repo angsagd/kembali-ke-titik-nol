@@ -3,8 +3,10 @@
 use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\WhatsappActivity;
 use App\Models\WhatsappImport;
-use App\Models\WhatsappStatistic;
+use App\Models\WhatsappMember;
+use App\Models\WhatsappMemberStat;
 use Illuminate\Http\Testing\File;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -60,7 +62,7 @@ test('superadmin users can access whatsapp import page', function () {
         ->assertOk()
         ->assertSee('WhatsApp Import')
         ->assertSee('Upload Export Chat')
-        ->assertSee('maksimum 10 MB')
+        ->assertSee('Maksimum 6 MB untuk .txt dan 2 MB untuk .zip')
         ->assertSee('Mengunggah file...');
 });
 
@@ -85,7 +87,7 @@ test('superadmin users can upload whatsapp zip export files', function () {
     expect(WhatsappImport::query()->firstOrFail()->file_name)->toBe('chat.zip');
 });
 
-test('project upload limits support whatsapp exports up to ten megabytes', function () {
+test('project upload limits provide enough headroom for whatsapp exports', function () {
     $userIni = file_get_contents(public_path('.user.ini'));
     $composer = json_decode(file_get_contents(base_path('composer.json')), true, flags: JSON_THROW_ON_ERROR);
     $developmentCommand = collect($composer['scripts']['dev'])
@@ -145,15 +147,11 @@ test('superadmin users can upload and process whatsapp export', function () {
     expect($whatsappImport->status)->toBe('completed');
     expect($whatsappImport->total_messages)->toBe(7);
     expect($whatsappImport->total_participants)->toBe(3);
-    expect(WhatsappStatistic::query()->where('category', 'active_member')->exists())->toBeTrue();
-    expect(WhatsappStatistic::query()->where('category', 'link_poster')->exists())->toBeTrue();
-    expect(WhatsappStatistic::query()->where('category', 'image_poster')->exists())->toBeTrue();
-    expect(WhatsappStatistic::query()->where('category', 'nocturnal_chatter')->exists())->toBeTrue();
-    expect(WhatsappStatistic::query()->where('category', 'work_time_chatter')->exists())->toBeTrue();
-    expect(WhatsappStatistic::query()->where('category', 'weekend_warrior')->exists())->toBeTrue();
-    expect(WhatsappStatistic::query()->where('category', 'emoji_champion')->exists())->toBeTrue();
-    expect(WhatsappStatistic::query()->where('category', 'top_topic')->exists())->toBeTrue();
-    expect(WhatsappStatistic::query()->where('category', 'word_cloud')->exists())->toBeTrue();
+    expect(WhatsappMember::query()->whereBelongsTo($whatsappImport)->count())->toBe(3);
+    expect(WhatsappActivity::query()->whereBelongsTo($whatsappImport)->count())->toBe(7);
+    expect(WhatsappMemberStat::query()->whereBelongsTo($whatsappImport)->where('link_messages', '>', 0)->exists())->toBeTrue();
+    expect(WhatsappMemberStat::query()->whereBelongsTo($whatsappImport)->where('media_messages', '>', 0)->exists())->toBeTrue();
+    expect(WhatsappMemberStat::query()->whereBelongsTo($whatsappImport)->where('emoji_messages', '>', 0)->exists())->toBeTrue();
     expect(AuditLog::query()->where('action', 'whatsapp_import.processed')->exists())->toBeTrue();
 });
 
@@ -227,6 +225,39 @@ test('zip import fails when archive has no txt file', function () {
 
     expect($whatsappImport->status)->toBe('failed');
     expect($whatsappImport->notes)->toContain('ZIP harus berisi minimal satu file .txt.');
+});
+
+test('zip import fails when largest txt exceeds allowed size', function () {
+    Storage::fake('local');
+
+    $superadminRole = Role::factory()->create([
+        'name' => 'superadmin',
+        'description' => 'Pengelola teknis sistem',
+    ]);
+    $superadmin = User::factory()->create(['role_id' => $superadminRole->id]);
+
+    $this->actingAs($superadmin);
+
+    $largeContent = str_repeat('01/01/2026, 08:00 - Budi: Halo'."\n", 210000);
+
+    Livewire::test('pages::admin.whatsapp.index')
+        ->set('chat_file', whatsappZipFile([
+            'small.txt' => '01/01/2026, 08:00 - Budi: Halo',
+            'largest.txt' => $largeContent,
+        ], 'oversized.zip'))
+        ->call('saveImport')
+        ->assertHasNoErrors();
+
+    $whatsappImport = WhatsappImport::query()->firstOrFail();
+
+    Livewire::test('pages::admin.whatsapp.index')
+        ->call('processImport', $whatsappImport->id)
+        ->assertHasNoErrors();
+
+    $whatsappImport->refresh();
+
+    expect($whatsappImport->status)->toBe('failed');
+    expect($whatsappImport->notes)->toContain('Ukuran file txt di dalam ZIP melebihi batas 6 MB.');
 });
 
 test('superadmin users can only upload whatsapp txt or zip export files', function () {

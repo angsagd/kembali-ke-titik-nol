@@ -2,14 +2,14 @@
 
 use App\Models\AuditLog;
 use App\Models\WhatsappImport;
-use App\Services\WhatsappChatAnalyzer;
+use App\Services\WhatsAppAnalyzer\WhatsappImportProcessor;
 use Flux\Flux;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -19,6 +19,10 @@ use Livewire\WithPagination;
 
 new #[Title('WhatsApp Import')] class extends Component {
     use WithFileUploads, WithPagination;
+
+    private const MAX_IMPORT_CONTENT_BYTES = 6 * 1024 * 1024;
+
+    private const PROCESS_MEMORY_LIMIT = '512M';
 
     public ?TemporaryUploadedFile $chat_file = null;
 
@@ -34,9 +38,15 @@ new #[Title('WhatsApp Import')] class extends Component {
         Gate::authorize('import-whatsapp-analytics');
 
         $validated = $this->validate([
-            'chat_file' => ['required', 'file', 'extensions:txt,zip', 'max:10240'],
+            'chat_file' => ['required', 'file', 'extensions:txt,zip', 'max:6144'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
+
+        if ($this->chat_file && $this->isOversizedZipUpload($this->chat_file)) {
+            throw ValidationException::withMessages([
+                'chat_file' => __('File ZIP maksimum 2 MB.'),
+            ]);
+        }
 
         $path = $this->chat_file?->store('whatsapp-imports');
 
@@ -60,32 +70,18 @@ new #[Title('WhatsApp Import')] class extends Component {
         Flux::toast(variant: 'success', text: __('File WhatsApp disimpan. Klik proses untuk membuat analytics.'));
     }
 
-    public function processImport(WhatsappImport $whatsappImport, WhatsappChatAnalyzer $analyzer): void
+    public function processImport(WhatsappImport $whatsappImport, WhatsappImportProcessor $processor): void
     {
         Gate::authorize('import-whatsapp-analytics');
 
         $whatsappImport->forceFill(['status' => 'processing'])->save();
 
+        $previousMemoryLimit = ini_get('memory_limit');
+        ini_set('memory_limit', self::PROCESS_MEMORY_LIMIT);
+
         try {
             $contents = $this->importContents($whatsappImport);
-            $analysis = $analyzer->analyze($contents);
-
-            DB::transaction(function () use ($whatsappImport, $analysis): void {
-                $whatsappImport->statistics()->delete();
-
-                foreach ($analysis['statistics'] as $statistic) {
-                    $whatsappImport->statistics()->create($statistic);
-                }
-
-                $whatsappImport->forceFill([
-                    'import_start_date' => $analysis['import_start_date'],
-                    'import_end_date' => $analysis['import_end_date'],
-                    'total_messages' => $analysis['total_messages'],
-                    'total_participants' => $analysis['total_participants'],
-                    'status' => 'completed',
-                    'processed_at' => now(),
-                ])->save();
-            });
+            $processor->process($whatsappImport, $contents);
 
             AuditLog::record(
                 action: 'whatsapp_import.processed',
@@ -101,9 +97,19 @@ new #[Title('WhatsApp Import')] class extends Component {
             ])->save();
 
             Flux::toast(variant: 'danger', text: __('Gagal memproses file WhatsApp.'));
+        } finally {
+            if (is_string($previousMemoryLimit)) {
+                ini_set('memory_limit', $previousMemoryLimit);
+            }
         }
 
         unset($this->summary, $this->imports);
+    }
+
+    private function isOversizedZipUpload(TemporaryUploadedFile $file): bool
+    {
+        return Str::lower($file->getClientOriginalExtension()) === 'zip'
+            && $file->getSize() > 2048 * 1024;
     }
 
     private function importContents(WhatsappImport $whatsappImport): string
@@ -114,6 +120,12 @@ new #[Title('WhatsApp Import')] class extends Component {
 
         if ($this->isZipImport($whatsappImport)) {
             return $this->extractLargestTextFileContents($whatsappImport);
+        }
+
+        $size = Storage::size($whatsappImport->file_path);
+
+        if (is_int($size) && $size > self::MAX_IMPORT_CONTENT_BYTES) {
+            throw new RuntimeException(__('Ukuran file chat melebihi batas 6 MB.'));
         }
 
         return Storage::get($whatsappImport->file_path);
@@ -164,6 +176,12 @@ new #[Title('WhatsApp Import')] class extends Component {
             $archive->close();
 
             throw new RuntimeException(__('ZIP harus berisi minimal satu file .txt.'));
+        }
+
+        if ($largestTextSize > self::MAX_IMPORT_CONTENT_BYTES) {
+            $archive->close();
+
+            throw new RuntimeException(__('Ukuran file txt di dalam ZIP melebihi batas 6 MB.'));
         }
 
         $contents = $archive->getFromIndex($largestTextIndex);
@@ -272,7 +290,7 @@ new #[Title('WhatsApp Import')] class extends Component {
             <div class="space-y-5">
                 <div>
                     <flux:heading size="lg">{{ __('Upload Export Chat') }}</flux:heading>
-                    <flux:text class="mt-2">{{ __('Gunakan file .txt atau .zip hasil export WhatsApp tanpa media, maksimum 10 MB.') }}</flux:text>
+                    <flux:text class="mt-2">{{ __('Gunakan file .txt atau .zip hasil export WhatsApp tanpa media. Maksimum 6 MB untuk .txt dan 2 MB untuk .zip.') }}</flux:text>
                 </div>
 
                 <flux:input wire:model="chat_file" :label="__('File chat')" type="file" accept=".txt,.zip,text/plain,application/zip" />

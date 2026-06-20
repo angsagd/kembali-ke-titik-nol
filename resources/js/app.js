@@ -7,6 +7,7 @@ const leafletMaps = new WeakMap();
 const publicHeaderStates = new WeakMap();
 const landingVideoObservers = new WeakMap();
 const echartsInstances = new WeakMap();
+const radarTooltipStates = new WeakMap();
 const cityAutocompleteStates = new WeakMap();
 const richTextEditorStates = new WeakMap();
 const richTextSelections = new Map();
@@ -435,10 +436,14 @@ function initializeEcharts() {
             return;
         }
 
+        const radarTooltip = prepareRadarTooltip(option);
+        applyHeatmapTooltipFormatter(option);
+
         if (!echartsInstances.has(element)) {
             const chart = echarts.init(element);
 
             chart.setOption(option);
+            syncRadarTooltip(element, option, radarTooltip);
 
             const resize = () => chart.resize();
             window.addEventListener('resize', resize);
@@ -449,8 +454,128 @@ function initializeEcharts() {
 
         const existing = echartsInstances.get(element);
         existing.chart.setOption(option, true);
+        syncRadarTooltip(element, option, radarTooltip);
         window.setTimeout(() => existing.chart.resize(), 50);
     });
+}
+
+function prepareRadarTooltip(option) {
+    if (!Array.isArray(option.radarTooltipLabels)) {
+        return null;
+    }
+
+    const labels = option.radarTooltipLabels.slice();
+    const values = option.series?.[0]?.data?.[0]?.value;
+
+    option.tooltip = {
+        ...(option.tooltip || {}),
+        show: false,
+    };
+
+    delete option.radarTooltipLabels;
+
+    return Array.isArray(values) ? { labels, values } : null;
+}
+
+function applyHeatmapTooltipFormatter(option) {
+    if (!option.heatmapTooltip || !Array.isArray(option.heatmapTooltip.hours) || !Array.isArray(option.heatmapTooltip.days)) {
+        return;
+    }
+
+    const { hours, days } = option.heatmapTooltip;
+    const numberFormatter = new Intl.NumberFormat('id-ID');
+
+    option.tooltip = {
+        ...(option.tooltip || {}),
+        formatter(params) {
+            const value = Array.isArray(params.value) ? params.value : [];
+            const hour = hours[value[0]] ?? '-';
+            const day = days[value[1]] ?? '-';
+            const total = numberFormatter.format(Number(value[2]) || 0);
+
+            return `${day}, ${hour}<br><strong>${total}</strong> aktivitas`;
+        },
+    };
+
+    delete option.heatmapTooltip;
+}
+
+function syncRadarTooltip(element, option, tooltipData) {
+    const existing = radarTooltipStates.get(element);
+
+    if (existing) {
+        element.removeEventListener('mousemove', existing.onMove);
+        element.removeEventListener('mouseleave', existing.onLeave);
+        existing.tooltip.remove();
+        radarTooltipStates.delete(element);
+    }
+
+    if (!tooltipData || !Array.isArray(option.radar?.indicator)) {
+        return;
+    }
+
+    element.style.position = element.style.position || 'relative';
+
+    const tooltip = document.createElement('div');
+    tooltip.className = 'pointer-events-none absolute z-10 hidden rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm shadow-lg dark:border-zinc-700 dark:bg-zinc-900';
+    element.append(tooltip);
+
+    const onMove = (event) => {
+        const nearest = nearestRadarPoint(event, element, option, tooltipData);
+
+        if (!nearest) {
+            tooltip.classList.add('hidden');
+
+            return;
+        }
+
+        tooltip.innerHTML = `${nearest.label}<br><strong>${nearest.value}</strong> aktivitas`;
+        tooltip.style.left = `${Math.min(nearest.cursorX + 12, element.clientWidth - tooltip.offsetWidth - 8)}px`;
+        tooltip.style.top = `${Math.max(nearest.cursorY - tooltip.offsetHeight - 12, 8)}px`;
+        tooltip.classList.remove('hidden');
+    };
+
+    const onLeave = () => tooltip.classList.add('hidden');
+
+    element.addEventListener('mousemove', onMove);
+    element.addEventListener('mouseleave', onLeave);
+    radarTooltipStates.set(element, { onMove, onLeave, tooltip });
+}
+
+function nearestRadarPoint(event, element, option, tooltipData) {
+    const rect = element.getBoundingClientRect();
+    const cursorX = event.clientX - rect.left;
+    const cursorY = event.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const radius = Math.min(rect.width, rect.height) * 0.34;
+    const indicators = option.radar.indicator;
+    const max = Math.max(...indicators.map((indicator) => Number(indicator.max) || 1), 1);
+    const startAngle = Number(option.radar.startAngle ?? 90);
+    const step = 360 / tooltipData.values.length;
+
+    let nearest = null;
+
+    tooltipData.values.forEach((rawValue, index) => {
+        const value = Number(rawValue) || 0;
+        const angle = ((startAngle + (index * step)) * Math.PI) / 180;
+        const distance = radius * Math.min(value / max, 1);
+        const pointX = centerX + Math.cos(angle) * distance;
+        const pointY = centerY - Math.sin(angle) * distance;
+        const pointDistance = Math.hypot(cursorX - pointX, cursorY - pointY);
+
+        if (!nearest || pointDistance < nearest.distance) {
+            nearest = {
+                distance: pointDistance,
+                label: tooltipData.labels[index],
+                value,
+                cursorX,
+                cursorY,
+            };
+        }
+    });
+
+    return nearest && nearest.distance <= 26 ? nearest : null;
 }
 
 function updateRichTextValue(textarea, value, selectionStart, selectionEnd = selectionStart) {

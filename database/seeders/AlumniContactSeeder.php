@@ -29,18 +29,35 @@ class AlumniContactSeeder extends Seeder
 
         collect($contacts)->each(function (array $contact) use ($alumniRole): void {
             $whatsappNumber = User::normalizeWhatsappNumber((string) $contact['wanumber']);
+
+            if (! $whatsappNumber) {
+                return;
+            }
+
             $password = 'tgd'.substr($whatsappNumber, -4);
 
-            $user = User::query()->updateOrCreate(
-                ['whatsapp_number' => $whatsappNumber],
-                [
-                    'role_id' => $alumniRole->id,
-                    'name' => $contact['name'],
-                    'email' => "{$whatsappNumber}@geodesi96.local",
-                    'password' => $password,
-                    'is_active' => true,
-                ],
-            );
+            $user = User::query()->firstOrNew(['whatsapp_number' => $whatsappNumber]);
+
+            if ($user->exists) {
+                $user->loadMissing('role');
+
+                if (in_array($user->role?->name, ['superadmin', 'administrator', 'bendahara'], true)) {
+                    return;
+                }
+            }
+
+            $user->fill([
+                'role_id' => $alumniRole->id,
+                'name' => $contact['name'],
+                'email' => "{$whatsappNumber}@geodesi96.local",
+                'is_active' => true,
+            ]);
+
+            if (! $user->exists) {
+                $user->password = $password;
+            }
+
+            $user->save();
 
             Alumni::query()->updateOrCreate(
                 ['user_id' => $user->id],
