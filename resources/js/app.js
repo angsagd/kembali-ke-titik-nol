@@ -780,11 +780,13 @@ document.addEventListener('DOMContentLoaded', initializeCityAutocompletes);
 document.addEventListener('DOMContentLoaded', initializeRichTextEditors);
 document.addEventListener('livewire:init', () => {
     window.Livewire.interceptMessage(({ onSuccess }) => {
-        onSuccess(() => window.queueMicrotask(() => {
-            initializeCityAutocompletes();
-            initializeRichTextEditors();
-            initializeEchartsAfterRender();
-        }));
+        onSuccess(({ onRender }) => {
+            onRender(() => {
+                initializeCityAutocompletes();
+                initializeRichTextEditors();
+                initializeEchartsAfterRender();
+            });
+        });
     });
 });
 document.addEventListener('visibilitychange', updateLandingVideoVisibility);

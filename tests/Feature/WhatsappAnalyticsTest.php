@@ -141,7 +141,7 @@ test('alumni users can view whatsapp analytics', function () {
         ->assertDontSee('raw chat');
 
     Livewire::actingAs($profile->user)
-        ->test('pages::whatsapp.analytics')
+        ->test('whatsapp.digital-calendar', ['importId' => $whatsappImport->id])
         ->call('selectDigitalDate', now()->toDateString())
         ->assertSet('selectedDigitalDate', now()->toDateString())
         ->assertSee('Mantap reuni nostalgia')

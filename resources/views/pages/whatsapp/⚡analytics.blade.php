@@ -17,10 +17,6 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 new #[Title('WhatsApp Analytics')] class extends Component {
     public string $tab = 'group';
 
-    public ?int $selectedDigitalYear = null;
-
-    public ?string $selectedDigitalDate = null;
-
     /**
      * @var array<int, int>
      */
@@ -29,7 +25,6 @@ new #[Title('WhatsApp Analytics')] class extends Component {
     public function mount(): void
     {
         $this->selectedWhatsappMemberIds = $this->defaultSelectedPersonalMemberIds();
-        $this->selectedDigitalYear = $this->defaultDigitalYear();
     }
 
     public function selectTab(string $tab): void
@@ -89,31 +84,6 @@ new #[Title('WhatsApp Analytics')] class extends Component {
 
         $this->selectedWhatsappMemberIds[] = $memberId;
         $this->selectedWhatsappMemberIds = array_slice(array_values(array_unique($this->selectedWhatsappMemberIds)), -10);
-    }
-
-    public function selectDigitalYear(int $year): void
-    {
-        if (! in_array($year, $this->digitalYears(), true)) {
-            return;
-        }
-
-        $this->selectedDigitalYear = $year;
-        $this->selectedDigitalDate = null;
-    }
-
-    public function selectDigitalDate(string $date): void
-    {
-        if ($this->selectedDigitalYear === null || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
-            return;
-        }
-
-        $clickedDate = CarbonImmutable::parse($date);
-
-        if ((int) $clickedDate->format('Y') !== $this->selectedDigitalYear) {
-            return;
-        }
-
-        $this->selectedDigitalDate = $date;
     }
 
     public function canMapWhatsappAlumni(): bool
@@ -667,80 +637,6 @@ new #[Title('WhatsApp Analytics')] class extends Component {
     }
 
     /**
-     * @return array<int, int>
-     */
-    public function digitalYears(): array
-    {
-        if ($this->latestImport === null) {
-            return [];
-        }
-
-        $firstYear = (int) ($this->latestImport->first_activity_at?->format('Y') ?? now()->format('Y'));
-        $lastYear = (int) ($this->latestImport->last_activity_at?->format('Y') ?? $firstYear);
-
-        return range($lastYear, $firstYear);
-    }
-
-    /**
-     * @return array<int, array<int, array{date: string, day: int, in_year: bool, count: int, intensity: int, selected: bool}>>
-     */
-    public function digitalCalendarWeeks(): array
-    {
-        if ($this->latestImport === null) {
-            return [];
-        }
-
-        $year = $this->selectedDigitalYear ?? $this->defaultDigitalYear();
-        $start = CarbonImmutable::create($year, 1, 1)->startOfWeek();
-        $end = CarbonImmutable::create($year, 12, 31)->endOfWeek();
-        $counts = $this->digitalCalendarCounts($year);
-        $max = max($counts ?: [1]);
-        $weeks = [];
-        $cursor = $start;
-
-        while ($cursor->lessThanOrEqualTo($end)) {
-            $week = [];
-
-            for ($day = 0; $day < 7; $day++) {
-                $date = $cursor->toDateString();
-                $count = $counts[$date] ?? 0;
-
-                $week[] = [
-                    'date' => $date,
-                    'day' => $day,
-                    'in_year' => (int) $cursor->format('Y') === $year,
-                    'count' => $count,
-                    'intensity' => $this->calendarIntensity($count, $max),
-                    'selected' => $this->selectedDigitalDate === $date,
-                ];
-
-                $cursor = $cursor->addDay();
-            }
-
-            $weeks[] = $week;
-        }
-
-        return $weeks;
-    }
-
-    /**
-     * @return Collection<int, WhatsappActivity>
-     */
-    public function selectedDigitalDateActivities(): Collection
-    {
-        if ($this->latestImport === null || $this->selectedDigitalDate === null) {
-            return new Collection();
-        }
-
-        return WhatsappActivity::query()
-            ->with('whatsappMember:id,display_name')
-            ->whereBelongsTo($this->latestImport)
-            ->whereDate('occurred_at_display', $this->selectedDigitalDate)
-            ->orderBy('occurred_at_display')
-            ->get();
-    }
-
-    /**
      * @return array<int, array{name: string, value: int, textStyle: array{color: string}}>
      */
     public function groupWordCloud(): array
@@ -772,7 +668,7 @@ new #[Title('WhatsApp Analytics')] class extends Component {
 
         arsort($counts);
         $topCounts = array_slice($counts, 0, 120, true);
-        $palette = ['#c7d9c8', '#dfc27a', '#8cb58f', '#f2a65a', '#d7ddd5', '#f08a8a', '#9fc5e8', '#c99ac0', '#f5d84c', '#ffffff'];
+        $palette = ['#173f25', '#1f5133', '#5f7f63', '#c5a059', '#96783d', '#7c2d12', '#4b574d', '#0e2d1a', '#6f4e37', '#2f6840'];
         $words = [];
         $index = 0;
 
@@ -803,7 +699,7 @@ new #[Title('WhatsApp Analytics')] class extends Component {
         }
 
         return [
-            'backgroundColor' => '#000000',
+            'backgroundColor' => 'transparent',
             'tooltip' => [
                 'show' => true,
                 'formatter' => '{b}<br><strong>{c}</strong> kali',
@@ -832,7 +728,7 @@ new #[Title('WhatsApp Analytics')] class extends Component {
                     'focus' => 'self',
                     'textStyle' => [
                         'shadowBlur' => 8,
-                        'shadowColor' => 'rgba(255,255,255,0.35)',
+                        'shadowColor' => 'rgba(23, 63, 37, 0.25)',
                     ],
                 ],
                 'data' => $words,
@@ -1067,106 +963,6 @@ new #[Title('WhatsApp Analytics')] class extends Component {
             ->pluck('total', 'system_event_type')
             ->map(fn (mixed $total): int => (int) $total)
             ->all();
-    }
-
-    private function defaultDigitalYear(): ?int
-    {
-        return $this->latestImport?->last_activity_at
-            ? (int) $this->latestImport->last_activity_at->format('Y')
-            : null;
-    }
-
-    /**
-     * @return array<string, int>
-     */
-    private function digitalCalendarCounts(int $year): array
-    {
-        if ($this->latestImport === null) {
-            return [];
-        }
-
-        return $this->latestImport->dailyStats()
-            ->whereYear('stat_date', $year)
-            ->pluck('total_activities', 'stat_date')
-            ->mapWithKeys(fn (mixed $count, mixed $date): array => [
-                CarbonImmutable::parse((string) $date)->toDateString() => (int) $count,
-            ])
-            ->all();
-    }
-
-    private function calendarIntensity(int $count, int $max): int
-    {
-        if ($count <= 0) {
-            return 0;
-        }
-
-        return max(1, min(4, (int) ceil(($count / max(1, $max)) * 4)));
-    }
-
-    public function digitalCalendarDayClass(array $day): string
-    {
-        $classes = [
-            'h-4 w-4 rounded-[3px] border transition hover:scale-125 focus:outline-none focus:ring-2 focus:ring-ktn-forest/40',
-            $day['in_year'] ? 'cursor-pointer' : 'cursor-default opacity-25',
-            $day['selected'] ? 'border-orange-500 ring-2 ring-orange-500' : 'border-transparent',
-        ];
-
-        $classes[] = match ($day['intensity']) {
-            4 => 'bg-ktn-forest',
-            3 => 'bg-ktn-forest/75',
-            2 => 'bg-ktn-forest/50',
-            1 => 'bg-ktn-forest/25',
-            default => 'bg-zinc-100 dark:bg-zinc-800',
-        };
-
-        return implode(' ', $classes);
-    }
-
-    public function digitalConversationAlignment(WhatsappActivity $activity): string
-    {
-        $memberId = $this->currentMappedWhatsappMemberId();
-
-        if ($memberId === null || $activity->activity_type !== 'message') {
-            return 'left';
-        }
-
-        return $activity->whatsapp_member_id === $memberId ? 'right' : 'left';
-    }
-
-    private function currentMappedWhatsappMemberId(): ?int
-    {
-        if ($this->latestImport === null) {
-            return null;
-        }
-
-        $alumniId = auth()->user()?->alumni()->value('id');
-
-        if ($alumniId === null) {
-            return null;
-        }
-
-        return WhatsappMemberStat::query()
-            ->whereBelongsTo($this->latestImport)
-            ->where('alumni_id', $alumniId)
-            ->value('whatsapp_member_id');
-    }
-
-    public function digitalConversationDateLabel(): string
-    {
-        if ($this->selectedDigitalDate === null) {
-            return __('Pilih salah satu kotak hari untuk melihat percakapan.');
-        }
-
-        return CarbonImmutable::parse($this->selectedDigitalDate)->translatedFormat('d F Y');
-    }
-
-    public function digitalConversationText(WhatsappActivity $activity): string
-    {
-        if ($activity->activity_type === 'message') {
-            return $activity->message_text ?: $activity->raw_text;
-        }
-
-        return $activity->raw_text;
     }
 
     /**
@@ -1705,115 +1501,13 @@ new #[Title('WhatsApp Analytics')] class extends Component {
                         <flux:text>{{ __('Kata-kata yang paling sering muncul dalam percakapan grup, setelah kata umum disaring.') }}</flux:text>
                     </div>
                     @if ($this->groupWordCloud())
-                        <div class="h-[34rem] w-full overflow-hidden rounded-lg bg-black" data-echarts data-echarts-option='@json($this->groupWordCloudOption())'></div>
+                        <div class="h-[34rem] w-full overflow-hidden rounded-lg bg-white" data-echarts data-echarts-option='@json($this->groupWordCloudOption())'></div>
                     @else
                         <flux:text>{{ __('Belum cukup kata untuk membentuk word cloud.') }}</flux:text>
                     @endif
                 </flux:card>
 
-                <flux:card class="space-y-4">
-                    <div>
-                        <flux:heading size="lg">{{ __('Jejak Digital Tahunan') }}</flux:heading>
-                        <flux:text>{{ __('Seperti commit GitHub, tapi isinya nostalgia, guyonan, foto lawas, dan rencana reuni.') }}</flux:text>
-                    </div>
-
-                    @php
-                        $weeks = $this->digitalCalendarWeeks();
-                    @endphp
-                    <div class="overflow-x-auto pb-2">
-                        <div class="flex min-w-max gap-1">
-                            <div class="mr-1 grid grid-rows-7 gap-1 pt-0 text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
-                                <span>{{ __('Sen') }}</span>
-                                <span></span>
-                                <span>{{ __('Rab') }}</span>
-                                <span></span>
-                                <span>{{ __('Jum') }}</span>
-                                <span></span>
-                                <span>{{ __('Min') }}</span>
-                            </div>
-
-                            @foreach ($weeks as $weekIndex => $week)
-                                <div class="grid grid-rows-7 gap-1" wire:key="digital-week-{{ $selectedDigitalYear }}-{{ $weekIndex }}">
-                                    @foreach ($week as $day)
-                                        @if ($day['in_year'])
-                                            <button
-                                                type="button"
-                                                class="{{ $this->digitalCalendarDayClass($day) }}"
-                                                title="{{ Carbon\CarbonImmutable::parse($day['date'])->format('d/m/Y') }}: {{ number_format($day['count'], 0, ',', '.') }} aktivitas"
-                                                wire:click="selectDigitalDate('{{ $day['date'] }}')"
-                                                aria-label="{{ Carbon\CarbonImmutable::parse($day['date'])->format('d/m/Y') }}: {{ number_format($day['count'], 0, ',', '.') }} aktivitas"
-                                            ></button>
-                                        @else
-                                            <button
-                                                type="button"
-                                                class="{{ $this->digitalCalendarDayClass($day) }}"
-                                                title="{{ Carbon\CarbonImmutable::parse($day['date'])->format('d/m/Y') }}: {{ number_format($day['count'], 0, ',', '.') }} aktivitas"
-                                                aria-label="{{ Carbon\CarbonImmutable::parse($day['date'])->format('d/m/Y') }}: {{ number_format($day['count'], 0, ',', '.') }} aktivitas"
-                                                disabled
-                                            ></button>
-                                        @endif
-                                    @endforeach
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-
-                    <div class="flex flex-wrap gap-2">
-                        @foreach ($this->digitalYears() as $year)
-                            <flux:button
-                                class="cursor-pointer"
-                                size="xs"
-                                variant="{{ $selectedDigitalYear === $year ? 'primary' : 'ghost' }}"
-                                wire:click="selectDigitalYear({{ $year }})"
-                            >
-                                {{ $year }}
-                            </flux:button>
-                        @endforeach
-                    </div>
-
-                    <div class="space-y-3 rounded-xl border border-zinc-200 bg-[#efe7d7] p-4 dark:border-zinc-700 dark:bg-zinc-900">
-                        <div class="text-center text-xs font-semibold text-zinc-600 dark:text-zinc-300">
-                            {{ $this->digitalConversationDateLabel() }}
-                        </div>
-
-                        @php
-                            $selectedDayActivities = $this->selectedDigitalDateActivities();
-                        @endphp
-                        @if ($selectedDigitalDate && $selectedDayActivities->isNotEmpty())
-                            <div class="max-h-[32rem] space-y-3 overflow-y-auto pr-2">
-                                @foreach ($selectedDayActivities as $activity)
-                                    @php
-                                        $alignment = $this->digitalConversationAlignment($activity);
-                                    @endphp
-
-                                    @if ($activity->activity_type === 'system')
-                                        <div class="flex justify-center" wire:key="digital-chat-system-{{ $activity->id }}">
-                                            <div class="max-w-[85%] rounded-full bg-white/80 px-3 py-1 text-center text-xs font-medium text-zinc-600 shadow-sm dark:bg-zinc-800 dark:text-zinc-300">
-                                                {{ $this->digitalConversationText($activity) }}
-                                            </div>
-                                        </div>
-                                    @else
-                                        <div class="flex {{ $alignment === 'right' ? 'justify-end' : 'justify-start' }}" wire:key="digital-chat-message-{{ $activity->id }}">
-                                            <div class="max-w-[82%] rounded-2xl px-4 py-2 shadow-sm {{ $alignment === 'right' ? 'rounded-br-sm bg-[#d9fdd3] text-zinc-900' : 'rounded-bl-sm bg-white text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100' }}">
-                                                <div class="mb-1 text-xs font-semibold {{ $alignment === 'right' ? 'text-ktn-forest' : 'text-orange-700 dark:text-orange-300' }}">
-                                                    {{ $activity->whatsappMember?->display_name ?? $activity->sender_name ?? '-' }}
-                                                </div>
-                                                <div class="whitespace-pre-wrap break-words text-sm leading-relaxed">{{ $this->digitalConversationText($activity) }}</div>
-                                                <div class="mt-1 text-right text-[10px] text-zinc-500">
-                                                    {{ $activity->occurred_at_display->format('H:i') }}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @endif
-                                @endforeach
-                            </div>
-                        @elseif ($selectedDigitalDate)
-                            <flux:text>{{ __('Tidak ada aktivitas pada tanggal ini.') }}</flux:text>
-                        @else
-                            <flux:text>{{ __('Klik salah satu kotak hari untuk membuka percakapan pada tanggal tersebut.') }}</flux:text>
-                        @endif
-                    </div>
-                </flux:card>
+                <livewire:whatsapp.digital-calendar :import-id="$this->latestImport->id" wire:key="digital-calendar-{{ $this->latestImport->id }}" />
             </div>
         @elseif ($tab === 'top10')
             <div class="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
