@@ -1,7 +1,13 @@
 <?php
 
+use App\Models\Alumni;
+use App\Models\AuditLog;
+use App\Models\Role;
+use App\Models\User;
 use App\Models\WhatsappActivity;
 use App\Models\WhatsappImport;
+use App\Models\WhatsappMember;
+use App\Models\WhatsappMemberMapping;
 use App\Models\WhatsappMemberEventStat;
 use App\Models\WhatsappMemberStat;
 use Carbon\CarbonImmutable;
@@ -9,6 +15,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -21,6 +28,31 @@ new #[Title('WhatsApp Analytics')] class extends Component {
      * @var array<int, int>
      */
     public array $selectedWhatsappMemberIds = [];
+
+    public string $mappingSearch = '';
+
+    public string $alumniSearch = '';
+
+    /**
+     * @var array<int, int|string|null>
+     */
+    public array $mappingAlumniSelections = [];
+
+    public bool $showRegisterAlumniModal = false;
+
+    public ?int $registerWhatsappMemberId = null;
+
+    public string $registerFullName = '';
+
+    public ?string $registerNickname = null;
+
+    public string $registerWhatsappNumber = '';
+
+    public ?string $registerStudentNumber = null;
+
+    public ?string $registerEmail = null;
+
+    public string $registerAlumniStatus = 'active';
 
     public function mount(): void
     {
@@ -35,6 +67,10 @@ new #[Title('WhatsApp Analytics')] class extends Component {
 
         if (in_array($tab, ['group', 'top10', 'personal', 'mapping'], true)) {
             $this->tab = $tab;
+
+            if ($tab === 'mapping') {
+                $this->hydrateMappingSelections();
+            }
         }
     }
 
@@ -86,9 +122,226 @@ new #[Title('WhatsApp Analytics')] class extends Component {
         $this->selectedWhatsappMemberIds = array_slice(array_values(array_unique($this->selectedWhatsappMemberIds)), -10);
     }
 
+    public function mapWhatsappMember(int $memberId): void
+    {
+        abort_unless($this->canMapWhatsappAlumni(), 403);
+
+        $member = $this->latestImportMember($memberId);
+        $alumniId = $this->selectedMappingAlumniId($memberId);
+
+        if ($alumniId === null) {
+            $this->unmapWhatsappMember($memberId);
+
+            return;
+        }
+
+        $alumni = Alumni::query()->findOrFail($alumniId);
+
+        DB::transaction(function () use ($member, $alumni): void {
+            $mapping = WhatsappMemberMapping::query()->updateOrCreate(
+                ['normalized_name' => $member->normalized_name],
+                [
+                    'display_name' => $member->display_name,
+                    'alumni_id' => $alumni->id,
+                ],
+            );
+
+            $this->syncWhatsappMemberMapping($member->normalized_name, $mapping->id, $alumni->id);
+        });
+
+        $this->mappingAlumniSelections[$memberId] = $alumni->id;
+        unset($this->mappingMembers, $this->mappingMembersCount, $this->mappedMembersCount, $this->unmappedMembersCount);
+    }
+
+    public function unmapWhatsappMember(int $memberId): void
+    {
+        abort_unless($this->canMapWhatsappAlumni(), 403);
+
+        $member = $this->latestImportMember($memberId);
+
+        DB::transaction(function () use ($member): void {
+            $mapping = WhatsappMemberMapping::query()
+                ->where('normalized_name', $member->normalized_name)
+                ->first();
+
+            $mapping?->forceFill(['alumni_id' => null])->save();
+
+            $this->syncWhatsappMemberMapping($member->normalized_name, $mapping?->id, null);
+        });
+
+        $this->mappingAlumniSelections[$memberId] = null;
+        unset($this->mappingMembers, $this->mappingMembersCount, $this->mappedMembersCount, $this->unmappedMembersCount);
+    }
+
+    public function openRegisterAlumniModal(int $memberId): void
+    {
+        abort_unless($this->canMapWhatsappAlumni(), 403);
+
+        $member = $this->latestImportMember($memberId);
+
+        $this->resetRegisterAlumniForm();
+        $this->registerWhatsappMemberId = $member->id;
+        $this->registerFullName = $member->display_name;
+        $this->showRegisterAlumniModal = true;
+    }
+
+    public function closeRegisterAlumniModal(): void
+    {
+        $this->showRegisterAlumniModal = false;
+        $this->resetRegisterAlumniForm();
+    }
+
+    public function registerAlumniAndMap(): void
+    {
+        abort_unless($this->canMapWhatsappAlumni(), 403);
+        abort_if($this->registerWhatsappMemberId === null, 404);
+
+        $member = $this->latestImportMember($this->registerWhatsappMemberId);
+        $this->registerWhatsappNumber = User::normalizeWhatsappNumber($this->registerWhatsappNumber) ?? '';
+
+        $validated = $this->validate([
+            'registerFullName' => ['required', 'string', 'max:150'],
+            'registerNickname' => ['nullable', 'string', 'max:100'],
+            'registerWhatsappNumber' => ['required', 'string', 'max:30', Rule::unique(User::class, 'whatsapp_number')],
+            'registerStudentNumber' => ['nullable', 'string', 'max:50', Rule::unique(Alumni::class, 'student_number')],
+            'registerEmail' => ['nullable', 'string', 'email', 'max:150', Rule::unique(User::class, 'email')],
+            'registerAlumniStatus' => ['required', Rule::in(['active', 'deceased'])],
+        ]);
+
+        $alumni = DB::transaction(function () use ($member, $validated): Alumni {
+            $alumniRole = Role::query()->firstOrCreate(
+                ['name' => 'alumni'],
+                ['description' => 'Anggota alumni'],
+            );
+            $password = 'tgd'.substr($validated['registerWhatsappNumber'], -4);
+
+            $user = User::query()->create([
+                'role_id' => $alumniRole->id,
+                'name' => $validated['registerFullName'],
+                'email' => $validated['registerEmail'] ?: "{$validated['registerWhatsappNumber']}@geodesi96.local",
+                'whatsapp_number' => $validated['registerWhatsappNumber'],
+                'password' => $password,
+                'is_active' => true,
+            ]);
+
+            $alumni = Alumni::query()->create([
+                'user_id' => $user->id,
+                'student_number' => $validated['registerStudentNumber'],
+                'full_name' => $validated['registerFullName'],
+                'nickname' => $validated['registerNickname'],
+                'email' => $validated['registerEmail'],
+                'alumni_status' => $validated['registerAlumniStatus'],
+                'rsvp_status' => 'pending',
+                'is_profile_completed' => false,
+            ]);
+
+            $mapping = WhatsappMemberMapping::query()->updateOrCreate(
+                ['normalized_name' => $member->normalized_name],
+                [
+                    'display_name' => $member->display_name,
+                    'alumni_id' => $alumni->id,
+                ],
+            );
+
+            $this->syncWhatsappMemberMapping($member->normalized_name, $mapping->id, $alumni->id);
+
+            AuditLog::record(
+                action: 'alumni.created',
+                entity: $alumni,
+                newValues: [
+                    'full_name' => $alumni->full_name,
+                    'student_number' => $alumni->student_number,
+                    'whatsapp_number' => $user->whatsapp_number,
+                    'role' => $user->role?->name,
+                    'source' => 'whatsapp_mapping',
+                ],
+            );
+
+            return $alumni;
+        });
+
+        $this->mappingAlumniSelections[$member->id] = $alumni->id;
+        $this->alumniSearch = '';
+        $this->showRegisterAlumniModal = false;
+        $this->resetRegisterAlumniForm();
+        unset($this->mappingMembers, $this->mappingMembersCount, $this->mappedMembersCount, $this->unmappedMembersCount);
+    }
+
+
     public function canMapWhatsappAlumni(): bool
     {
         return auth()->user()?->canManageAlumni() ?? false;
+    }
+
+    /**
+     * @return Collection<int, WhatsappMember>
+     */
+    #[Computed]
+    public function mappingMembers(): Collection
+    {
+        if ($this->latestImport === null) {
+            return new Collection();
+        }
+
+        return WhatsappMember::query()
+            ->with(['alumni:id,full_name,nickname', 'mapping.alumni:id,full_name,nickname'])
+            ->whereBelongsTo($this->latestImport)
+            ->when(filled($this->mappingSearch), function ($query): void {
+                $search = '%'.str($this->mappingSearch)->lower()->toString().'%';
+
+                $query->where(function ($query) use ($search): void {
+                    $query
+                        ->whereRaw('LOWER(display_name) LIKE ?', [$search])
+                        ->orWhereRaw('LOWER(normalized_name) LIKE ?', [$search]);
+                });
+            })
+            ->orderByRaw('alumni_id is not null')
+            ->orderBy('display_name')
+            ->get();
+    }
+
+    /**
+     * @return Collection<int, Alumni>
+     */
+    public function mappingAlumniOptions(): Collection
+    {
+        return Alumni::query()
+            ->where('alumni_status', 'active')
+            ->when(filled($this->alumniSearch), function ($query): void {
+                $search = '%'.str($this->alumniSearch)->lower()->toString().'%';
+
+                $query->where(function ($query) use ($search): void {
+                    $query
+                        ->whereRaw('LOWER(full_name) LIKE ?', [$search])
+                        ->orWhereRaw('LOWER(nickname) LIKE ?', [$search])
+                        ->orWhereRaw('LOWER(student_number) LIKE ?', [$search]);
+                });
+            })
+            ->orderBy('full_name')
+            ->limit(250)
+            ->get(['id', 'full_name', 'nickname', 'student_number']);
+    }
+
+    #[Computed]
+    public function mappingMembersCount(): int
+    {
+        return $this->latestImport
+            ? WhatsappMember::query()->whereBelongsTo($this->latestImport)->count()
+            : 0;
+    }
+
+    #[Computed]
+    public function mappedMembersCount(): int
+    {
+        return $this->latestImport
+            ? WhatsappMember::query()->whereBelongsTo($this->latestImport)->whereNotNull('alumni_id')->count()
+            : 0;
+    }
+
+    #[Computed]
+    public function unmappedMembersCount(): int
+    {
+        return max(0, $this->mappingMembersCount - $this->mappedMembersCount);
     }
 
     #[Computed]
@@ -965,6 +1218,94 @@ new #[Title('WhatsApp Analytics')] class extends Component {
             ->all();
     }
 
+    private function hydrateMappingSelections(): void
+    {
+        if ($this->latestImport === null) {
+            $this->mappingAlumniSelections = [];
+
+            return;
+        }
+
+        WhatsappMember::query()
+            ->whereBelongsTo($this->latestImport)
+            ->whereNotNull('alumni_id')
+            ->pluck('alumni_id', 'id')
+            ->each(function (mixed $alumniId, mixed $memberId): void {
+                $this->mappingAlumniSelections[(int) $memberId] = (int) $alumniId;
+            });
+    }
+
+    private function resetRegisterAlumniForm(): void
+    {
+        $this->reset([
+            'registerWhatsappMemberId',
+            'registerFullName',
+            'registerNickname',
+            'registerWhatsappNumber',
+            'registerStudentNumber',
+            'registerEmail',
+        ]);
+        $this->registerAlumniStatus = 'active';
+        $this->resetErrorBag();
+    }
+
+    private function latestImportMember(int $memberId): WhatsappMember
+    {
+        abort_if($this->latestImport === null, 404);
+
+        return WhatsappMember::query()
+            ->whereBelongsTo($this->latestImport)
+            ->whereKey($memberId)
+            ->firstOrFail();
+    }
+
+    private function selectedMappingAlumniId(int $memberId): ?int
+    {
+        $value = $this->mappingAlumniSelections[$memberId] ?? null;
+
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        abort_unless(filter_var($value, FILTER_VALIDATE_INT) !== false, 422);
+
+        $alumniId = (int) $value;
+
+        abort_unless(Alumni::query()->whereKey($alumniId)->exists(), 422);
+
+        return $alumniId;
+    }
+
+    private function syncWhatsappMemberMapping(string $normalizedName, ?int $mappingId, ?int $alumniId): void
+    {
+        $memberIds = WhatsappMember::query()
+            ->where('normalized_name', $normalizedName)
+            ->pluck('id');
+
+        if ($memberIds->isEmpty()) {
+            return;
+        }
+
+        WhatsappMember::query()
+            ->whereIn('id', $memberIds)
+            ->update([
+                'whatsapp_member_mapping_id' => $mappingId,
+                'alumni_id' => $alumniId,
+            ]);
+
+        WhatsappActivity::query()
+            ->whereIn('whatsapp_member_id', $memberIds)
+            ->update(['alumni_id' => $alumniId]);
+
+        WhatsappMemberStat::query()
+            ->whereIn('whatsapp_member_id', $memberIds)
+            ->update(['alumni_id' => $alumniId]);
+
+        WhatsappMemberEventStat::query()
+            ->whereIn('whatsapp_member_id', $memberIds)
+            ->update(['alumni_id' => $alumniId]);
+    }
+
     /**
      * @return array<string, true>
      */
@@ -1408,9 +1749,9 @@ new #[Title('WhatsApp Analytics')] class extends Component {
 <section class="w-full space-y-6 p-6 lg:p-8">
     <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div class="space-y-2">
-            <flux:heading size="xl">{{ __('WhatsApp Group Analyzer') }}</flux:heading>
+            <flux:heading size="xl">{{ __('Analisis Group Alumni Tgd 96') }}</flux:heading>
             <flux:text class="max-w-3xl">
-                {{ __('Statistik visual grup WhatsApp alumni dalam WIB. Sistem menyimpan aktivitas untuk audit ulang dan mapping personal.') }}
+                {{ __('Memetakan jejak percakapan, aktivitas, dan dinamika alumni yang telah terbangun selama bertahun-tahun.') }}
             </flux:text>
         </div>
 
@@ -1432,10 +1773,161 @@ new #[Title('WhatsApp Analytics')] class extends Component {
     </div>
 
     @if ($tab === 'mapping' && $this->canMapWhatsappAlumni())
-        <flux:card class="space-y-3">
-            <flux:heading size="lg">{{ __('Mapping Alumni') }}</flux:heading>
-            <flux:text>{{ __('Pemetaan anggota WhatsApp ke data alumni akan disiapkan pada tahap berikutnya.') }}</flux:text>
+        <flux:card class="space-y-5">
+            <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                <div class="space-y-1">
+                    <flux:heading size="lg">{{ __('Mapping Alumni') }}</flux:heading>
+                    <flux:text>{{ __('Petakan nama anggota WhatsApp ke data alumni. Mapping ini berlaku untuk import lama dan import berikutnya dengan nama WhatsApp yang sama.') }}</flux:text>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3 text-center">
+                    <div class="rounded-lg border border-zinc-200 px-4 py-3 dark:border-zinc-700">
+                        <div class="text-2xl font-bold text-ktn-forest tabular-nums dark:text-ktn-sage-light">{{ number_format($this->mappingMembersCount, 0, ',', '.') }}</div>
+                        <div class="text-xs font-medium text-zinc-500 dark:text-zinc-400">{{ __('Nama WA') }}</div>
+                    </div>
+                    <div class="rounded-lg border border-zinc-200 px-4 py-3 dark:border-zinc-700">
+                        <div class="text-2xl font-bold text-ktn-forest tabular-nums dark:text-ktn-sage-light">{{ number_format($this->mappedMembersCount, 0, ',', '.') }}</div>
+                        <div class="text-xs font-medium text-zinc-500 dark:text-zinc-400">{{ __('Mapped') }}</div>
+                    </div>
+                    <div class="rounded-lg border border-zinc-200 px-4 py-3 dark:border-zinc-700">
+                        <div class="text-2xl font-bold text-orange-700 tabular-nums dark:text-orange-300">{{ number_format($this->unmappedMembersCount, 0, ',', '.') }}</div>
+                        <div class="text-xs font-medium text-zinc-500 dark:text-zinc-400">{{ __('Belum') }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid gap-3 md:grid-cols-2">
+                <flux:input
+                    wire:model.live.debounce.300ms="mappingSearch"
+                    :label="__('Cari nama WhatsApp')"
+                    :placeholder="__('Ketik nama WhatsApp...')"
+                />
+                <flux:input
+                    wire:model.live.debounce.300ms="alumniSearch"
+                    :label="__('Cari data alumni')"
+                    :placeholder="__('Nama, panggilan, atau NIM...')"
+                />
+            </div>
+
+            @php
+                $mappingAlumniOptions = $this->mappingAlumniOptions();
+            @endphp
+
+            <div class="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
+                <table class="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-700">
+                    <thead class="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400">
+                        <tr>
+                            <th class="px-4 py-3">{{ __('Nama WhatsApp') }}</th>
+                            <th class="px-4 py-3 text-right">{{ __('Pesan') }}</th>
+                            <th class="px-4 py-3">{{ __('Mapping Saat Ini') }}</th>
+                            <th class="px-4 py-3">{{ __('Pilih Alumni') }}</th>
+                            <th class="px-4 py-3 text-right">{{ __('Aksi') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-200 bg-white dark:divide-zinc-700 dark:bg-zinc-950">
+                        @forelse ($this->mappingMembers as $member)
+                            <tr wire:key="mapping-member-{{ $member->id }}">
+                                <td class="px-4 py-3">
+                                    <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $member->display_name }}</div>
+                                    <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ $member->normalized_name }}</div>
+                                </td>
+                                <td class="px-4 py-3 text-right font-semibold tabular-nums text-zinc-700 dark:text-zinc-200">
+                                    {{ number_format($member->total_messages, 0, ',', '.') }}
+                                </td>
+                                <td class="px-4 py-3">
+                                    @if ($member->alumni)
+                                        <div class="font-medium text-ktn-forest dark:text-ktn-sage-light">{{ $member->alumni->full_name }}</div>
+                                        @if ($member->alumni->nickname)
+                                            <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ $member->alumni->nickname }}</div>
+                                        @endif
+                                    @else
+                                        <span class="rounded-full bg-orange-100 px-2 py-1 text-xs font-semibold text-orange-700 dark:bg-orange-950 dark:text-orange-300">{{ __('Belum dipetakan') }}</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3">
+                                    <select
+                                        wire:model="mappingAlumniSelections.{{ $member->id }}"
+                                        class="w-72 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-ktn-forest focus:outline-none focus:ring-2 focus:ring-ktn-forest/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                                    >
+                                        <option value="">{{ __('Pilih alumni...') }}</option>
+                                        @foreach ($mappingAlumniOptions as $alumni)
+                                            <option value="{{ $alumni->id }}">
+                                                {{ $alumni->full_name }}
+                                                @if ($alumni->nickname)
+                                                    ({{ $alumni->nickname }})
+                                                @endif
+                                                @if ($alumni->student_number)
+                                                    - {{ $alumni->student_number }}
+                                                @endif
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <div class="flex justify-end gap-2">
+                                        <flux:button class="cursor-pointer" size="xs" variant="primary" wire:click="mapWhatsappMember({{ $member->id }})">
+                                            {{ __('Simpan') }}
+                                        </flux:button>
+                                        <flux:button class="cursor-pointer" size="xs" variant="ghost" wire:click="openRegisterAlumniModal({{ $member->id }})">
+                                            {{ __('Daftarkan') }}
+                                        </flux:button>
+                                        <flux:button class="cursor-pointer" size="xs" variant="ghost" wire:click="unmapWhatsappMember({{ $member->id }})">
+                                            {{ __('Lepas') }}
+                                        </flux:button>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="px-4 py-8 text-center text-zinc-500 dark:text-zinc-400">
+                                    {{ __('Belum ada anggota WhatsApp yang bisa dipetakan.') }}
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </flux:card>
+
+        @if ($showRegisterAlumniModal)
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/50 p-4" role="dialog" aria-modal="true">
+                <div class="w-full max-w-3xl rounded-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-950">
+                    <form wire:submit="registerAlumniAndMap" class="space-y-5 p-6">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div class="space-y-1">
+                                <flux:heading size="lg">{{ __('Daftarkan Alumni') }}</flux:heading>
+                                <flux:text>{{ __('Buat data alumni dan langsung petakan ke nama WhatsApp yang dipilih.') }}</flux:text>
+                            </div>
+
+                            <flux:button type="button" class="cursor-pointer" size="sm" variant="ghost" wire:click="closeRegisterAlumniModal">
+                                {{ __('Tutup') }}
+                            </flux:button>
+                        </div>
+
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <flux:input wire:model="registerFullName" :label="__('Nama lengkap')" required />
+                            <flux:input wire:model="registerNickname" :label="__('Nama panggilan')" />
+                            <flux:input wire:model="registerWhatsappNumber" :label="__('Nomor WhatsApp')" type="tel" required />
+                            <flux:input wire:model="registerStudentNumber" :label="__('NIM')" />
+                            <flux:input wire:model="registerEmail" :label="__('Email')" type="email" />
+                            <flux:select wire:model="registerAlumniStatus" :label="__('Status alumni')" required>
+                                <flux:select.option value="active">{{ __('Aktif') }}</flux:select.option>
+                                <flux:select.option value="deceased">{{ __('Wafat') }}</flux:select.option>
+                            </flux:select>
+                        </div>
+
+                        <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                            <flux:button type="button" class="cursor-pointer" variant="ghost" wire:click="closeRegisterAlumniModal">
+                                {{ __('Batal') }}
+                            </flux:button>
+                            <flux:button type="submit" class="cursor-pointer" variant="primary" icon="check" wire:loading.attr="disabled">
+                                {{ __('Simpan dan Mapping') }}
+                            </flux:button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        @endif
     @elseif ($this->latestImport)
         @if ($tab === 'group')
             <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

@@ -5,6 +5,7 @@ use App\Models\User;
 use App\Models\WhatsappImport;
 use App\Models\WhatsappMember;
 use App\Models\WhatsappMemberEventStat;
+use App\Models\WhatsappMemberMapping;
 use App\Models\WhatsappMemberStat;
 use App\Services\WhatsAppAnalyzer\WhatsappImportProcessor;
 use App\Services\WhatsAppAnalyzer\WhatsappParser;
@@ -95,4 +96,43 @@ test('processor stores raw activities members and personal stats', function () {
 
     expect($import->activities()->count())->toBe(6)
         ->and($import->dailyStats()->count())->toBe(1);
+});
+
+test('processor applies saved whatsapp member mappings to new imports', function () {
+    $alumni = Alumni::factory()->create([
+        'full_name' => 'I Made Alumni',
+        'nickname' => null,
+        'alumni_status' => 'active',
+    ]);
+    $mapping = WhatsappMemberMapping::factory()->linkedToAlumni($alumni)->create([
+        'display_name' => 'Budi WA',
+        'normalized_name' => 'budi',
+    ]);
+    $import = WhatsappImport::factory()->create([
+        'uploaded_by' => User::factory(),
+        'status' => 'uploaded',
+    ]);
+
+    app(WhatsappImportProcessor::class)->process($import, implode("\n", [
+        '2/6/16, 08:53 - Budi: Selamat pagi',
+        '2/6/16, 09:10 - Budi: Info reuni https://example.test',
+    ]));
+
+    $member = WhatsappMember::query()
+        ->where('whatsapp_import_id', $import->id)
+        ->where('normalized_name', 'budi')
+        ->firstOrFail();
+
+    expect($member->whatsapp_member_mapping_id)->toBe($mapping->id)
+        ->and($member->alumni_id)->toBe($alumni->id)
+        ->and($member->activities()->where('alumni_id', $alumni->id)->count())->toBe(2);
+
+    $this->assertDatabaseHas('whatsapp_member_stats', [
+        'whatsapp_member_id' => $member->id,
+        'alumni_id' => $alumni->id,
+    ]);
+    $this->assertDatabaseHas('whatsapp_member_event_stats', [
+        'whatsapp_member_id' => $member->id,
+        'alumni_id' => $alumni->id,
+    ]);
 });

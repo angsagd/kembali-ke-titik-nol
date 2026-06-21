@@ -8,6 +8,7 @@ use App\Models\WhatsappDailyStat;
 use App\Models\WhatsappImport;
 use App\Models\WhatsappMember;
 use App\Models\WhatsappMemberEventStat;
+use App\Models\WhatsappMemberMapping;
 use App\Models\WhatsappMemberStat;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -195,6 +196,55 @@ test('administrator users can view whatsapp analytics', function () {
         'description' => 'Administrator sistem',
     ]);
     $administrator = User::factory()->create(['role_id' => $administratorRole->id]);
+    $alumni = Alumni::factory()->create([
+        'full_name' => 'Andi Arsana',
+        'nickname' => 'Andi',
+        'student_number' => '960001',
+    ]);
+    $whatsappImport = WhatsappImport::factory()->create([
+        'status' => 'completed',
+        'processed_at' => now(),
+    ]);
+    $olderImport = WhatsappImport::factory()->create([
+        'status' => 'completed',
+        'processed_at' => now()->subDay(),
+    ]);
+    $member = WhatsappMember::factory()->create([
+        'whatsapp_import_id' => $whatsappImport->id,
+        'display_name' => 'Andi WA',
+        'normalized_name' => 'andiwa',
+        'total_messages' => 42,
+    ]);
+    $olderMember = WhatsappMember::factory()->create([
+        'whatsapp_import_id' => $olderImport->id,
+        'display_name' => 'Andi WA',
+        'normalized_name' => 'andiwa',
+        'total_messages' => 12,
+    ]);
+    $newMember = WhatsappMember::factory()->create([
+        'whatsapp_import_id' => $whatsappImport->id,
+        'display_name' => 'Nyoman Baru',
+        'normalized_name' => 'nyomanbaru',
+        'total_messages' => 7,
+    ]);
+    WhatsappActivity::factory()->forMember($member)->create(['alumni_id' => null]);
+    WhatsappActivity::factory()->forMember($olderMember)->create(['alumni_id' => null]);
+    WhatsappActivity::factory()->forMember($newMember)->create(['alumni_id' => null]);
+    WhatsappMemberStat::factory()->create([
+        'whatsapp_import_id' => $whatsappImport->id,
+        'whatsapp_member_id' => $member->id,
+        'alumni_id' => null,
+    ]);
+    WhatsappMemberStat::factory()->create([
+        'whatsapp_import_id' => $olderImport->id,
+        'whatsapp_member_id' => $olderMember->id,
+        'alumni_id' => null,
+    ]);
+    WhatsappMemberEventStat::factory()->create([
+        'whatsapp_import_id' => $whatsappImport->id,
+        'whatsapp_member_id' => $member->id,
+        'alumni_id' => null,
+    ]);
 
     $this->actingAs($administrator)
         ->get(route('whatsapp.analytics'))
@@ -208,7 +258,86 @@ test('administrator users can view whatsapp analytics', function () {
         ->test('pages::whatsapp.analytics')
         ->call('selectTab', 'mapping')
         ->assertSet('tab', 'mapping')
-        ->assertSee('Pemetaan anggota WhatsApp ke data alumni akan disiapkan pada tahap berikutnya.');
+        ->assertSee('Petakan nama anggota WhatsApp ke data alumni')
+        ->assertSee('Andi WA')
+        ->set("mappingAlumniSelections.{$member->id}", $alumni->id)
+        ->call('mapWhatsappMember', $member->id);
+
+    $mapping = WhatsappMemberMapping::query()->where('normalized_name', 'andiwa')->first();
+
+    expect($mapping)->not->toBeNull()
+        ->and($mapping->alumni_id)->toBe($alumni->id);
+
+    $this->assertDatabaseHas('whatsapp_members', [
+        'id' => $member->id,
+        'whatsapp_member_mapping_id' => $mapping->id,
+        'alumni_id' => $alumni->id,
+    ]);
+    $this->assertDatabaseHas('whatsapp_members', [
+        'id' => $olderMember->id,
+        'whatsapp_member_mapping_id' => $mapping->id,
+        'alumni_id' => $alumni->id,
+    ]);
+    $this->assertDatabaseHas('whatsapp_activities', [
+        'whatsapp_member_id' => $member->id,
+        'alumni_id' => $alumni->id,
+    ]);
+    $this->assertDatabaseHas('whatsapp_member_stats', [
+        'whatsapp_member_id' => $member->id,
+        'alumni_id' => $alumni->id,
+    ]);
+    $this->assertDatabaseHas('whatsapp_member_event_stats', [
+        'whatsapp_member_id' => $member->id,
+        'alumni_id' => $alumni->id,
+    ]);
+
+    Livewire::actingAs($administrator)
+        ->test('pages::whatsapp.analytics')
+        ->call('selectTab', 'mapping')
+        ->call('unmapWhatsappMember', $member->id);
+
+    expect($mapping->refresh()->alumni_id)->toBeNull();
+    $this->assertDatabaseHas('whatsapp_members', [
+        'id' => $member->id,
+        'whatsapp_member_mapping_id' => $mapping->id,
+        'alumni_id' => null,
+    ]);
+    $this->assertDatabaseHas('whatsapp_activities', [
+        'whatsapp_member_id' => $member->id,
+        'alumni_id' => null,
+    ]);
+
+    Livewire::actingAs($administrator)
+        ->test('pages::whatsapp.analytics')
+        ->call('selectTab', 'mapping')
+        ->call('openRegisterAlumniModal', $newMember->id)
+        ->assertSet('showRegisterAlumniModal', true)
+        ->assertSet('registerFullName', 'Nyoman Baru')
+        ->assertSee('Daftarkan Alumni')
+        ->set('registerFullName', 'Nyoman Dharma')
+        ->set('registerNickname', 'Nyoman')
+        ->set('registerWhatsappNumber', '+62 812-3456-7890')
+        ->set('registerStudentNumber', 'D096888')
+        ->set('registerEmail', 'nyoman@example.test')
+        ->set('registerAlumniStatus', 'active')
+        ->call('registerAlumniAndMap')
+        ->assertSet('showRegisterAlumniModal', false);
+
+    $newAlumni = Alumni::query()->where('student_number', 'D096888')->first();
+
+    expect($newAlumni)->not->toBeNull()
+        ->and($newAlumni->full_name)->toBe('Nyoman Dharma')
+        ->and($newAlumni->nickname)->toBe('Nyoman')
+        ->and($newAlumni->user?->whatsapp_number)->toBe('6281234567890');
+
+    $this->assertDatabaseHas('whatsapp_member_mappings', [
+        'normalized_name' => 'nyomanbaru',
+        'alumni_id' => $newAlumni->id,
+    ]);
+    $this->assertDatabaseHas('whatsapp_members', [
+        'id' => $newMember->id,
+        'alumni_id' => $newAlumni->id,
+    ]);
 });
 
 test('alumni users can download whatsapp analytics source as txt zip', function () {

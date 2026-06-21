@@ -2,7 +2,7 @@
 
 use App\Models\WhatsappActivity;
 use App\Models\WhatsappImport;
-use App\Models\WhatsappMemberStat;
+use App\Models\WhatsappMember;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\Computed;
@@ -251,10 +251,10 @@ new class extends Component {
             return null;
         }
 
-        return WhatsappMemberStat::query()
+        return WhatsappMember::query()
             ->whereBelongsTo($this->latestImport)
             ->where('alumni_id', $alumniId)
-            ->value('whatsapp_member_id');
+            ->value('id');
     }
 };
 ?>
