@@ -121,7 +121,7 @@ test('alumni users can view whatsapp analytics', function () {
 
     $response
         ->assertOk()
-        ->assertSee('WhatsApp Group Analyzer')
+        ->assertSee('Analisis Group Alumni Tgd 96')
         ->assertSee('Statistik Grup')
         ->assertSee('Top 10')
         ->assertSee('Statistik Personal')
@@ -249,7 +249,7 @@ test('administrator users can view whatsapp analytics', function () {
     $this->actingAs($administrator)
         ->get(route('whatsapp.analytics'))
         ->assertOk()
-        ->assertSee('WhatsApp Group Analyzer')
+        ->assertSee('Analisis Group Alumni Tgd 96')
         ->assertSee('Mapping Alumni')
         ->assertSee('Bahan Analisis')
         ->assertDontSee('Kelola Import');
