@@ -477,12 +477,12 @@ new #[Title('WhatsApp Analytics')] class extends Component {
             ],
             [
                 'metric' => 'member_left',
-                'title' => __('Top 10 Titik Hilang dari Jaringan'),
+                'title' => __('Top 10 Sering Keluar'),
                 'description' => __('Pernah menjadi bagian dari jaringan pengamatan, lalu menghilang dari peta grup. Namun jejaknya tetap tercatat dalam sejarah.'),
             ],
             [
                 'metric' => 'security_code_changed',
-                'title' => __('Top 10 Reobservasi Perangkat'),
+                'title' => __('Top 10 Ganti Alat'),
                 'description' => __('Instrumen boleh berganti, tetapi pengamatnya tetap sama. Statistik ini mencatat mereka yang paling sering melakukan kalibrasi digital.'),
             ],
         ];

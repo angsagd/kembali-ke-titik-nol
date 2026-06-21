@@ -168,8 +168,8 @@ test('alumni users can view whatsapp analytics', function () {
         ->assertSee('Top 10 Paling Konsisten')
         ->assertSee('Top 10 Mode Hemat Kata')
         ->assertSee('Top 10 Menambahkan Anggota')
-        ->assertSee('Top 10 Titik Hilang dari Jaringan')
-        ->assertSee('Top 10 Reobservasi Perangkat');
+        ->assertSee('Top 10 Sering Keluar')
+        ->assertSee('Top 10 Ganti Alat');
 
     Livewire::actingAs($profile->user)
         ->test('pages::whatsapp.analytics')
