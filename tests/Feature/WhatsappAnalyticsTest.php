@@ -203,7 +203,7 @@ test('administrator users can view whatsapp analytics', function () {
     ]);
     $whatsappImport = WhatsappImport::factory()->create([
         'status' => 'completed',
-        'processed_at' => now(),
+        'processed_at' => now()->addDay(),
     ]);
     $olderImport = WhatsappImport::factory()->create([
         'status' => 'completed',
