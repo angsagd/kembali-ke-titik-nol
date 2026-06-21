@@ -156,6 +156,10 @@ class WhatsappParser
             $systemEventType = 'deleted_message';
         }
 
+        if ($messageText !== null && $this->isEditedMessage($messageText)) {
+            $systemEventType = 'edited_message';
+        }
+
         if ($messageText === null) {
             $event = $this->classifySystemEvent($activity['content']);
             $systemEventType = $event['type'];
@@ -228,6 +232,16 @@ class WhatsappParser
     private function isDeletedMessage(string $messageText): bool
     {
         return Str::of($messageText)->lower()->trim()->exactly('this message was deleted');
+    }
+
+    private function isEditedMessage(string $messageText): bool
+    {
+        $message = Str::of($messageText)->lower();
+
+        return $message->contains('<this message was edited>')
+            || $message->contains('this message was edited')
+            || $message->contains('<message edited>')
+            || $message->contains('(edited)');
     }
 
     private function hasMedia(string $text): bool

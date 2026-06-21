@@ -426,6 +426,11 @@ new #[Title('WhatsApp Analytics')] class extends Component {
                 'description' => __('Pernah ada. Lalu hilang. Tapi statistik tetap mencatat.'),
             ],
             [
+                'metric' => 'edited_messages',
+                'title' => __('Top 10 Revisi Patok'),
+                'description' => __('Koordinat kata sempat bergeser, lalu dikoreksi ulang. Mereka paling sering melakukan pengukuran ulang sebelum pesan dianggap final.'),
+            ],
+            [
                 'metric' => 'location_messages',
                 'title' => __('Top 10 Shareloc Warrior'),
                 'description' => __('Mereka tidak banyak menjelaskan. Cukup kirim lokasi, semua paham arah perjuangan.'),
@@ -479,6 +484,11 @@ new #[Title('WhatsApp Analytics')] class extends Component {
                 'metric' => 'member_left',
                 'title' => __('Top 10 Sering Keluar'),
                 'description' => __('Pernah menjadi bagian dari jaringan pengamatan, lalu menghilang dari peta grup. Namun jejaknya tetap tercatat dalam sejarah.'),
+            ],
+            [
+                'metric' => 'phone_number_changed',
+                'title' => __('Top 10 Migrasi Koordinat'),
+                'description' => __('Nomor boleh berpindah titik, tetapi identitas pengamat tetap terbaca di peta. Statistik ini mencatat perpindahan koordinat kontak paling sering.'),
             ],
             [
                 'metric' => 'security_code_changed',
@@ -563,6 +573,10 @@ new #[Title('WhatsApp Analytics')] class extends Component {
             return $this->topLowAverageWordRows($limit);
         }
 
+        if ($metric === 'edited_messages') {
+            return $this->topEditedMessageRows($limit);
+        }
+
         if (in_array($metric, $this->eventMetricKeys(), true)) {
             return $this->topEventMembers($metric, $limit)
                 ->map(fn (WhatsappMemberEventStat $row): array => [
@@ -622,6 +636,7 @@ new #[Title('WhatsApp Analytics')] class extends Component {
             'member_added_as_target',
             'member_removed_as_actor',
             'member_left',
+            'phone_number_changed',
             'security_code_changed',
         ];
     }
@@ -638,6 +653,29 @@ new #[Title('WhatsApp Analytics')] class extends Component {
             ->whereBelongsTo($this->latestImport)
             ->whereNotNull('whatsapp_member_id')
             ->where($column, true)
+            ->select('whatsapp_member_id')
+            ->selectRaw('COUNT(*) as metric_value')
+            ->groupBy('whatsapp_member_id')
+            ->orderByDesc('metric_value')
+            ->limit($limit)
+            ->get()
+            ->map(fn (WhatsappActivity $row): array => [
+                'label' => $row->whatsappMember?->display_name ?? '-',
+                'value' => (int) $row->metric_value,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array<int, array{label: string, value: int}>
+     */
+    private function topEditedMessageRows(int $limit): array
+    {
+        return WhatsappActivity::query()
+            ->with('whatsappMember:id,display_name')
+            ->whereBelongsTo($this->latestImport)
+            ->whereNotNull('whatsapp_member_id')
+            ->where('system_event_type', 'edited_message')
             ->select('whatsapp_member_id')
             ->selectRaw('COUNT(*) as metric_value')
             ->groupBy('whatsapp_member_id')
