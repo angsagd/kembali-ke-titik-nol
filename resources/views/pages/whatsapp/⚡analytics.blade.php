@@ -1497,8 +1497,8 @@ new #[Title('WhatsApp Analytics')] class extends Component {
 
                 <flux:card class="space-y-4">
                     <div>
-                        <flux:heading size="lg">{{ __('Word Cloud Grup') }}</flux:heading>
-                        <flux:text>{{ __('Kata-kata yang paling sering muncul dalam percakapan grup, setelah kata umum disaring.') }}</flux:text>
+                        <flux:heading size="lg">{{ __('Jejak Kata di Lapangan') }}</flux:heading>
+                        <flux:text>{{ __('Kata-kata yang paling banyak tertinggal setelah gangguan, noise, dan kata-kata umum dieliminasi.') }}</flux:text>
                     </div>
                     @if ($this->groupWordCloud())
                         <div class="h-[34rem] w-full overflow-hidden rounded-lg bg-white" data-echarts data-echarts-option='@json($this->groupWordCloudOption())'></div>

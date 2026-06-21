@@ -262,7 +262,7 @@ new class extends Component {
 <flux:card class="space-y-4">
     <div>
         <flux:heading size="lg">{{ __('Jejak Digital Tahunan') }}</flux:heading>
-        <flux:text>{{ __('Seperti commit GitHub, tapi isinya nostalgia, guyonan, foto lawas, dan rencana reuni.') }}</flux:text>
+        <flux:text>{{ __('Layaknya buku ukur lapangan, setiap kotak menyimpan catatan aktivitas, observasi, dan dinamika jaringan alumni sepanjang tahun.') }}</flux:text>
     </div>
 
     @php
@@ -325,8 +325,8 @@ new class extends Component {
     </div>
 
     <div
-        class="space-y-3 rounded-xl border border-zinc-200 bg-[#efe7d7] bg-cover bg-fixed bg-center p-4 dark:border-zinc-700 dark:bg-zinc-900"
-        style="background-image: url('{{ asset('images/wabg.png') }}');"
+        class="space-y-3 rounded-xl border border-zinc-200 bg-[#efe7d7] bg-top bg-repeat p-4 dark:border-zinc-700 dark:bg-zinc-900"
+        style="background-image: url('{{ asset('images/wabg.png') }}'); background-size: cover;"
     >
         <div class="text-center text-xs font-semibold text-zinc-600 dark:text-zinc-300">
             {{ $this->digitalConversationDateLabel() }}

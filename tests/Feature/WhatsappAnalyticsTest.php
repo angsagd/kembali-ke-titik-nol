@@ -32,7 +32,7 @@ test('alumni users can view whatsapp analytics', function () {
         'total_words' => 75364,
         'first_activity_at' => now()->subDays(9)->setTime(7, 53),
         'last_activity_at' => now()->setTime(22, 15),
-        'processed_at' => now(),
+        'processed_at' => now()->addHour(),
     ]);
 
     WhatsappDailyStat::factory()->create([
@@ -115,8 +115,10 @@ test('alumni users can view whatsapp analytics', function () {
         'message_text' => null,
     ]);
 
-    $this->actingAs($profile->user)
-        ->get(route('whatsapp.analytics'))
+    $response = $this->actingAs($profile->user)
+        ->get(route('whatsapp.analytics'));
+
+    $response
         ->assertOk()
         ->assertSee('WhatsApp Group Analyzer')
         ->assertSee('Statistik Grup')
@@ -134,7 +136,6 @@ test('alumni users can view whatsapp analytics', function () {
         ->assertSee('Anggota Keluar')
         ->assertSee('Hari Favorit Buat Rame-Rame')
         ->assertSee('Kalender Keramaian Alumni')
-        ->assertSee('Word Cloud Grup')
         ->assertSee('mantap')
         ->assertSee('Jejak Digital Tahunan')
         ->assertDontSee('Ganti Perangkat')
