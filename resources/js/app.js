@@ -1,6 +1,7 @@
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import * as echarts from 'echarts';
+import 'echarts-wordcloud';
 
 const countdownTimers = new WeakMap();
 const leafletMaps = new WeakMap();

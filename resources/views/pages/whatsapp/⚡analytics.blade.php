@@ -741,7 +741,7 @@ new #[Title('WhatsApp Analytics')] class extends Component {
     }
 
     /**
-     * @return array<int, array{word: string, count: int, size: int, opacity: string, x: float, y: float, rotation: int, color: string, weight: int}>
+     * @return array<int, array{name: string, value: int, textStyle: array{color: string}}>
      */
     public function groupWordCloud(): array
     {
@@ -771,36 +771,18 @@ new #[Title('WhatsApp Analytics')] class extends Component {
             });
 
         arsort($counts);
-        $topCounts = array_slice($counts, 0, 80, true);
-        $max = max($topCounts ?: [1]);
-        $palette = ['#173f25', '#1f5133', '#5f7f63', '#c5a059', '#96783d', '#7c2d12', '#4b574d', '#0e2d1a'];
+        $topCounts = array_slice($counts, 0, 120, true);
+        $palette = ['#c7d9c8', '#dfc27a', '#8cb58f', '#f2a65a', '#d7ddd5', '#f08a8a', '#9fc5e8', '#c99ac0', '#f5d84c', '#ffffff'];
         $words = [];
         $index = 0;
 
         foreach ($topCounts as $word => $count) {
-            $ratio = $count / $max;
-            $angle = $index * 2.399963229728653;
-            $radius = $index === 0 ? 0 : sqrt($index / 80);
-            $x = 50 + (cos($angle) * $radius * 44);
-            $y = 50 + (sin($angle) * $radius * 31);
-            $rotation = match ($index % 9) {
-                0, 1, 2, 3, 4 => 0,
-                5 => -90,
-                6 => 90,
-                7 => -12,
-                default => 12,
-            };
-
             $words[] = [
-                'word' => $word,
-                'count' => $count,
-                'size' => 12 + (int) round($ratio * 44),
-                'opacity' => (string) round(0.52 + ($ratio * 0.48), 2),
-                'x' => round(max(5, min(95, $x)), 2),
-                'y' => round(max(10, min(90, $y)), 2),
-                'rotation' => $rotation,
-                'color' => $palette[$index % count($palette)],
-                'weight' => $ratio > 0.55 ? 900 : ($ratio > 0.25 ? 800 : 700),
+                'name' => $word,
+                'value' => $count,
+                'textStyle' => [
+                    'color' => $palette[$index % count($palette)],
+                ],
             ];
 
             $index++;
@@ -810,33 +792,52 @@ new #[Title('WhatsApp Analytics')] class extends Component {
     }
 
     /**
-     * @param  array<int, array{word: string, count: int, size: int, opacity: string, x: float, y: float, rotation: int, color: string, weight: int}>  $words
-     * @return array<int, array{width: int, words: array<int, array{word: string, count: int, size: int, opacity: string, x: float, y: float, rotation: int, color: string, weight: int}>}>
+     * @return array<string, mixed>
      */
-    public function groupWordCloudRows(array $words): array
+    public function groupWordCloudOption(): array
     {
-        $rowLimits = [4, 7, 10, 13, 15, 13, 10, 7, 4];
-        $rowWidths = [38, 58, 76, 90, 100, 90, 76, 58, 38];
-        $fillOrder = [4, 3, 5, 2, 6, 1, 7, 0, 8];
-        $rows = array_map(
-            fn (int $width): array => ['width' => $width, 'words' => []],
-            $rowWidths,
-        );
+        $words = $this->groupWordCloud();
 
-        foreach ($words as $word) {
-            foreach ($fillOrder as $rowIndex) {
-                if (count($rows[$rowIndex]['words']) < $rowLimits[$rowIndex]) {
-                    $rows[$rowIndex]['words'][] = $word;
-
-                    break;
-                }
-            }
+        if ($words === []) {
+            return ['series' => []];
         }
 
-        return array_values(array_filter(
-            $rows,
-            fn (array $row): bool => $row['words'] !== [],
-        ));
+        return [
+            'backgroundColor' => '#000000',
+            'tooltip' => [
+                'show' => true,
+                'formatter' => '{b}<br><strong>{c}</strong> kali',
+            ],
+            'series' => [[
+                'type' => 'wordCloud',
+                'shape' => 'circle',
+                'keepAspect' => false,
+                'left' => 'center',
+                'top' => 'center',
+                'width' => '96%',
+                'height' => '94%',
+                'right' => null,
+                'bottom' => null,
+                'sizeRange' => [13, 86],
+                'rotationRange' => [-90, 90],
+                'rotationStep' => 90,
+                'gridSize' => 6,
+                'drawOutOfBound' => false,
+                'layoutAnimation' => true,
+                'textStyle' => [
+                    'fontFamily' => 'ui-sans-serif, system-ui, sans-serif',
+                    'fontWeight' => 700,
+                ],
+                'emphasis' => [
+                    'focus' => 'self',
+                    'textStyle' => [
+                        'shadowBlur' => 8,
+                        'shadowColor' => 'rgba(255,255,255,0.35)',
+                    ],
+                ],
+                'data' => $words,
+            ]],
+        ];
     }
 
     /**
@@ -1703,26 +1704,8 @@ new #[Title('WhatsApp Analytics')] class extends Component {
                         <flux:heading size="lg">{{ __('Word Cloud Grup') }}</flux:heading>
                         <flux:text>{{ __('Kata-kata yang paling sering muncul dalam percakapan grup, setelah kata umum disaring.') }}</flux:text>
                     </div>
-                    @php
-                        $wordCloud = $this->groupWordCloud();
-                        $wordCloudRows = $this->groupWordCloudRows($wordCloud);
-                    @endphp
-                    @if ($wordCloud)
-                        <div class="mx-auto flex min-h-[24rem] w-full max-w-5xl flex-col justify-center gap-1 overflow-hidden rounded-[50%] border border-ktn-forest/10 bg-ktn-forest/[0.03] px-4 py-8 text-center dark:border-ktn-sage/10 dark:bg-white/[0.02] sm:min-h-[30rem] sm:gap-2 sm:px-8">
-                            @foreach ($wordCloudRows as $row)
-                                <div class="mx-auto flex flex-wrap items-center justify-center gap-x-4 gap-y-1 sm:gap-x-5" style="width: {{ $row['width'] }}%;">
-                                    @foreach ($row['words'] as $word)
-                                        <span
-                                            class="inline-block shrink-0 font-display uppercase leading-none tracking-normal transition-transform hover:scale-110"
-                                            style="transform: rotate({{ $word['rotation'] }}deg); font-size: clamp(0.75rem, {{ $word['size'] / 16 }}rem, 3.5rem); font-weight: {{ $word['weight'] }}; color: {{ $word['color'] }}; opacity: {{ $word['opacity'] }};"
-                                            title="{{ $word['count'] }} kali"
-                                        >
-                                            {{ $word['word'] }}
-                                        </span>
-                                    @endforeach
-                                </div>
-                            @endforeach
-                        </div>
+                    @if ($this->groupWordCloud())
+                        <div class="h-[34rem] w-full overflow-hidden rounded-lg bg-black" data-echarts data-echarts-option='@json($this->groupWordCloudOption())'></div>
                     @else
                         <flux:text>{{ __('Belum cukup kata untuk membentuk word cloud.') }}</flux:text>
                     @endif
