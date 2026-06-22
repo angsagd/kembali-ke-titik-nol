@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use RuntimeException;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureAuthorization();
         $this->configureDefaults();
+        $this->guardDestructiveCommandsInLocal();
     }
 
     /**
@@ -64,6 +66,40 @@ class AppServiceProvider extends ServiceProvider
                 ->symbols()
                 ->uncompromised()
             : null,
+        );
+    }
+
+    /**
+     * Block destructive database commands in local unless explicitly acknowledged.
+     */
+    protected function guardDestructiveCommandsInLocal(): void
+    {
+        if (! app()->runningInConsole() || ! app()->environment('local')) {
+            return;
+        }
+
+        $arguments = $_SERVER['argv'] ?? [];
+
+        if (! in_array('migrate:fresh', $arguments, true)) {
+            return;
+        }
+
+        $isTestingEnvironment = in_array('--env=testing', $arguments, true);
+        if (! $isTestingEnvironment) {
+            $envOptionIndex = array_search('--env', $arguments, true);
+            $isTestingEnvironment = $envOptionIndex !== false
+                && ($arguments[$envOptionIndex + 1] ?? null) === 'testing';
+        }
+
+        $hasExplicitForce = in_array('--force', $arguments, true);
+
+        if ($isTestingEnvironment || $hasExplicitForce) {
+            return;
+        }
+
+        throw new RuntimeException(
+            'Command "migrate:fresh" diblokir di APP_ENV=local untuk mencegah kehilangan data. '
+            .'Gunakan --force jika memang sengaja, atau jalankan pada --env=testing.'
         );
     }
 }
