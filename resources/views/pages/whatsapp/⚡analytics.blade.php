@@ -422,12 +422,12 @@ new #[Title('WhatsApp Analytics')] class extends Component {
             ],
             [
                 'metric' => 'deleted_messages',
-                'title' => __('Top 10 Jejak Terhapus'),
+                'title' => __('Top 10 Penghapus Pesan'),
                 'description' => __('Pernah ada. Lalu hilang. Tapi statistik tetap mencatat.'),
             ],
             [
                 'metric' => 'edited_messages',
-                'title' => __('Top 10 Revisi Patok'),
+                'title' => __('Top 10 Revisi Pesan'),
                 'description' => __('Koordinat kata sempat bergeser, lalu dikoreksi ulang. Mereka paling sering melakukan pengukuran ulang sebelum pesan dianggap final.'),
             ],
             [
@@ -487,7 +487,7 @@ new #[Title('WhatsApp Analytics')] class extends Component {
             ],
             [
                 'metric' => 'phone_number_changed',
-                'title' => __('Top 10 Migrasi Koordinat'),
+                'title' => __('Top 10 Migrasi Nomor'),
                 'description' => __('Nomor boleh berpindah titik, tetapi identitas pengamat tetap terbaca di peta. Statistik ini mencatat perpindahan koordinat kontak paling sering.'),
             ],
             [
