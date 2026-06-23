@@ -153,7 +153,7 @@ test('alumni users can view whatsapp analytics', function () {
         ->test('pages::whatsapp.analytics')
         ->call('selectTab', 'top10')
         ->assertSee('Top 10 Tukang Ketik')
-        ->assertSee('Top 10 Juragan Dokumentasi')
+        ->assertSee('Top 10 Tim Dokumentasi')
         ->assertSee('Top 10 Stikerwan-Stikerwati')
         ->assertSee('Top 10 Agen Link Nasional')
         ->assertSee('Top 10 Duta Emoji')

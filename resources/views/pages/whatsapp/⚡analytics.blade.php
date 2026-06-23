@@ -402,7 +402,7 @@ new #[Title('WhatsApp Analytics')] class extends Component {
             ],
             [
                 'metric' => 'media_messages',
-                'title' => __('Top 10 Juragan Dokumentasi'),
+                'title' => __('Top 10 Tim Dokumentasi'),
                 'description' => __('Foto, video, dokumen, dan segala bentuk kenangan visual biasanya lewat tangan mereka.'),
             ],
             [
@@ -423,7 +423,7 @@ new #[Title('WhatsApp Analytics')] class extends Component {
             [
                 'metric' => 'deleted_messages',
                 'title' => __('Top 10 Penghapus Pesan'),
-                'description' => __('Pernah ada. Lalu hilang. Tapi statistik tetap mencatat.'),
+                'description' => __('Kata terlanjur terucap, lalu sadar ini aib. Untungnya, statistik tetap mencatat.'),
             ],
             [
                 'metric' => 'edited_messages',
