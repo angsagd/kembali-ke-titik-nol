@@ -34,6 +34,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'status',
     'processed_at',
     'notes',
+    'conclusion',
 ])]
 class WhatsappImport extends Model
 {

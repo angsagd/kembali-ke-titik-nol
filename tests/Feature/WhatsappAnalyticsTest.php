@@ -366,3 +366,38 @@ test('regular users without alumni profile cannot view whatsapp analytics', func
         ->get(route('whatsapp.analytics'))
         ->assertForbidden();
 });
+
+test('alumni users can view kesimpulan tab when conclusion is set', function () {
+    $profile = Alumni::factory()->create();
+    WhatsappImport::factory()->create([
+        'status' => 'completed',
+        'processed_at' => now(),
+        'conclusion' => "## Kesimpulan\n\nGrup ini sangat aktif selama periode reuni.",
+    ]);
+
+    $this->actingAs($profile->user)
+        ->get(route('whatsapp.analytics'))
+        ->assertOk()
+        ->assertSee('Kesimpulan');
+
+    Livewire::actingAs($profile->user)
+        ->test('pages::whatsapp.analytics')
+        ->call('selectTab', 'conclusion')
+        ->assertSet('tab', 'conclusion')
+        ->assertSee('Kesimpulan')
+        ->assertSee('Grup ini sangat aktif selama periode reuni.');
+});
+
+test('kesimpulan tab is hidden when conclusion is not set', function () {
+    $profile = Alumni::factory()->create();
+    WhatsappImport::factory()->create([
+        'status' => 'completed',
+        'processed_at' => now(),
+        'conclusion' => null,
+    ]);
+
+    $this->actingAs($profile->user)
+        ->get(route('whatsapp.analytics'))
+        ->assertOk()
+        ->assertDontSee('Kesimpulan');
+});

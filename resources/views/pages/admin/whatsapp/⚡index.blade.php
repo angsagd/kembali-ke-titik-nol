@@ -28,6 +28,10 @@ new #[Title('WhatsApp Import')] class extends Component {
 
     public ?string $notes = null;
 
+    public ?int $conclusionImportId = null;
+
+    public string $conclusionText = '';
+
     public function mount(): void
     {
         Gate::authorize('import-whatsapp-analytics');
@@ -241,6 +245,45 @@ new #[Title('WhatsApp Import')] class extends Component {
             default => 'zinc',
         };
     }
+
+    public function openConclusionModal(WhatsappImport $whatsappImport): void
+    {
+        Gate::authorize('import-whatsapp-analytics');
+        abort_unless($whatsappImport->status === 'completed', 422);
+
+        $this->conclusionImportId = $whatsappImport->id;
+        $this->conclusionText = $whatsappImport->conclusion ?? '';
+
+        Flux::modal('conclusion-modal')->show();
+    }
+
+    public function saveConclusion(): void
+    {
+        Gate::authorize('import-whatsapp-analytics');
+        abort_if($this->conclusionImportId === null, 404);
+
+        $whatsappImport = WhatsappImport::findOrFail($this->conclusionImportId);
+        abort_unless($whatsappImport->status === 'completed', 422);
+
+        $validated = $this->validate([
+            'conclusionText' => ['nullable', 'string', 'max:50000'],
+        ]);
+
+        $whatsappImport->forceFill([
+            'conclusion' => filled($validated['conclusionText']) ? $validated['conclusionText'] : null,
+        ])->save();
+
+        AuditLog::record(
+            action: 'whatsapp_import.conclusion_updated',
+            entity: $whatsappImport,
+            newValues: ['has_conclusion' => filled($validated['conclusionText'])],
+        );
+
+        Flux::modal('conclusion-modal')->close();
+        Flux::toast(variant: 'success', text: __('Kesimpulan berhasil disimpan.'));
+
+        unset($this->imports);
+    }
 }; ?>
 
 <section class="w-full space-y-6 p-6 lg:p-8">
@@ -345,9 +388,21 @@ new #[Title('WhatsApp Import')] class extends Component {
                             {{ collect([$whatsappImport->import_start_date?->format('Y-m-d'), $whatsappImport->import_end_date?->format('Y-m-d')])->filter()->join(' - ') ?: '-' }}
                         </flux:table.cell>
                         <flux:table.cell align="end">
-                            <flux:button size="sm" variant="ghost" icon="play" wire:click="processImport({{ $whatsappImport->id }})" wire:loading.attr="disabled">
-                                {{ __('Proses') }}
-                            </flux:button>
+                            <div class="flex items-center justify-end gap-2">
+                                <flux:button size="sm" variant="ghost" icon="play" wire:click="processImport({{ $whatsappImport->id }})" wire:loading.attr="disabled">
+                                    {{ __('Proses') }}
+                                </flux:button>
+                                <flux:button
+                                    size="sm"
+                                    variant="ghost"
+                                    icon="pencil-square"
+                                    wire:click="openConclusionModal({{ $whatsappImport->id }})"
+                                    :disabled="$whatsappImport->status !== 'completed'"
+                                    :title="$whatsappImport->status !== 'completed' ? __('Proses import terlebih dahulu') : __('Edit Kesimpulan')"
+                                >
+                                    {{ __('Kesimpulan') }}
+                                </flux:button>
+                            </div>
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
@@ -363,4 +418,48 @@ new #[Title('WhatsApp Import')] class extends Component {
             </flux:table.rows>
         </flux:table>
     </div>
+
+    <flux:modal name="conclusion-modal" class="w-full max-w-3xl">
+        <div class="space-y-5">
+            <div>
+                <flux:heading size="lg">{{ __('Kesimpulan Analisis') }}</flux:heading>
+                <flux:text class="mt-1">{{ __('Tulis kesimpulan dalam format Markdown. Teks ini akan ditampilkan di tab Kesimpulan halaman analytics.') }}</flux:text>
+            </div>
+
+            <div class="grid gap-5 lg:grid-cols-2">
+                <div class="space-y-1.5">
+                    <flux:label>{{ __('Editor Markdown') }}</flux:label>
+                    <flux:textarea
+                        wire:model="conclusionText"
+                        rows="18"
+                        placeholder="## Kesimpulan&#10;&#10;Tuliskan analisis dan kesimpulan Anda di sini..."
+                        class="font-mono text-sm"
+                    />
+                    @error('conclusionText')
+                        <flux:error>{{ $message }}</flux:error>
+                    @enderror
+                </div>
+
+                <div class="space-y-1.5">
+                    <flux:label>{{ __('Preview') }}</flux:label>
+                    <div class="prose prose-sm prose-zinc dark:prose-invert h-[432px] max-w-none overflow-y-auto rounded-lg border border-zinc-200 px-4 py-3 dark:border-zinc-700">
+                        @if (filled($conclusionText))
+                            {!! Illuminate\Support\Str::markdown(e($conclusionText), ['html_input' => 'strip', 'allow_unsafe_links' => false]) !!}
+                        @else
+                            <p class="text-zinc-400 dark:text-zinc-500">{{ __('Preview akan muncul saat Anda mulai mengetik...') }}</p>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3">
+                <flux:modal.close>
+                    <flux:button variant="ghost">{{ __('Batal') }}</flux:button>
+                </flux:modal.close>
+                <flux:button variant="primary" wire:click="saveConclusion" wire:loading.attr="disabled" wire:target="saveConclusion">
+                    {{ __('Simpan Kesimpulan') }}
+                </flux:button>
+            </div>
+        </div>
+    </flux:modal>
 </section>

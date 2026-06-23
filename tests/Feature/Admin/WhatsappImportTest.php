@@ -276,3 +276,48 @@ test('superadmin users can only upload whatsapp txt or zip export files', functi
         ->call('saveImport')
         ->assertHasErrors(['chat_file']);
 });
+
+test('superadmin can save and update conclusion for completed import', function () {
+    $superadminRole = Role::factory()->create([
+        'name' => 'superadmin',
+        'description' => 'Pengelola teknis sistem',
+    ]);
+    $superadmin = User::factory()->create(['role_id' => $superadminRole->id]);
+    $whatsappImport = WhatsappImport::factory()->create([
+        'status' => 'completed',
+        'processed_at' => now(),
+        'conclusion' => null,
+    ]);
+
+    Livewire::actingAs($superadmin)
+        ->test('pages::admin.whatsapp.index')
+        ->call('openConclusionModal', $whatsappImport->id)
+        ->assertSet('conclusionImportId', $whatsappImport->id)
+        ->assertSet('conclusionText', '')
+        ->set('conclusionText', "## Kesimpulan\n\nGrup sangat aktif.")
+        ->call('saveConclusion')
+        ->assertHasNoErrors();
+
+    expect($whatsappImport->refresh()->conclusion)->toBe("## Kesimpulan\n\nGrup sangat aktif.");
+
+    $this->assertDatabaseHas('audit_logs', [
+        'action' => 'whatsapp_import.conclusion_updated',
+    ]);
+});
+
+test('superadmin cannot save conclusion for non-completed import', function () {
+    $superadminRole = Role::factory()->create([
+        'name' => 'superadmin',
+        'description' => 'Pengelola teknis sistem',
+    ]);
+    $superadmin = User::factory()->create(['role_id' => $superadminRole->id]);
+    $whatsappImport = WhatsappImport::factory()->create([
+        'status' => 'uploaded',
+        'conclusion' => null,
+    ]);
+
+    Livewire::actingAs($superadmin)
+        ->test('pages::admin.whatsapp.index')
+        ->call('openConclusionModal', $whatsappImport->id)
+        ->assertStatus(422);
+});

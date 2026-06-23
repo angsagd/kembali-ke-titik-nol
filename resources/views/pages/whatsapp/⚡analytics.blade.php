@@ -65,7 +65,7 @@ new #[Title('WhatsApp Analytics')] class extends Component {
             return;
         }
 
-        if (in_array($tab, ['group', 'top10', 'personal', 'mapping'], true)) {
+        if (in_array($tab, ['group', 'top10', 'conclusion', 'personal', 'mapping'], true)) {
             $this->tab = $tab;
 
             if ($tab === 'mapping') {
@@ -1803,6 +1803,9 @@ new #[Title('WhatsApp Analytics')] class extends Component {
     <div class="flex flex-wrap gap-2">
         <flux:button class="cursor-pointer" size="sm" variant="{{ $tab === 'group' ? 'primary' : 'ghost' }}" wire:click="selectTab('group')">{{ __('Statistik Grup') }}</flux:button>
         <flux:button class="cursor-pointer" size="sm" variant="{{ $tab === 'top10' ? 'primary' : 'ghost' }}" wire:click="selectTab('top10')">{{ __('Top 10 Alumni') }}</flux:button>
+        @if ($this->latestImport?->conclusion)
+            <flux:button class="cursor-pointer" size="sm" variant="{{ $tab === 'conclusion' ? 'primary' : 'ghost' }}" wire:click="selectTab('conclusion')">{{ __('Kesimpulan') }}</flux:button>
+        @endif
         <flux:button class="cursor-pointer" size="sm" variant="{{ $tab === 'personal' ? 'primary' : 'ghost' }}" wire:click="selectTab('personal')">{{ __('Statistik Personal') }}</flux:button>
         @if ($this->canMapWhatsappAlumni())
             <flux:button class="cursor-pointer" size="sm" variant="{{ $tab === 'mapping' ? 'primary' : 'ghost' }}" wire:click="selectTab('mapping')">{{ __('Mapping Alumni') }}</flux:button>
@@ -1810,7 +1813,18 @@ new #[Title('WhatsApp Analytics')] class extends Component {
         <flux:button class="cursor-pointer" size="sm" variant="ghost" wire:click="downloadAnalysisSource">{{ __('Bahan Analisis') }}</flux:button>
     </div>
 
-    @if ($tab === 'mapping' && $this->canMapWhatsappAlumni())
+    @if ($tab === 'conclusion' && $this->latestImport?->conclusion)
+        <flux:card class="space-y-4">
+            <div>
+                <flux:heading size="lg">{{ __('Kesimpulan') }}</flux:heading>
+                <flux:text>{{ __('Analisis dan kesimpulan dari panitia atas data percakapan grup.') }}</flux:text>
+            </div>
+
+            <div class="prose prose-zinc dark:prose-invert max-w-none">
+                {!! Illuminate\Support\Str::markdown(e($this->latestImport->conclusion), ['html_input' => 'strip', 'allow_unsafe_links' => false]) !!}
+            </div>
+        </flux:card>
+    @elseif ($tab === 'mapping' && $this->canMapWhatsappAlumni())
         <flux:card class="space-y-5">
             <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                 <div class="space-y-1">
