@@ -17,129 +17,104 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-ktn-surface text-ktn-ink font-sans antialiased">
-    <div class="min-h-screen">
-        <x-public-header />
+<body class="bg-ktn-surface text-ktn-ink font-sans antialiased min-h-screen flex items-center justify-center relative overflow-x-hidden overflow-y-auto">
+    <!-- Topographic Background -->
+    <div class="hero-kontur absolute inset-0 opacity-30 mix-blend-multiply pointer-events-none z-0"></div>
+    <div class="absolute inset-0 bg-ktn-surface/60 z-0"></div>
 
-        <main id="home" class="relative overflow-hidden bg-ktn-topo px-4 pb-16 pt-[105px] sm:px-6 sm:pb-20 lg:px-8">
-            <div class="hero-kontur absolute inset-y-0 -left-10 -right-10 opacity-30 mix-blend-multiply"></div>
-            <div class="absolute inset-0 bg-ktn-surface/55"></div>
+    <!-- Decorative Corner Crosshairs -->
+    <div class="absolute top-8 left-8 w-4 h-4 crosshair-marker crosshair-tl z-10 hidden md:block"></div>
+    <div class="absolute top-8 right-8 w-4 h-4 crosshair-marker crosshair-tr z-10 hidden md:block"></div>
+    <div class="absolute bottom-8 left-8 w-4 h-4 crosshair-marker crosshair-bl z-10 hidden md:block"></div>
+    <div class="absolute bottom-8 right-8 w-4 h-4 crosshair-marker crosshair-br z-10 hidden md:block"></div>
 
-            <section class="relative mx-auto max-w-5xl rounded-2xl border border-ktn-sage/20 bg-white/90 p-6 shadow-xl shadow-ktn-forest/10 backdrop-blur-sm sm:p-8 lg:p-10">
-                <div class="grid items-center gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-                    <div class="relative mx-auto w-full max-w-xs">
-                        <div class="absolute inset-0 rounded-full bg-ktn-gold/10 blur-2xl"></div>
-                        <div class="relative overflow-hidden rounded-2xl border border-ktn-sage/20 bg-ktn-surface p-4">
-                            <img
-                                src="{{ asset('images/errors/404.png') }}"
-                                alt="Ilustrasi 404 Geodesi 96"
-                                class="w-full object-contain"
-                            >
-                        </div>
-                    </div>
+    <main class="relative z-10 w-full max-w-7xl mx-auto px-6 py-16 sm:px-8 lg:px-12">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-20 lg:gap-32 items-center">
+            <!-- Image Column -->
+            <div class="flex justify-center lg:justify-start relative">
+                <!-- Structural backdrop for the image -->
+                <div class="absolute inset-0 bg-ktn-sage/10 rounded-full blur-3xl filter transform scale-75 opacity-50"></div>
+                <img
+                    src="{{ asset('images/errors/404.png') }}"
+                    alt="Ilustrasi 404 Geodesi 96"
+                    class="relative z-10 w-full max-w-[380px] sm:max-w-[500px] lg:max-w-[650px] h-auto object-contain drop-shadow-2xl animate-float"
+                >
+            </div>
 
-                    <div class="text-center lg:text-left">
-                        <p class="font-mono text-xs font-semibold uppercase tracking-[0.22em] text-ktn-sage">ERR_NOT_FOUND</p>
-                        <h1 class="mt-3 font-display text-4xl font-extrabold leading-tight tracking-tight text-ktn-forest sm:text-5xl">
-                            404: Koordinat Tidak Ditemukan
-                        </h1>
-                        <p class="mt-5 text-base leading-8 text-ktn-muted sm:text-lg">
-                            Sepertinya Anda telah melangkah keluar dari batas peta. Titik nol yang Anda cari tidak ada di koordinat ini.
-                            Silakan kembali ke beranda atau ke halaman sebelumnya.
-                        </p>
-
-                        <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center lg:justify-start">
-                            <a href="{{ route('home') }}" class="inline-flex items-center justify-center rounded-lg bg-ktn-forest px-6 py-3 text-sm font-bold text-white transition hover:bg-ktn-forest-strong">
-                                Kembali ke Titik Nol
-                            </a>
-                            <button onclick="window.history.back()" class="inline-flex items-center justify-center rounded-lg border border-ktn-forest px-6 py-3 text-sm font-bold text-ktn-forest transition hover:bg-ktn-forest hover:text-white">
-                                Peta Sebelumnya
-                            </button>
-                        </div>
-                    </div>
+            <!-- Text Content Column -->
+            <div class="flex flex-col items-center lg:items-start text-center lg:text-left space-y-6 relative">
+                <!-- Technical Accent -->
+                <div class="flex items-center gap-2 text-ktn-sage mb-2">
+                    <svg class="size-4 fill-current" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="3" />
+                        <path d="M12 2v4M12 18v4M2 12h4M18 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                    <span class="font-mono text-xs font-semibold uppercase tracking-[0.22em]">ERR_NOT_FOUND</span>
                 </div>
-            </section>
-        </main>
 
-        <footer id="kontak" class="scroll-mt-24 bg-ktn-forest px-4 py-12 text-white sm:px-6 lg:px-8">
-            <div class="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.2fr_0.8fr_1fr]">
-                <div class="space-y-4">
-                    <a href="{{ route('home') }}" class="inline-flex items-center gap-3">
-                        <img src="{{ asset('images/icon/favicon96.png') }}" alt="Logo Geodesi 96" class="size-10 rounded-lg border border-white/20 bg-white object-contain p-1">
-                        <span class="font-display text-xl font-extrabold">Geodesi 96</span>
+                <!-- Headline -->
+                <h1 class="font-display text-4xl font-extrabold leading-tight tracking-tight text-ktn-forest sm:text-5xl lg:text-6xl">
+                    404: Koordinat Tidak Ditemukan
+                </h1>
+
+                <!-- Hairline Divider -->
+                <div class="w-16 h-px bg-ktn-sage/30 my-4 lg:my-6"></div>
+
+                <!-- Description -->
+                <p class="font-sans text-base leading-8 text-ktn-muted sm:text-lg max-w-md">
+                    Sepertinya Anda telah melangkah keluar dari batas peta. Posisi titik yang Anda cari tidak ada di koordinat ini. Silakan kembali ke beranda atau ke halaman sebelumnya.
+                </p>
+
+                <!-- Actions -->
+                <div class="flex flex-col sm:flex-row gap-4 mt-8 w-full sm:w-auto">
+                    <a href="{{ auth()->check() ? route('dashboard') : route('home') }}" class="inline-flex items-center justify-center px-6 py-3 bg-ktn-forest text-white font-mono text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-ktn-forest-strong transition-all duration-200 shadow-md">
+                        Kembali ke Titik Nol
                     </a>
-                    <p class="max-w-sm text-sm leading-7 text-ktn-sage-light">Ngalibrasi 30 Taon Paseduluran - Alumni Teknik Geodesi UGM 1996.</p>
-                    <p class="font-mono text-md font-semibold uppercase tracking-[0.18em] text-ktn-sage-light">23-24 Agustus 2026</p>
-                    <p class="mt-6 font-mono text-xs text-ktn-sage-light">v.0.9.b</p>
+                    <button onclick="window.history.back()" class="inline-flex items-center justify-center px-6 py-3 border border-ktn-forest text-ktn-forest font-mono text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-ktn-forest hover:text-white transition-all duration-200">
+                        Kembali ke Titik Terakhir
+                    </button>
                 </div>
 
-                <div>
-                    <h3 class="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-ktn-sage-light">Navigasi</h3>
-                    <div class="mt-4 grid gap-3 text-sm font-semibold">
-                        <a href="{{ route('home') }}#tentang" class="text-white transition hover:text-ktn-gold-light">Tentang</a>
-                        <a href="{{ route('home') }}#rundown" class="text-white transition hover:text-ktn-gold-light">Rundown</a>
-                        <a href="{{ route('home') }}#galeri" class="text-white transition hover:text-ktn-gold-light">Galeri</a>
-                        <a href="{{ route('home') }}#berita" class="text-white transition hover:text-ktn-gold-light">Berita</a>
-                        <a href="{{ route('home') }}#donatur" class="text-white transition hover:text-ktn-gold-light">Donatur</a>
-                    </div>
-                </div>
-
-                <div>
-                    <h3 class="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-ktn-sage-light">Kontak Panitia</h3>
-                    <p class="mt-4 text-sm leading-7 text-ktn-sage-light">Ikuti kabar terbaru reuni dan hubungi panitia untuk informasi teknis kegiatan.</p>
-
-                    <div class="mt-5 grid gap-3">
-                        <a
-                            href="https://www.instagram.com/titiknol.tgd96"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="inline-flex items-center gap-3 text-sm font-bold text-white transition hover:text-ktn-gold-light"
-                            aria-label="Instagram titiknol.tgd96"
-                        >
-                            <svg class="size-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <rect x="4" y="4" width="16" height="16" rx="4.5" stroke="currentColor" stroke-width="1.8" />
-                                <circle cx="12" cy="12" r="3.5" stroke="currentColor" stroke-width="1.8" />
-                                <circle cx="16.8" cy="7.2" r="1" fill="currentColor" />
-                            </svg>
-                            <span>titiknol.tgd96</span>
-                        </a>
-
-                        <a
-                            href="https://wa.me/6281931720792?text=Halo%20panitia%20reuni%20tgd96"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="inline-flex items-center gap-3 text-sm font-bold text-white transition hover:text-ktn-gold-light"
-                            aria-label="WhatsApp Asih panitia reuni TGD96"
-                        >
-                            <svg class="size-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M5.3 18.7 6.4 15A7.4 7.4 0 1 1 9 17.6l-3.7 1.1Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-                                <path d="M9.4 8.7c.2-.5.4-.5.7-.5h.5c.2 0 .4.1.5.4l.6 1.4c.1.3 0 .5-.2.7l-.4.4c.7 1.2 1.6 2.1 2.8 2.8l.4-.4c.2-.2.4-.3.7-.2l1.4.6c.3.1.4.3.4.6v.5c0 .3 0 .5-.5.7-.5.2-1 .3-1.5.3-2.8 0-6.2-3.4-6.2-6.2 0-.5.1-1 .3-1.5Z" fill="currentColor" />
-                            </svg>
-                            <span>Asih</span>
-                        </a>
-
-                        <a
-                            href="https://wa.me/6281286134887?text=Halo%20panitia%20reuni%20tgd96"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="inline-flex items-center gap-3 text-sm font-bold text-white transition hover:text-ktn-gold-light"
-                            aria-label="WhatsApp Iin panitia reuni TGD96"
-                        >
-                            <svg class="size-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M5.3 18.7 6.4 15A7.4 7.4 0 1 1 9 17.6l-3.7 1.1Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-                                <path d="M9.4 8.7c.2-.5.4-.5.7-.5h.5c.2 0 .4.1.5.4l.6 1.4c.1.3 0 .5-.2.7l-.4.4c.7 1.2 1.6 2.1 2.8 2.8l.4-.4c.2-.2.4-.3.7-.2l1.4.6c.3.1.4.3.4.6v.5c0 .3 0 .5-.5.7-.5.2-1 .3-1.5.3-2.8 0-6.2-3.4-6.2-6.2 0-.5.1-1 .3-1.5Z" fill="currentColor" />
-                            </svg>
-                            <span>Iin</span>
-                        </a>
-                    </div>
+                <!-- Coordinate Metadata Accent -->
+                <div class="absolute -left-12 top-0 bottom-0 flex-col justify-between items-center hidden xl:flex py-4">
+                    <div class="h-1/3 w-px bg-ktn-sage/20"></div>
+                    <span class="font-mono text-xs text-ktn-sage/40 transform -rotate-90 whitespace-nowrap">LAT: -7.7681° LON: 110.3734°</span>
+                    <div class="h-1/3 w-px bg-ktn-sage/20"></div>
                 </div>
             </div>
+        </div>
+    </main>
 
-            <div class="mx-auto mt-10 flex max-w-7xl flex-col gap-3 border-t border-white/10 pt-6 font-mono text-xs font-semibold uppercase tracking-[0.16em] text-ktn-sage-light sm:flex-row sm:items-center sm:justify-between">
-                <span>© 2026 Geodesi 96 · Kembali ke Titik Nol</span>
-                <span>Reuni 30 Tahun Teknik Geodesi UGM 1996</span>
-            </div>
-        </footer>
-    </div>
+    <style>
+        .crosshair-marker {
+            position: absolute;
+        }
+        .crosshair-marker::before, .crosshair-marker::after {
+            content: '';
+            position: absolute;
+            background-color: var(--color-ktn-sage);
+            opacity: 0.3;
+        }
+        .crosshair-tl::before { top: 0; left: -10px; width: 20px; height: 1px; }
+        .crosshair-tl::after { top: -10px; left: 0; width: 1px; height: 20px; }
+        
+        .crosshair-tr::before { top: 0; right: -10px; width: 20px; height: 1px; }
+        .crosshair-tr::after { top: -10px; right: 0; width: 1px; height: 20px; }
+        
+        .crosshair-bl::before { bottom: 0; left: -10px; width: 20px; height: 1px; }
+        .crosshair-bl::after { bottom: -10px; left: 0; width: 1px; height: 20px; }
+        
+        .crosshair-br::before { bottom: 0; right: -10px; width: 20px; height: 1px; }
+        .crosshair-br::after { bottom: -10px; right: 0; width: 1px; height: 20px; }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-12px); }
+            100% { transform: translateY(0px); }
+        }
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+    </style>
 </body>
 </html>
