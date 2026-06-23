@@ -442,9 +442,16 @@ new #[Title('WhatsApp Import')] class extends Component {
 
                 <div class="space-y-1.5">
                     <flux:label>{{ __('Preview') }}</flux:label>
-                    <div class="prose prose-sm prose-zinc dark:prose-invert h-[432px] max-w-none overflow-y-auto rounded-lg border border-zinc-200 px-4 py-3 dark:border-zinc-700">
+                    <div class="ktn-prose h-[432px] overflow-y-auto rounded-lg border border-zinc-200 px-4 py-3 dark:border-zinc-700">
                         @if (filled($conclusionText))
-                            {!! Illuminate\Support\Str::markdown(e($conclusionText), ['html_input' => 'strip', 'allow_unsafe_links' => false]) !!}
+                            @php
+                                $previewConverter = new \League\CommonMark\GithubFlavoredMarkdownConverter([
+                                    'html_input' => 'strip',
+                                    'allow_unsafe_links' => false,
+                                    'max_nesting_level' => 10,
+                                ]);
+                            @endphp
+                            {!! $previewConverter->convert($conclusionText) !!}
                         @else
                             <p class="text-zinc-400 dark:text-zinc-500">{{ __('Preview akan muncul saat Anda mulai mengetik...') }}</p>
                         @endif

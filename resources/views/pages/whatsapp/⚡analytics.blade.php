@@ -1814,14 +1814,21 @@ new #[Title('WhatsApp Analytics')] class extends Component {
     </div>
 
     @if ($tab === 'conclusion' && $this->latestImport?->conclusion)
-        <flux:card class="space-y-4">
+        <flux:card class="space-y-5">
             <div>
                 <flux:heading size="lg">{{ __('Kesimpulan') }}</flux:heading>
                 <flux:text>{{ __('Analisis dan kesimpulan dari panitia atas data percakapan grup.') }}</flux:text>
             </div>
 
-            <div class="prose prose-zinc dark:prose-invert max-w-none">
-                {!! Illuminate\Support\Str::markdown(e($this->latestImport->conclusion), ['html_input' => 'strip', 'allow_unsafe_links' => false]) !!}
+            <div class="ktn-prose">
+                @php
+                    $converter = new \League\CommonMark\GithubFlavoredMarkdownConverter([
+                        'html_input' => 'strip',
+                        'allow_unsafe_links' => false,
+                        'max_nesting_level' => 10,
+                    ]);
+                @endphp
+                {!! $converter->convert($this->latestImport->conclusion) !!}
             </div>
         </flux:card>
     @elseif ($tab === 'mapping' && $this->canMapWhatsappAlumni())

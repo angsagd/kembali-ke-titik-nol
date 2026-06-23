@@ -136,3 +136,156 @@ select:focus[data-flux-control] {
 /* \[:where(&)\]:size-4 {
     @apply size-4;
 } */
+
+/* ─── Kesimpulan Prose ────────────────────────────────────────────────────── */
+
+.ktn-prose {
+    --ktn-prose-body: var(--color-ktn-ink);
+    --ktn-prose-heading: var(--color-ktn-forest);
+    --ktn-prose-muted: var(--color-ktn-muted);
+    --ktn-prose-border: var(--color-zinc-200);
+    --ktn-prose-code-bg: var(--color-zinc-100);
+    --ktn-prose-blockquote-border: var(--color-ktn-forest);
+    --ktn-prose-link: var(--color-ktn-forest);
+
+    color: var(--ktn-prose-body);
+    font-size: 0.9375rem;
+    line-height: 1.75;
+    max-width: none;
+}
+
+:where(.dark, .dark *) .ktn-prose {
+    --ktn-prose-body: var(--color-zinc-200);
+    --ktn-prose-heading: var(--color-ktn-sage-light);
+    --ktn-prose-muted: var(--color-zinc-400);
+    --ktn-prose-border: var(--color-zinc-700);
+    --ktn-prose-code-bg: var(--color-zinc-800);
+    --ktn-prose-blockquote-border: var(--color-ktn-sage);
+    --ktn-prose-link: var(--color-ktn-sage-light);
+}
+
+/* Headings */
+.ktn-prose :where(h1, h2, h3, h4, h5, h6) {
+    color: var(--ktn-prose-heading);
+    font-weight: 700;
+    line-height: 1.3;
+    margin-top: 1.75em;
+    margin-bottom: 0.6em;
+}
+.ktn-prose :where(h1) { font-size: 1.5em; }
+.ktn-prose :where(h2) { font-size: 1.25em; }
+.ktn-prose :where(h3) { font-size: 1.1em; }
+.ktn-prose :where(h4, h5, h6) { font-size: 1em; }
+.ktn-prose :where(h1:first-child, h2:first-child, h3:first-child) { margin-top: 0; }
+
+/* Paragraphs — justified with vertical spacing */
+.ktn-prose :where(p) {
+    text-align: justify;
+    margin-top: 0;
+    margin-bottom: 1.25em;
+    hyphens: auto;
+}
+.ktn-prose :where(p:last-child) { margin-bottom: 0; }
+
+/* Lists */
+.ktn-prose :where(ul, ol) {
+    margin-top: 0.5em;
+    margin-bottom: 1.25em;
+    padding-left: 1.5em;
+}
+.ktn-prose :where(ul) { list-style-type: disc; }
+.ktn-prose :where(ol) { list-style-type: decimal; }
+.ktn-prose :where(li) { margin-top: 0.3em; margin-bottom: 0.3em; }
+.ktn-prose :where(li > p) { margin-bottom: 0.4em; }
+
+/* GFM Blockquote */
+.ktn-prose :where(blockquote) {
+    border-left: 3px solid var(--ktn-prose-blockquote-border);
+    padding: 0.5em 0 0.5em 1.1em;
+    margin: 1.5em 0;
+    color: var(--ktn-prose-muted);
+    font-style: italic;
+}
+.ktn-prose :where(blockquote p) {
+    text-align: left;
+    margin-bottom: 0.5em;
+}
+.ktn-prose :where(blockquote p:last-child) { margin-bottom: 0; }
+
+/* Inline code */
+.ktn-prose :where(code):not(:where(pre code)) {
+    background: var(--ktn-prose-code-bg);
+    border-radius: 0.25em;
+    padding: 0.15em 0.4em;
+    font-size: 0.85em;
+    font-family: var(--font-mono);
+}
+
+/* Code blocks */
+.ktn-prose :where(pre) {
+    background: var(--ktn-prose-code-bg);
+    border: 1px solid var(--ktn-prose-border);
+    border-radius: 0.5em;
+    padding: 1em 1.25em;
+    overflow-x: auto;
+    margin: 1.25em 0;
+    font-size: 0.85em;
+    font-family: var(--font-mono);
+    line-height: 1.6;
+}
+.ktn-prose :where(pre code) {
+    background: none;
+    padding: 0;
+    font-size: inherit;
+    border-radius: 0;
+}
+
+/* Tables */
+.ktn-prose :where(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.25em 0;
+    font-size: 0.875em;
+}
+.ktn-prose :where(thead th) {
+    border-bottom: 2px solid var(--ktn-prose-border);
+    padding: 0.5em 0.75em;
+    text-align: left;
+    font-weight: 600;
+    color: var(--ktn-prose-heading);
+}
+.ktn-prose :where(tbody td) {
+    border-bottom: 1px solid var(--ktn-prose-border);
+    padding: 0.5em 0.75em;
+    vertical-align: top;
+}
+.ktn-prose :where(tbody tr:last-child td) { border-bottom: none; }
+
+/* Horizontal rule */
+.ktn-prose :where(hr) {
+    border: none;
+    border-top: 1px solid var(--ktn-prose-border);
+    margin: 2em 0;
+}
+
+/* Links */
+.ktn-prose :where(a) {
+    color: var(--ktn-prose-link);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.ktn-prose :where(a:hover) { opacity: 0.75; }
+
+/* Strong & em */
+.ktn-prose :where(strong) { color: var(--ktn-prose-heading); font-weight: 700; }
+.ktn-prose :where(em) { font-style: italic; }
+
+/* Strikethrough (GFM) */
+.ktn-prose :where(del) { opacity: 0.6; }
+
+/* Task list (GFM) */
+.ktn-prose :where(li.task-list-item) { list-style: none; margin-left: -1.5em; padding-left: 0; }
+.ktn-prose :where(li.task-list-item input[type="checkbox"]) {
+    margin-right: 0.5em;
+    accent-color: var(--color-ktn-forest);
+}
