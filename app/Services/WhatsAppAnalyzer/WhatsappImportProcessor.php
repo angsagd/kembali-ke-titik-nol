@@ -7,6 +7,8 @@ use App\Models\WhatsappActivity;
 use App\Models\WhatsappImport;
 use App\Models\WhatsappMember;
 use App\Models\WhatsappMemberMapping;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -21,9 +23,12 @@ class WhatsappImportProcessor
         $activities = collect($this->parser->parse($contents));
         $lineCount = $contents === '' ? 0 : substr_count($contents, "\n") + 1;
 
-        DB::transaction(function () use ($whatsappImport, $activities, $lineCount): void {
-            $this->clearPreviousAnalysis($whatsappImport);
+        // Clear outside transaction: chunked deletes with deadlock-retry
+        // cannot be nested inside a parent transaction (deadlock rolls back
+        // the whole outer transaction, negating any retry logic).
+        $this->clearPreviousAnalysis($whatsappImport);
 
+        DB::transaction(function () use ($whatsappImport, $activities, $lineCount): void {
             $members = $this->persistMembers($whatsappImport, $activities);
             $this->persistActivities($whatsappImport, $activities, $members);
             $this->persistDailyStats($whatsappImport, $activities);
@@ -35,11 +40,56 @@ class WhatsappImportProcessor
 
     private function clearPreviousAnalysis(WhatsappImport $whatsappImport): void
     {
-        $whatsappImport->memberEventStats()->delete();
-        $whatsappImport->memberStats()->delete();
-        $whatsappImport->dailyStats()->delete();
-        $whatsappImport->activities()->delete();
-        $whatsappImport->members()->delete();
+        $tables = [
+            $whatsappImport->memberEventStats(),
+            $whatsappImport->memberStats(),
+            $whatsappImport->dailyStats(),
+            $whatsappImport->activities(),
+            $whatsappImport->members(),
+        ];
+
+        foreach ($tables as $relation) {
+            $this->deleteInChunks($relation);
+        }
+    }
+
+    /**
+     * Delete relation rows in small chunks to prevent InnoDB deadlocks
+     * on shared hosting with low lock-wait-timeout. Retries up to 3 times
+     * on deadlock (SQLSTATE 40001) before giving up.
+     *
+     * @param  \Illuminate\Database\Eloquent\Relations\HasMany<*, *>  $relation
+     */
+    private function deleteInChunks(HasMany $relation, int $chunkSize = 500, int $maxRetries = 3): void
+    {
+        do {
+            $deleted = 0;
+            $attempts = 0;
+
+            do {
+                try {
+                    $ids = $relation->limit($chunkSize)->pluck('id');
+
+                    if ($ids->isEmpty()) {
+                        break 2;
+                    }
+
+                    $deleted = $relation->getRelated()
+                        ->newQuery()
+                        ->whereIn('id', $ids)
+                        ->delete();
+
+                    $attempts = 0;
+                } catch (QueryException $e) {
+                    // SQLSTATE 40001 = InnoDB deadlock — retry after a short pause
+                    if ($e->getCode() !== '40001' || ++$attempts >= $maxRetries) {
+                        throw $e;
+                    }
+
+                    usleep(200_000 * $attempts); // 200ms, 400ms, 600ms
+                }
+            } while (true);
+        } while ($deleted > 0);
     }
 
     /**

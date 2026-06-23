@@ -80,7 +80,9 @@ new #[Title('WhatsApp Import')] class extends Component {
 
         $whatsappImport->forceFill(['status' => 'processing'])->save();
 
-        $previousMemoryLimit = ini_get('memory_limit');
+        // Raise memory limit for processing — do NOT restore afterwards,
+        // as restoring to a lower limit while already over that limit
+        // throws an ErrorException in PHP 8.3+.
         ini_set('memory_limit', self::PROCESS_MEMORY_LIMIT);
 
         try {
@@ -101,10 +103,6 @@ new #[Title('WhatsApp Import')] class extends Component {
             ])->save();
 
             Flux::toast(variant: 'danger', text: __('Gagal memproses file WhatsApp.'));
-        } finally {
-            if (is_string($previousMemoryLimit)) {
-                ini_set('memory_limit', $previousMemoryLimit);
-            }
         }
 
         unset($this->summary, $this->imports);
