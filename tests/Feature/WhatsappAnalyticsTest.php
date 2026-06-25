@@ -31,6 +31,7 @@ test('alumni users can view whatsapp analytics', function () {
         'total_link_messages' => 5,
         'total_deleted_messages' => 2,
         'total_words' => 75364,
+        'event_member_left' => 1,
         'first_activity_at' => now()->subDays(9)->setTime(7, 53),
         'last_activity_at' => now()->setTime(22, 15),
         'processed_at' => now()->addHour(),

@@ -98,6 +98,11 @@ select:focus[data-flux-control] {
     will-change: background-position;
 }
 
+.hero-kontur-static {
+    animation: none;
+    will-change: auto;
+}
+
 .sticker-shadow {
     filter: drop-shadow(0 20px 24px rgb(23 63 37 / 0.12));
 }

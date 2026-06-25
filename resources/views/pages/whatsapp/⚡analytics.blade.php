@@ -1217,36 +1217,80 @@ new #[Title('WhatsApp Analytics')] class extends Component {
         $i = $this->latestImport;
 
         $cards = [
-            ['title' => __('Aktivitas Pertama'), 'value' => $this->dateValue($firstActivity), 'unit' => $this->timeUnit($firstActivity)],
-            ['title' => __('Aktivitas Terakhir'), 'value' => $this->dateValue($lastActivity), 'unit' => $this->timeUnit($lastActivity)],
-            ['title' => __('Total Hari'), 'value' => $this->formatNumber($totalDays), 'unit' => __('Hari')],
-            ['title' => __('Total Aktivitas'), 'value' => $this->formatNumber($i->total_activities), 'unit' => __('Aktivitas')],
-            ['title' => __('Total Pesan'), 'value' => $this->formatNumber($i->total_messages), 'unit' => __('Pesan')],
-            ['title' => __('Aktivitas Non-Pesan'), 'value' => $this->formatNumber($i->total_system_events), 'unit' => __('Aktivitas')],
-            ['title' => __('Rata-rata Pesan'), 'value' => $this->formatNumber($averageMessagesPerDay), 'unit' => __('Pesan / Hari')],
-            ['title' => __('Total Kata (> 1 huruf)'), 'value' => $this->formatNumber($i->total_words), 'unit' => __('Kata')],
-            ['title' => __('Jumlah Anggota'), 'value' => $this->formatNumber($i->total_participants), 'unit' => __('Orang')],
-            ['title' => __('Pesan dengan Emoji'), 'value' => $this->formatNumber($i->total_emoji_messages), 'unit' => __('Pesan')],
-            ['title' => __('Pesan dengan Media'), 'value' => $this->formatNumber($i->total_media_messages), 'unit' => __('Pesan')],
-            ['title' => __('Pesan dengan Sticker'), 'value' => $this->formatNumber($i->total_sticker_messages), 'unit' => __('Pesan')],
-            ['title' => __('Pesan dengan Link'), 'value' => $this->formatNumber($i->total_link_messages), 'unit' => __('Pesan')],
-            ['title' => __('Pesan Dihapus'), 'value' => $this->formatNumber($i->total_deleted_messages), 'unit' => __('Pesan')],
-            ['title' => __('Streak Percakapan Terpanjang'), 'value' => $this->formatNumber($i->longest_active_streak), 'unit' => __('Hari Berturut-turut')],
-            ['title' => __('Streak Sunyi Terpanjang'), 'value' => $this->formatNumber($i->longest_silent_streak), 'unit' => __('Hari Tanpa Pesan')],
-            ['title' => __('Anggota Keluar'), 'value' => $this->formatNumber($i->event_member_left), 'unit' => __('Kali')],
-            ['title' => __('Anggota Ditambahkan'), 'value' => $this->formatNumber($i->event_member_added), 'unit' => __('Kali')],
-            ['title' => __('Anggota Dikeluarkan'), 'value' => $this->formatNumber($i->event_member_removed), 'unit' => __('Kali')],
-            ['title' => __('Ganti Nomor'), 'value' => $this->formatNumber($i->event_phone_changed), 'unit' => __('Kali')],
-            ['title' => __('Ganti Perangkat'), 'value' => $this->formatNumber($i->event_security_code_changed), 'unit' => __('Kali')],
-            ['title' => __('Ganti Nama Grup'), 'value' => $this->formatNumber($i->event_group_name_changed), 'unit' => __('Kali')],
-            ['title' => __('Ganti Deskripsi'), 'value' => $this->formatNumber($i->event_group_description_changed), 'unit' => __('Kali')],
-            ['title' => __('Ganti Icon Grup'), 'value' => $this->formatNumber($i->event_group_icon_changed), 'unit' => __('Kali')],
+            ['key' => 'first_activity', 'title' => __('Aktivitas Pertama'), 'value' => $this->dateValue($firstActivity), 'unit' => $this->timeUnit($firstActivity)],
+            ['key' => 'last_activity', 'title' => __('Aktivitas Terakhir'), 'value' => $this->dateValue($lastActivity), 'unit' => $this->timeUnit($lastActivity)],
+            ['key' => 'total_days', 'title' => __('Total Hari'), 'value' => $this->formatNumber($totalDays), 'unit' => __('Hari')],
+            ['key' => 'total_activities', 'title' => __('Total Aktivitas'), 'value' => $this->formatNumber($i->total_activities), 'unit' => __('Aktivitas')],
+            ['key' => 'total_messages', 'title' => __('Total Pesan'), 'value' => $this->formatNumber($i->total_messages), 'unit' => __('Pesan')],
+            ['key' => 'total_system_events', 'title' => __('Aktivitas Non-Pesan'), 'value' => $this->formatNumber($i->total_system_events), 'unit' => __('Aktivitas')],
+            ['key' => 'average_messages_per_day', 'title' => __('Rata-rata Pesan'), 'value' => $this->formatNumber($averageMessagesPerDay), 'unit' => __('Pesan / Hari')],
+            ['key' => 'total_words', 'title' => __('Total Kata (> 1 huruf)'), 'value' => $this->formatNumber($i->total_words), 'unit' => __('Kata')],
+            ['key' => 'total_participants', 'title' => __('Jumlah Anggota'), 'value' => $this->formatNumber($i->total_participants), 'unit' => __('Orang')],
+            ['key' => 'total_emoji_messages', 'title' => __('Pesan dengan Emoji'), 'value' => $this->formatNumber($i->total_emoji_messages), 'unit' => __('Pesan')],
+            ['key' => 'total_media_messages', 'title' => __('Pesan dengan Media'), 'value' => $this->formatNumber($i->total_media_messages), 'unit' => __('Pesan')],
+            ['key' => 'total_sticker_messages', 'title' => __('Pesan dengan Sticker'), 'value' => $this->formatNumber($i->total_sticker_messages), 'unit' => __('Pesan')],
+            ['key' => 'total_link_messages', 'title' => __('Pesan dengan Link'), 'value' => $this->formatNumber($i->total_link_messages), 'unit' => __('Pesan')],
+            ['key' => 'total_deleted_messages', 'title' => __('Pesan Dihapus'), 'value' => $this->formatNumber($i->total_deleted_messages), 'unit' => __('Pesan')],
+            ['key' => 'longest_active_streak', 'title' => __('Streak Percakapan Terpanjang'), 'value' => $this->formatNumber($i->longest_active_streak), 'unit' => __('Hari Berturut-turut')],
+            ['key' => 'longest_silent_streak', 'title' => __('Streak Sunyi Terpanjang'), 'value' => $this->formatNumber($i->longest_silent_streak), 'unit' => __('Hari Tanpa Pesan')],
+            ['key' => 'event_member_left', 'title' => __('Anggota Keluar'), 'value' => $this->formatNumber($i->event_member_left), 'unit' => __('Kali')],
+            ['key' => 'event_member_added', 'title' => __('Anggota Ditambahkan'), 'value' => $this->formatNumber($i->event_member_added), 'unit' => __('Kali')],
+            ['key' => 'event_member_removed', 'title' => __('Anggota Dikeluarkan'), 'value' => $this->formatNumber($i->event_member_removed), 'unit' => __('Kali')],
+            ['key' => 'event_phone_changed', 'title' => __('Ganti Nomor'), 'value' => $this->formatNumber($i->event_phone_changed), 'unit' => __('Kali')],
+            ['key' => 'event_security_code_changed', 'title' => __('Ganti Perangkat'), 'value' => $this->formatNumber($i->event_security_code_changed), 'unit' => __('Kali')],
+            ['key' => 'event_group_name_changed', 'title' => __('Ganti Nama Grup'), 'value' => $this->formatNumber($i->event_group_name_changed), 'unit' => __('Kali')],
+            ['key' => 'event_group_description_changed', 'title' => __('Ganti Deskripsi'), 'value' => $this->formatNumber($i->event_group_description_changed), 'unit' => __('Kali')],
+            ['key' => 'event_group_icon_changed', 'title' => __('Ganti Icon Grup'), 'value' => $this->formatNumber($i->event_group_icon_changed), 'unit' => __('Kali')],
         ];
 
         return array_values(array_filter(
             $cards,
             fn (array $card): bool => ! $this->isZeroCard($card),
         ));
+    }
+
+    /**
+     * @return array{icon: string, color: string}
+     */
+    public function getFactCardMeta(string $key): array
+    {
+        return match ($key) {
+            'first_activity' => ['icon' => 'calendar-days', 'color' => 'gold'],
+            'last_activity' => ['icon' => 'clock', 'color' => 'gold'],
+            'total_days' => ['icon' => 'calendar', 'color' => 'gold'],
+            'total_activities' => ['icon' => 'chart-bar', 'color' => 'forest'],
+            'total_messages', 'messages' => ['icon' => 'chat-bubble-left-right', 'color' => 'forest'],
+            'total_system_events' => ['icon' => 'cog-6-tooth', 'color' => 'slate'],
+            'average_messages_per_day' => ['icon' => 'calculator', 'color' => 'forest'],
+            'total_words' => ['icon' => 'document-text', 'color' => 'forest'],
+            'total_participants' => ['icon' => 'users', 'color' => 'forest'],
+            'total_emoji_messages', 'emoji_messages' => ['icon' => 'face-smile', 'color' => 'sage'],
+            'total_media_messages', 'media_messages' => ['icon' => 'photo', 'color' => 'sage'],
+            'total_sticker_messages', 'sticker_messages' => ['icon' => 'sparkles', 'color' => 'sage'],
+            'total_link_messages', 'link_messages' => ['icon' => 'link', 'color' => 'sage'],
+            'total_deleted_messages', 'deleted_messages' => ['icon' => 'trash', 'color' => 'rose'],
+            'longest_active_streak' => ['icon' => 'bolt', 'color' => 'gold'],
+            'longest_silent_streak' => ['icon' => 'moon', 'color' => 'gold'],
+            'event_member_left', 'member_left' => ['icon' => 'arrow-left-start-on-rectangle', 'color' => 'rose'],
+            'event_member_added', 'member_added_as_actor' => ['icon' => 'user-plus', 'color' => 'slate'],
+            'event_member_removed' => ['icon' => 'user-minus', 'color' => 'rose'],
+            'event_phone_changed', 'phone_number_changed' => ['icon' => 'phone', 'color' => 'slate'],
+            'event_security_code_changed', 'security_code_changed' => ['icon' => 'shield-check', 'color' => 'slate'],
+            'event_group_name_changed' => ['icon' => 'pencil-square', 'color' => 'slate'],
+            'event_group_description_changed' => ['icon' => 'clipboard-document-list', 'color' => 'slate'],
+            'event_group_icon_changed' => ['icon' => 'photo', 'color' => 'slate'],
+            // Top 10 specific keys
+            'edited_messages' => ['icon' => 'pencil-square', 'color' => 'slate'],
+            'location_messages' => ['icon' => 'map-pin', 'color' => 'forest'],
+            'morning_messages' => ['icon' => 'sun', 'color' => 'gold'],
+            'working_hour_messages' => ['icon' => 'briefcase', 'color' => 'forest'],
+            'after_work_messages' => ['icon' => 'home', 'color' => 'forest'],
+            'midnight_messages' => ['icon' => 'moon', 'color' => 'slate'],
+            'weekend_messages' => ['icon' => 'calendar', 'color' => 'gold'],
+            'active_days' => ['icon' => 'calendar-days', 'color' => 'gold'],
+            'average_words_per_message_low' => ['icon' => 'minus-circle', 'color' => 'slate'],
+            default => ['icon' => 'information-circle', 'color' => 'slate'],
+        };
     }
 
     private function hydrateMappingSelections(): void
@@ -1777,419 +1821,668 @@ new #[Title('WhatsApp Analytics')] class extends Component {
     }
 }; ?>
 
-<section class="w-full space-y-6 p-6 lg:p-8">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div class="space-y-2">
-            <flux:heading size="xl">{{ __('Analisis Group Alumni Tgd 96') }}</flux:heading>
-            <flux:text class="max-w-3xl">
-                {{ __('Memetakan jejak percakapan, aktivitas, dan dinamika alumni yang telah terbangun selama bertahun-tahun.') }}
-            </flux:text>
+<div class="relative w-full min-h-screen bg-ktn-surface dark:bg-zinc-950 topo-grid overflow-hidden">
+    {{-- Background Contour Pattern --}}
+    <div class="hero-kontur hero-kontur-static absolute inset-0 opacity-[0.03] dark:opacity-[0.015] pointer-events-none select-none"></div>
+
+    <section class="relative w-full space-y-8 p-6 lg:p-8">
+        <!-- Dashboard Header -->
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between border-b border-zinc-200/50 dark:border-zinc-800/40 pb-6">
+            <div class="space-y-2">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-ktn-forest/10 text-ktn-forest dark:bg-ktn-sage/20 dark:text-ktn-sage-light tracking-wide uppercase">
+                    <flux:icon name="presentation-chart-line" class="size-3" />
+                    {{ __('Analisis WhatsApp') }}
+                </span>
+                <flux:heading size="xl" class="font-display font-extrabold text-3xl text-zinc-950 dark:text-white tracking-tight">
+                    {{ __('Analisis Group Alumni Tgd 96') }}
+                </flux:heading>
+                <flux:text class="max-w-3xl text-zinc-600 dark:text-zinc-400">
+                    {{ __('Memetakan jejak percakapan, aktivitas, dan dinamika alumni yang telah terbangun selama bertahun-tahun.') }}
+                </flux:text>
+            </div>
+
+            @can('import-whatsapp-analytics')
+                <flux:button variant="ghost" :href="route('admin.whatsapp.index')" wire:navigate class="cursor-pointer font-semibold border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-900">
+                    <flux:icon name="arrow-path" class="size-4 mr-1.5" />
+                    {{ __('Kelola Import') }}
+                </flux:button>
+            @endcan
         </div>
 
-        @can('import-whatsapp-analytics')
-            <flux:button variant="ghost" :href="route('admin.whatsapp.index')" wire:navigate>
-                {{ __('Kelola Import') }}
-            </flux:button>
-        @endcan
-    </div>
+        {{-- Capsule Segmented Tabs Navigation --}}
+        <div class="flex flex-wrap items-center justify-between gap-4 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-md p-2 rounded-2xl border border-zinc-200/40 dark:border-zinc-800/30">
+            <div class="flex flex-wrap gap-1.5 p-1 bg-zinc-100/80 dark:bg-zinc-950/80 rounded-xl shadow-inner border border-zinc-200/50 dark:border-zinc-800/40">
+                {{-- Statistik Grup --}}
+                <button 
+                    class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 {{ $tab === 'group' ? 'bg-ktn-forest text-white shadow-sm dark:bg-ktn-sage dark:text-zinc-950' : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100' }}"
+                    wire:click="selectTab('group')"
+                >
+                    <flux:icon name="globe-alt" class="size-4" />
+                    {{ __('Statistik Grup') }}
+                </button>
+                
+                {{-- Top 10 Alumni --}}
+                <button 
+                    class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 {{ $tab === 'top10' ? 'bg-ktn-forest text-white shadow-sm dark:bg-ktn-sage dark:text-zinc-950' : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100' }}"
+                    wire:click="selectTab('top10')"
+                >
+                    <flux:icon name="trophy" class="size-4" />
+                    {{ __('Top 10 Alumni') }}
+                </button>
 
-    <div class="flex flex-wrap gap-2">
-        <flux:button class="cursor-pointer" size="sm" variant="{{ $tab === 'group' ? 'primary' : 'ghost' }}" wire:click="selectTab('group')">{{ __('Statistik Grup') }}</flux:button>
-        <flux:button class="cursor-pointer" size="sm" variant="{{ $tab === 'top10' ? 'primary' : 'ghost' }}" wire:click="selectTab('top10')">{{ __('Top 10 Alumni') }}</flux:button>
-        @if ($this->latestImport?->conclusion)
-            <flux:button class="cursor-pointer" size="sm" variant="{{ $tab === 'conclusion' ? 'primary' : 'ghost' }}" wire:click="selectTab('conclusion')">{{ __('Kesimpulan') }}</flux:button>
-        @endif
-        <flux:button class="cursor-pointer" size="sm" variant="{{ $tab === 'personal' ? 'primary' : 'ghost' }}" wire:click="selectTab('personal')">{{ __('Statistik Personal') }}</flux:button>
-        @if ($this->canMapWhatsappAlumni())
-            <flux:button class="cursor-pointer" size="sm" variant="{{ $tab === 'mapping' ? 'primary' : 'ghost' }}" wire:click="selectTab('mapping')">{{ __('Mapping Alumni') }}</flux:button>
-        @endif
-        <flux:button class="cursor-pointer" size="sm" variant="ghost" wire:click="downloadAnalysisSource">{{ __('Bahan Analisis') }}</flux:button>
-    </div>
+                {{-- Kesimpulan --}}
+                @if ($this->latestImport?->conclusion)
+                    <button 
+                        class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 {{ $tab === 'conclusion' ? 'bg-ktn-forest text-white shadow-sm dark:bg-ktn-sage dark:text-zinc-950' : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100' }}"
+                        wire:click="selectTab('conclusion')"
+                    >
+                        <flux:icon name="sparkles" class="size-4" />
+                        {{ __('Kesimpulan') }}
+                    </button>
+                @endif
 
-    @if ($tab === 'conclusion' && $this->latestImport?->conclusion)
-        <flux:card class="space-y-5">
-            <div>
-                <flux:heading size="lg">{{ __('Kesimpulan') }}</flux:heading>
-                <flux:text>{{ __('Analisis dan kesimpulan dari panitia atas data percakapan grup.') }}</flux:text>
+                {{-- Statistik Personal --}}
+                <button 
+                    class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 {{ $tab === 'personal' ? 'bg-ktn-forest text-white shadow-sm dark:bg-ktn-sage dark:text-zinc-950' : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100' }}"
+                    wire:click="selectTab('personal')"
+                >
+                    <flux:icon name="user" class="size-4" />
+                    {{ __('Statistik Personal') }}
+                </button>
+
+                {{-- Mapping Alumni --}}
+                @if ($this->canMapWhatsappAlumni())
+                    <button 
+                        class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 {{ $tab === 'mapping' ? 'bg-ktn-forest text-white shadow-sm dark:bg-ktn-sage dark:text-zinc-950' : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100' }}"
+                        wire:click="selectTab('mapping')"
+                    >
+                        <flux:icon name="tag" class="size-4" />
+                        {{ __('Mapping Alumni') }}
+                    </button>
+                @endif
             </div>
 
-            <div class="ktn-prose">
+            {{-- Download Action --}}
+            <button 
+                class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-zinc-50 text-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-semibold shadow-sm transition-all duration-200"
+                wire:click="downloadAnalysisSource"
+            >
+                <flux:icon name="arrow-down-tray" class="size-4" />
+                {{ __('Bahan Analisis') }}
+            </button>
+        </div>
+
+        {{-- Tab Content --}}
+        @if ($tab === 'conclusion' && $this->latestImport?->conclusion)
+            <div class="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/40 rounded-2xl p-6 shadow-sm space-y-5">
+                <div class="flex items-center gap-3 pb-4 border-b border-zinc-200/40 dark:border-zinc-800/30">
+                    <div class="p-2 bg-ktn-gold/10 dark:bg-ktn-gold/30 text-ktn-gold dark:text-ktn-gold-light rounded-xl">
+                        <flux:icon name="sparkles" class="size-5" />
+                    </div>
+                    <div>
+                        <flux:heading size="lg" class="font-display font-bold text-zinc-900 dark:text-white leading-tight">{{ __('Kesimpulan') }}</flux:heading>
+                        <flux:text class="text-zinc-500 dark:text-zinc-400">{{ __('Analisis dan kesimpulan dari panitia atas data percakapan grup.') }}</flux:text>
+                    </div>
+                </div>
+
+                <div class="ktn-prose">
+                    @php
+                        $converter = new \League\CommonMark\GithubFlavoredMarkdownConverter([
+                            'html_input' => 'strip',
+                            'allow_unsafe_links' => false,
+                            'max_nesting_level' => 10,
+                        ]);
+                    @endphp
+                    {!! $converter->convert($this->latestImport->conclusion) !!}
+                </div>
+            </div>
+        @elseif ($tab === 'mapping' && $this->canMapWhatsappAlumni())
+            <div class="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/40 rounded-2xl p-6 shadow-sm space-y-5">
+                <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                    <div class="space-y-1">
+                        <flux:heading size="lg" class="font-display font-bold text-zinc-900 dark:text-white">{{ __('Mapping Alumni') }}</flux:heading>
+                        <flux:text class="text-zinc-500 dark:text-zinc-400">{{ __('Petakan nama anggota WhatsApp ke data alumni. Mapping ini berlaku untuk import lama dan import berikutnya dengan nama WhatsApp yang sama.') }}</flux:text>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-3 text-center">
+                        <div class="rounded-xl border border-zinc-200/60 px-4 py-3 bg-white/40 dark:border-zinc-800/55 dark:bg-zinc-900/40 min-w-24">
+                            <div class="text-2xl font-black text-ktn-forest tabular-nums dark:text-ktn-sage-light">{{ number_format($this->mappingMembersCount, 0, ',', '.') }}</div>
+                            <div class="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Nama WA') }}</div>
+                        </div>
+                        <div class="rounded-xl border border-zinc-200/60 px-4 py-3 bg-white/40 dark:border-zinc-800/55 dark:bg-zinc-900/40 min-w-24">
+                            <div class="text-2xl font-black text-ktn-sage tabular-nums dark:text-zinc-100">{{ number_format($this->mappedMembersCount, 0, ',', '.') }}</div>
+                            <div class="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Mapped') }}</div>
+                        </div>
+                        <div class="rounded-xl border border-zinc-200/60 px-4 py-3 bg-white/40 dark:border-zinc-800/55 dark:bg-zinc-900/40 min-w-24">
+                            <div class="text-2xl font-black text-amber-600 tabular-nums dark:text-amber-400">{{ number_format($this->unmappedMembersCount, 0, ',', '.') }}</div>
+                            <div class="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Belum') }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid gap-4 md:grid-cols-2">
+                    <flux:input
+                        wire:model.live.debounce.300ms="mappingSearch"
+                        :label="__('Cari nama WhatsApp')"
+                        :placeholder="__('Ketik nama WhatsApp...')"
+                        class="bg-white/50 dark:bg-zinc-950/50"
+                    />
+                    <flux:input
+                        wire:model.live.debounce.300ms="alumniSearch"
+                        :label="__('Cari data alumni')"
+                        :placeholder="__('Nama, panggilan, atau NIM...')"
+                        class="bg-white/50 dark:bg-zinc-950/50"
+                    />
+                </div>
+
                 @php
-                    $converter = new \League\CommonMark\GithubFlavoredMarkdownConverter([
-                        'html_input' => 'strip',
-                        'allow_unsafe_links' => false,
-                        'max_nesting_level' => 10,
-                    ]);
+                    $mappingAlumniOptions = $this->mappingAlumniOptions();
                 @endphp
-                {!! $converter->convert($this->latestImport->conclusion) !!}
-            </div>
-        </flux:card>
-    @elseif ($tab === 'mapping' && $this->canMapWhatsappAlumni())
-        <flux:card class="space-y-5">
-            <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                <div class="space-y-1">
-                    <flux:heading size="lg">{{ __('Mapping Alumni') }}</flux:heading>
-                    <flux:text>{{ __('Petakan nama anggota WhatsApp ke data alumni. Mapping ini berlaku untuk import lama dan import berikutnya dengan nama WhatsApp yang sama.') }}</flux:text>
-                </div>
 
-                <div class="grid grid-cols-3 gap-3 text-center">
-                    <div class="rounded-lg border border-zinc-200 px-4 py-3 dark:border-zinc-700">
-                        <div class="text-2xl font-bold text-ktn-forest tabular-nums dark:text-ktn-sage-light">{{ number_format($this->mappingMembersCount, 0, ',', '.') }}</div>
-                        <div class="text-xs font-medium text-zinc-500 dark:text-zinc-400">{{ __('Nama WA') }}</div>
-                    </div>
-                    <div class="rounded-lg border border-zinc-200 px-4 py-3 dark:border-zinc-700">
-                        <div class="text-2xl font-bold text-ktn-forest tabular-nums dark:text-ktn-sage-light">{{ number_format($this->mappedMembersCount, 0, ',', '.') }}</div>
-                        <div class="text-xs font-medium text-zinc-500 dark:text-zinc-400">{{ __('Mapped') }}</div>
-                    </div>
-                    <div class="rounded-lg border border-zinc-200 px-4 py-3 dark:border-zinc-700">
-                        <div class="text-2xl font-bold text-orange-700 tabular-nums dark:text-orange-300">{{ number_format($this->unmappedMembersCount, 0, ',', '.') }}</div>
-                        <div class="text-xs font-medium text-zinc-500 dark:text-zinc-400">{{ __('Belum') }}</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid gap-3 md:grid-cols-2">
-                <flux:input
-                    wire:model.live.debounce.300ms="mappingSearch"
-                    :label="__('Cari nama WhatsApp')"
-                    :placeholder="__('Ketik nama WhatsApp...')"
-                />
-                <flux:input
-                    wire:model.live.debounce.300ms="alumniSearch"
-                    :label="__('Cari data alumni')"
-                    :placeholder="__('Nama, panggilan, atau NIM...')"
-                />
-            </div>
-
-            @php
-                $mappingAlumniOptions = $this->mappingAlumniOptions();
-            @endphp
-
-            <div class="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
-                <table class="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-700">
-                    <thead class="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400">
-                        <tr>
-                            <th class="px-4 py-3">{{ __('Nama WhatsApp') }}</th>
-                            <th class="px-4 py-3 text-right">{{ __('Pesan') }}</th>
-                            <th class="px-4 py-3">{{ __('Mapping Saat Ini') }}</th>
-                            <th class="px-4 py-3">{{ __('Pilih Alumni') }}</th>
-                            <th class="px-4 py-3 text-right">{{ __('Aksi') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-zinc-200 bg-white dark:divide-zinc-700 dark:bg-zinc-950">
-                        @forelse ($this->mappingMembers as $member)
-                            <tr wire:key="mapping-member-{{ $member->id }}">
-                                <td class="px-4 py-3">
-                                    <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $member->display_name }}</div>
-                                    <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ $member->normalized_name }}</div>
-                                </td>
-                                <td class="px-4 py-3 text-right font-semibold tabular-nums text-zinc-700 dark:text-zinc-200">
-                                    {{ number_format($member->total_messages, 0, ',', '.') }}
-                                </td>
-                                <td class="px-4 py-3">
-                                    @if ($member->alumni)
-                                        <div class="font-medium text-ktn-forest dark:text-ktn-sage-light">{{ $member->alumni->full_name }}</div>
-                                        @if ($member->alumni->nickname)
-                                            <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ $member->alumni->nickname }}</div>
-                                        @endif
-                                    @else
-                                        <span class="rounded-full bg-orange-100 px-2 py-1 text-xs font-semibold text-orange-700 dark:bg-orange-950 dark:text-orange-300">{{ __('Belum dipetakan') }}</span>
-                                    @endif
-                                </td>
-                                <td class="px-4 py-3">
-                                    <select
-                                        wire:model="mappingAlumniSelections.{{ $member->id }}"
-                                        class="w-72 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-ktn-forest focus:outline-none focus:ring-2 focus:ring-ktn-forest/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-                                    >
-                                        <option value="">{{ __('Pilih alumni...') }}</option>
-                                        @foreach ($mappingAlumniOptions as $alumni)
-                                            <option value="{{ $alumni->id }}">
-                                                {{ $alumni->full_name }}
-                                                @if ($alumni->nickname)
-                                                    ({{ $alumni->nickname }})
-                                                @endif
-                                                @if ($alumni->student_number)
-                                                    - {{ $alumni->student_number }}
-                                                @endif
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </td>
-                                <td class="px-4 py-3">
-                                    <div class="flex justify-end gap-2">
-                                        <flux:button class="cursor-pointer" size="xs" variant="primary" wire:click="mapWhatsappMember({{ $member->id }})">
-                                            {{ __('Simpan') }}
-                                        </flux:button>
-                                        <flux:button class="cursor-pointer" size="xs" variant="ghost" wire:click="openRegisterAlumniModal({{ $member->id }})">
-                                            {{ __('Daftarkan') }}
-                                        </flux:button>
-                                        <flux:button class="cursor-pointer" size="xs" variant="ghost" wire:click="unmapWhatsappMember({{ $member->id }})">
-                                            {{ __('Lepas') }}
-                                        </flux:button>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
+                <div class="overflow-x-auto rounded-xl border border-zinc-200/60 dark:border-zinc-800/50 bg-white/50 dark:bg-zinc-950/30">
+                    <table class="min-w-full divide-y divide-zinc-200/60 text-sm dark:divide-zinc-800/50">
+                        <thead class="bg-zinc-50/75 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:bg-zinc-900/40 dark:text-zinc-400">
                             <tr>
-                                <td colspan="5" class="px-4 py-8 text-center text-zinc-500 dark:text-zinc-400">
-                                    {{ __('Belum ada anggota WhatsApp yang bisa dipetakan.') }}
-                                </td>
+                                <th class="px-5 py-4.5">{{ __('Nama WhatsApp') }}</th>
+                                <th class="px-5 py-4.5 text-right">{{ __('Pesan') }}</th>
+                                <th class="px-5 py-4.5">{{ __('Mapping Saat Ini') }}</th>
+                                <th class="px-5 py-4.5">{{ __('Pilih Alumni') }}</th>
+                                <th class="px-5 py-4.5 text-right">{{ __('Aksi') }}</th>
                             </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody class="divide-y divide-zinc-200/60 bg-white/30 dark:divide-zinc-800/50 dark:bg-zinc-950/20">
+                            @forelse ($this->mappingMembers as $member)
+                                <tr wire:key="mapping-member-{{ $member->id }}" class="hover:bg-zinc-100/30 dark:hover:bg-zinc-900/20 transition-colors">
+                                    <td class="px-5 py-4">
+                                        <div class="font-bold text-zinc-900 dark:text-zinc-100">{{ $member->display_name }}</div>
+                                        <div class="text-xs text-zinc-400 dark:text-zinc-500">{{ $member->normalized_name }}</div>
+                                    </td>
+                                    <td class="px-5 py-4 text-right font-semibold tabular-nums text-zinc-700 dark:text-zinc-200">
+                                        {{ number_format($member->total_messages, 0, ',', '.') }}
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        @if ($member->alumni)
+                                            <div class="font-bold text-ktn-forest dark:text-ktn-sage-light">{{ $member->alumni->full_name }}</div>
+                                            @if ($member->alumni->nickname)
+                                                <div class="text-xs text-zinc-400 dark:text-zinc-500">({{ $member->alumni->nickname }})</div>
+                                            @endif
+                                        @else
+                                            <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200/55 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/40">{{ __('Belum dipetakan') }}</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        <select
+                                            wire:model="mappingAlumniSelections.{{ $member->id }}"
+                                            class="w-72 rounded-lg border border-zinc-300 bg-white/80 px-3 py-2 text-sm text-zinc-900 shadow-xs focus:border-ktn-forest focus:outline-none focus:ring-2 focus:ring-ktn-forest/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                                        >
+                                            <option value="">{{ __('Pilih alumni...') }}</option>
+                                            @foreach ($mappingAlumniOptions as $alumni)
+                                                <option value="{{ $alumni->id }}">
+                                                    {{ $alumni->full_name }}
+                                                    @if ($alumni->nickname)
+                                                        ({{ $alumni->nickname }})
+                                                    @endif
+                                                    @if ($alumni->student_number)
+                                                        - {{ $alumni->student_number }}
+                                                    @endif
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        <div class="flex justify-end gap-2">
+                                            <flux:button class="cursor-pointer font-semibold" size="xs" variant="primary" wire:click="mapWhatsappMember({{ $member->id }})">
+                                                {{ __('Simpan') }}
+                                            </flux:button>
+                                            <flux:button class="cursor-pointer" size="xs" variant="ghost" wire:click="openRegisterAlumniModal({{ $member->id }})">
+                                                {{ __('Daftarkan') }}
+                                            </flux:button>
+                                            <flux:button class="cursor-pointer" size="xs" variant="ghost" wire:click="unmapWhatsappMember({{ $member->id }})">
+                                                {{ __('Lepas') }}
+                                            </flux:button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="px-5 py-8 text-center text-zinc-500 dark:text-zinc-400 font-medium">
+                                        {{ __('Belum ada anggota WhatsApp yang bisa dipetakan.') }}
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </flux:card>
-
-        @if ($showRegisterAlumniModal)
-            <div class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/50 p-4" role="dialog" aria-modal="true">
-                <div class="w-full max-w-3xl rounded-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-950">
-                    <form wire:submit="registerAlumniAndMap" class="space-y-5 p-6">
-                        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                            <div class="space-y-1">
-                                <flux:heading size="lg">{{ __('Daftarkan Alumni') }}</flux:heading>
-                                <flux:text>{{ __('Buat data alumni dan langsung petakan ke nama WhatsApp yang dipilih.') }}</flux:text>
+        @elseif ($this->latestImport)
+            @if ($tab === 'group')
+                <!-- Fact Cards Grid -->
+                <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    @foreach ($this->groupFactCards() as $card)
+                        @php
+                            $meta = $this->getFactCardMeta($card['key'] ?? '');
+                            $color = $meta['color'];
+                            $icon = $meta['icon'];
+                            
+                            $styles = match ($color) {
+                                'forest' => [
+                                    'bg' => 'from-ktn-forest/[0.03] to-ktn-forest/[0.08] dark:from-ktn-forest/[0.06] dark:to-ktn-forest/[0.15]',
+                                    'border' => 'border-ktn-forest/15 dark:border-ktn-forest/30',
+                                    'text' => 'text-ktn-forest dark:text-ktn-sage-light',
+                                    'iconBg' => 'bg-ktn-forest/10 text-ktn-forest dark:bg-ktn-forest/30 dark:text-ktn-sage-light',
+                                    'dot' => 'bg-ktn-forest/40',
+                                ],
+                                'gold' => [
+                                    'bg' => 'from-ktn-gold/[0.03] to-ktn-gold/[0.08] dark:from-ktn-gold/[0.06] dark:to-ktn-gold/[0.15]',
+                                    'border' => 'border-ktn-gold/15 dark:border-ktn-gold/30',
+                                    'text' => 'text-ktn-gold dark:text-ktn-gold-light',
+                                    'iconBg' => 'bg-ktn-gold/10 text-ktn-gold dark:bg-ktn-gold/30 dark:text-ktn-gold-light',
+                                    'dot' => 'bg-ktn-gold/40',
+                                ],
+                                'sage' => [
+                                    'bg' => 'from-ktn-sage/[0.03] to-ktn-sage/[0.08] dark:from-ktn-sage/[0.06] dark:to-ktn-sage/[0.15]',
+                                    'border' => 'border-ktn-sage/15 dark:border-ktn-sage/30',
+                                    'text' => 'text-ktn-sage dark:text-zinc-200',
+                                    'iconBg' => 'bg-ktn-sage/10 text-ktn-sage dark:bg-ktn-sage/30 dark:text-zinc-200',
+                                    'dot' => 'bg-ktn-sage/40',
+                                ],
+                                'rose' => [
+                                    'bg' => 'from-red-500/[0.03] to-red-500/[0.08] dark:from-red-500/[0.06] dark:to-red-500/[0.15]',
+                                    'border' => 'border-red-500/15 dark:border-red-500/30',
+                                    'text' => 'text-red-600 dark:text-red-400',
+                                    'iconBg' => 'bg-red-500/10 text-red-600 dark:bg-red-500/30 dark:text-red-400',
+                                    'dot' => 'bg-red-500/40',
+                                ],
+                                'slate' => [
+                                    'bg' => 'from-zinc-500/[0.03] to-zinc-500/[0.08] dark:from-zinc-500/[0.06] dark:to-zinc-500/[0.15]',
+                                    'border' => 'border-zinc-500/15 dark:border-zinc-500/30',
+                                    'text' => 'text-zinc-700 dark:text-zinc-300',
+                                    'iconBg' => 'bg-zinc-500/10 text-zinc-600 dark:bg-zinc-500/30 dark:text-zinc-300',
+                                    'dot' => 'bg-zinc-500/40',
+                                ],
+                            };
+                        @endphp
+                        
+                        <div 
+                            class="relative overflow-hidden group bg-gradient-to-br {{ $styles['bg'] }} bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md border {{ $styles['border'] }} p-6 rounded-2xl flex flex-col justify-between min-h-[9rem] shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-300" 
+                            wire:key="group-fact-{{ $card['title'] }}"
+                        >
+                            <!-- Top-right Geodetic Crosshair Mark decoration -->
+                            <div class="absolute top-2.5 right-2.5 text-zinc-300 dark:text-zinc-800 select-none font-mono text-[9px] pointer-events-none opacity-40">
+                                +
+                            </div>
+                            <div class="absolute bottom-2.5 left-2.5 text-zinc-300 dark:text-zinc-800 select-none font-mono text-[9px] pointer-events-none opacity-40">
+                                +
                             </div>
 
-                            <flux:button type="button" class="cursor-pointer" size="sm" variant="ghost" wire:click="closeRegisterAlumniModal">
-                                {{ __('Tutup') }}
-                            </flux:button>
-                        </div>
+                            <!-- Card Header: Title & Icon -->
+                            <div class="flex items-start justify-between gap-4">
+                                <span class="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider leading-snug">
+                                    {{ $card['title'] }}
+                                </span>
+                                <div class="p-1.5 rounded-lg {{ $styles['iconBg'] }} shrink-0">
+                                    <flux:icon :name="$icon" class="size-4.5" />
+                                </div>
+                            </div>
 
-                        <div class="grid gap-4 md:grid-cols-2">
-                            <flux:input wire:model="registerFullName" :label="__('Nama lengkap')" required />
-                            <flux:input wire:model="registerNickname" :label="__('Nama panggilan')" />
-                            <flux:input wire:model="registerWhatsappNumber" :label="__('Nomor WhatsApp')" type="tel" required />
-                            <flux:input wire:model="registerStudentNumber" :label="__('NIM')" />
-                            <flux:input wire:model="registerEmail" :label="__('Email')" type="email" />
-                            <flux:select wire:model="registerAlumniStatus" :label="__('Status alumni')" required>
-                                <flux:select.option value="active">{{ __('Aktif') }}</flux:select.option>
-                                <flux:select.option value="deceased">{{ __('Wafat') }}</flux:select.option>
-                            </flux:select>
+                            <!-- Card Body: Value & Unit -->
+                            <div class="mt-4 space-y-1">
+                                <div class="font-display text-3xl font-extrabold leading-none text-zinc-900 dark:text-white tracking-tight tabular-nums group-hover:{{ $styles['text'] }} transition-colors duration-300">
+                                    {{ $card['value'] }}
+                                </div>
+                                @if ($card['unit'])
+                                    <div class="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
+                                        <span class="inline-block size-1.5 rounded-full {{ $styles['dot'] }}"></span>
+                                        {{ $card['unit'] }}
+                                    </div>
+                                @endif
+                            </div>
                         </div>
-
-                        <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                            <flux:button type="button" class="cursor-pointer" variant="ghost" wire:click="closeRegisterAlumniModal">
-                                {{ __('Batal') }}
-                            </flux:button>
-                            <flux:button type="submit" class="cursor-pointer" variant="primary" icon="check" wire:loading.attr="disabled">
-                                {{ __('Simpan dan Mapping') }}
-                            </flux:button>
-                        </div>
-                    </form>
+                    @endforeach
                 </div>
-            </div>
-        @endif
-    @elseif ($this->latestImport)
-        @if ($tab === 'group')
-            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                @foreach ($this->groupFactCards() as $card)
-                    <flux:card class="flex min-h-36 flex-col items-center justify-center gap-3 text-center" wire:key="group-fact-{{ $card['title'] }}">
-                        <flux:text class="font-semibold text-zinc-800 dark:text-zinc-100">{{ $card['title'] }}</flux:text>
-                        <div class="font-display text-4xl font-extrabold leading-none text-ktn-forest tabular-nums dark:text-ktn-sage-light">
-                            {{ $card['value'] }}
+
+                <!-- Charts Layout -->
+                <div class="space-y-6">
+                    <!-- Denyut Nadi Grup Chart -->
+                    <div class="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/40 rounded-2xl p-6 shadow-sm space-y-4">
+                        <div class="flex items-center gap-3.5 pb-4 border-b border-zinc-200/40 dark:border-zinc-800/30">
+                            <div class="p-2 bg-ktn-forest/10 dark:bg-ktn-forest/30 text-ktn-forest dark:text-ktn-sage-light rounded-xl">
+                                <flux:icon name="chart-bar" class="size-5" />
+                            </div>
+                            <div>
+                                <flux:heading size="lg" class="font-display font-bold text-zinc-900 dark:text-white leading-tight">{{ __('Denyut Nadi Grup') }}</flux:heading>
+                                <flux:text class="text-zinc-500 dark:text-zinc-400">{{ __('Melihat kapan grup ramai, sunyi, dan tiba-tiba nostalgia berjamaah.') }}</flux:text>
+                            </div>
                         </div>
-                        @if ($card['unit'])
-                            <div class="text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ $card['unit'] }}</div>
+                        <div class="h-80 w-full" data-echarts data-echarts-option='@json($this->dailyActivityChartOption())'></div>
+                    </div>
+
+                    <!-- Kontur Keramaian Grup Chart -->
+                    <div class="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/40 rounded-2xl p-6 shadow-sm space-y-4">
+                        <div class="flex items-center gap-3.5 pb-4 border-b border-zinc-200/40 dark:border-zinc-800/30">
+                            <div class="p-2 bg-ktn-sage/10 dark:bg-ktn-sage/30 text-ktn-sage dark:text-zinc-200 rounded-xl">
+                                <flux:icon name="map" class="size-5" />
+                            </div>
+                            <div>
+                                <flux:heading size="lg" class="font-display font-bold text-zinc-900 dark:text-white leading-tight">{{ __('Kontur Keramaian Grup') }}</flux:heading>
+                                <flux:text class="text-zinc-500 dark:text-zinc-400">{{ __('Seperti peta kontur, warna dan pola aktivitas ini menunjukkan puncak, lereng, dan lembah percakapan sepanjang sejarah grup.') }}</flux:text>
+                            </div>
+                        </div>
+                        <div class="h-96 w-full" data-echarts data-echarts-option='@json($this->activityHeatmapOption())'></div>
+                    </div>
+
+                    <!-- Radar Grid (3 Columns) -->
+                    <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                        <!-- Hour Radar -->
+                        <div class="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/40 rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-4">
+                            <div class="flex items-center gap-3.5 pb-3 border-b border-zinc-200/40 dark:border-zinc-800/30">
+                                <div class="p-2 bg-ktn-gold/10 dark:bg-ktn-gold/30 text-ktn-gold dark:text-ktn-gold-light rounded-xl">
+                                    <flux:icon name="clock" class="size-5" />
+                                </div>
+                                <div>
+                                    <flux:heading size="md" class="font-display font-bold text-zinc-900 dark:text-white leading-tight">{{ __('Jam-Jam Rawan Nostalgia') }}</flux:heading>
+                                    <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Jam favorit grup untuk ngobrol, bercanda, atau bahas masa lalu.') }}</flux:text>
+                                </div>
+                            </div>
+                            <div class="h-80 w-full" data-echarts data-echarts-option='@json($this->hourlyRadarOption())'></div>
+                        </div>
+
+                        <!-- Day Radar -->
+                        <div class="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/40 rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-4">
+                            <div class="flex items-center gap-3.5 pb-3 border-b border-zinc-200/40 dark:border-zinc-800/30">
+                                <div class="p-2 bg-ktn-forest/10 dark:bg-ktn-forest/30 text-ktn-forest dark:text-ktn-sage-light rounded-xl">
+                                    <flux:icon name="calendar" class="size-5" />
+                                </div>
+                                <div>
+                                    <flux:heading size="md" class="font-display font-bold text-zinc-900 dark:text-white leading-tight">{{ __('Hari Favorit Buat Rame-Rame') }}</flux:heading>
+                                    <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Apakah grup lebih aktif saat weekday serius, atau weekend mode santai?') }}</flux:text>
+                                </div>
+                            </div>
+                            <div class="h-80 w-full" data-echarts data-echarts-option='@json($this->dayRadarOption())'></div>
+                        </div>
+
+                        <!-- Month Radar -->
+                        <div class="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/40 rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-4">
+                            <div class="flex items-center gap-3.5 pb-3 border-b border-zinc-200/40 dark:border-zinc-800/30">
+                                <div class="p-2 bg-zinc-500/10 dark:bg-zinc-500/30 text-zinc-600 dark:text-zinc-300 rounded-xl">
+                                    <flux:icon name="calendar-days" class="size-5" />
+                                </div>
+                                <div>
+                                    <flux:heading size="md" class="font-display font-bold text-zinc-900 dark:text-white leading-tight">{{ __('Kalender Keramaian Alumni') }}</flux:heading>
+                                    <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Bulan-bulan langganan ramai untuk reuni, lebaran, lustrum, atau ulang tahun.') }}</flux:text>
+                                </div>
+                            </div>
+                            <div class="h-80 w-full" data-echarts data-echarts-option='@json($this->monthRadarOption())'></div>
+                        </div>
+                    </div>
+
+                    <!-- Word Cloud Card -->
+                    <div class="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/40 rounded-2xl p-6 shadow-sm space-y-4">
+                        <div class="flex items-center gap-3.5 pb-4 border-b border-zinc-200/40 dark:border-zinc-800/30">
+                            <div class="p-2 bg-ktn-forest/10 dark:bg-ktn-forest/30 text-ktn-forest dark:text-ktn-sage-light rounded-xl">
+                                <flux:icon name="chat-bubble-bottom-center-text" class="size-5" />
+                            </div>
+                            <div>
+                                <flux:heading size="lg" class="font-display font-bold text-zinc-900 dark:text-white leading-tight">{{ __('Jejak Kata di Lapangan') }}</flux:heading>
+                                <flux:text class="text-zinc-500 dark:text-zinc-400">{{ __('Kata-kata yang paling banyak tertinggal setelah gangguan, noise, dan kata-kata umum dieliminasi.') }}</flux:text>
+                            </div>
+                        </div>
+                        @if ($this->groupWordCloud())
+                            <div class="h-[34rem] w-full overflow-hidden rounded-xl bg-white/20 dark:bg-zinc-950/20" data-echarts data-echarts-option='@json($this->groupWordCloudOption())'></div>
+                        @else
+                            <flux:text class="text-zinc-500 dark:text-zinc-400 italic">{{ __('Belum cukup kata untuk membentuk word cloud.') }}</flux:text>
                         @endif
-                    </flux:card>
-                @endforeach
-            </div>
-
-            <div class="space-y-4">
-                <flux:card class="space-y-4">
-                    <div>
-                        <flux:heading size="lg">{{ __('Denyut Nadi Grup') }}</flux:heading>
-                        <flux:text>{{ __('Melihat kapan grup ramai, sunyi, dan tiba-tiba nostalgia berjamaah.') }}</flux:text>
                     </div>
-                    <div class="h-80 w-full" data-echarts data-echarts-option='@json($this->dailyActivityChartOption())'></div>
-                </flux:card>
 
-                <flux:card class="space-y-4">
-                    <div>
-                        <flux:heading size="lg">{{ __('Kontur Keramaian Grup') }}</flux:heading>
-                        <flux:text>{{ __('Seperti peta kontur, warna dan pola aktivitas ini menunjukkan puncak, lereng, dan lembah percakapan sepanjang sejarah grup.') }}</flux:text>
-                    </div>
-                    <div class="h-96 w-full" data-echarts data-echarts-option='@json($this->activityHeatmapOption())'></div>
-                </flux:card>
-
-                <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    <flux:card class="space-y-4">
-                        <div>
-                            <flux:heading size="lg">{{ __('Jam-Jam Rawan Nostalgia') }}</flux:heading>
-                            <flux:text>{{ __('Jam favorit grup untuk ngobrol, bercanda, atau bahas masa lalu.') }}</flux:text>
-                        </div>
-                        <div class="h-80 w-full" data-echarts data-echarts-option='@json($this->hourlyRadarOption())'></div>
-                    </flux:card>
-
-                    <flux:card class="space-y-4">
-                        <div>
-                            <flux:heading size="lg">{{ __('Hari Favorit Buat Rame-Rame') }}</flux:heading>
-                            <flux:text>{{ __('Apakah grup lebih aktif saat weekday serius, atau weekend mode santai?') }}</flux:text>
-                        </div>
-                        <div class="h-80 w-full" data-echarts data-echarts-option='@json($this->dayRadarOption())'></div>
-                    </flux:card>
-
-                    <flux:card class="space-y-4">
-                        <div>
-                            <flux:heading size="lg">{{ __('Kalender Keramaian Alumni') }}</flux:heading>
-                            <flux:text>{{ __('Bulan-bulan langganan ramai untuk reuni, lebaran, lustrum, atau ulang tahun.') }}</flux:text>
-                        </div>
-                        <div class="h-80 w-full" data-echarts data-echarts-option='@json($this->monthRadarOption())'></div>
-                    </flux:card>
+                    <!-- Digital Calendar component -->
+                    <livewire:whatsapp.digital-calendar :import-id="$this->latestImport->id" wire:key="digital-calendar-{{ $this->latestImport->id }}" />
                 </div>
-
-                <flux:card class="space-y-4">
-                    <div>
-                        <flux:heading size="lg">{{ __('Jejak Kata di Lapangan') }}</flux:heading>
-                        <flux:text>{{ __('Kata-kata yang paling banyak tertinggal setelah gangguan, noise, dan kata-kata umum dieliminasi.') }}</flux:text>
-                    </div>
-                    @if ($this->groupWordCloud())
-                        <div class="h-[34rem] w-full overflow-hidden rounded-lg bg-white" data-echarts data-echarts-option='@json($this->groupWordCloudOption())'></div>
-                    @else
-                        <flux:text>{{ __('Belum cukup kata untuk membentuk word cloud.') }}</flux:text>
-                    @endif
-                </flux:card>
-
-                <livewire:whatsapp.digital-calendar :import-id="$this->latestImport->id" wire:key="digital-calendar-{{ $this->latestImport->id }}" />
-            </div>
-        @elseif ($tab === 'top10')
-            <div class="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
-                @forelse ($this->visibleTopMetricDefinitions() as $definition)
-                    <flux:card class="space-y-4" wire:key="top-{{ $definition['metric'] }}">
-                        <div>
-                            <flux:heading size="lg">{{ $definition['title'] }}</flux:heading>
-                            <flux:text>{{ $definition['description'] }}</flux:text>
+            @elseif ($tab === 'top10')
+                <!-- Top 10 cards -->
+                <div class="grid gap-6 lg:grid-cols-2 2xl:grid-cols-3">
+                    @forelse ($this->visibleTopMetricDefinitions() as $definition)
+                        @php
+                            $meta = $this->getFactCardMeta($definition['metric']);
+                            $color = $meta['color'];
+                            $icon = $meta['icon'];
+                            
+                            $styles = match ($color) {
+                                'forest' => 'bg-ktn-forest/10 text-ktn-forest dark:bg-ktn-forest/30 dark:text-ktn-sage-light',
+                                'gold' => 'bg-ktn-gold/10 text-ktn-gold dark:bg-ktn-gold/30 dark:text-ktn-gold-light',
+                                'sage' => 'bg-ktn-sage/10 text-ktn-sage dark:bg-ktn-sage/30 dark:text-zinc-200',
+                                'rose' => 'bg-red-500/10 text-red-600 dark:bg-red-500/30 dark:text-red-400',
+                                'slate' => 'bg-zinc-500/10 text-zinc-600 dark:bg-zinc-500/30 dark:text-zinc-300',
+                            };
+                        @endphp
+                        <div class="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/40 rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-4 hover:shadow-md transition-all duration-300" wire:key="top-{{ $definition['metric'] }}">
+                            <div class="flex items-center gap-3.5 pb-3 border-b border-zinc-200/40 dark:border-zinc-800/30">
+                                <div class="p-2 rounded-xl {{ $styles }}">
+                                    <flux:icon :name="$icon" class="size-5" />
+                                </div>
+                                <div>
+                                    <flux:heading size="md" class="font-display font-bold text-zinc-900 dark:text-white leading-tight">{{ $definition['title'] }}</flux:heading>
+                                    <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">{{ $definition['description'] }}</flux:text>
+                                </div>
+                            </div>
+                            <div class="h-80 w-full" data-echarts data-echarts-option='@json($this->topMemberChartOption($definition['metric']))'></div>
                         </div>
-                        <div class="h-80 w-full" data-echarts data-echarts-option='@json($this->topMemberChartOption($definition['metric']))'></div>
-                    </flux:card>
-                @empty
-                    <flux:card class="space-y-3 lg:col-span-2 2xl:col-span-3">
-                        <flux:heading size="lg">{{ __('Belum ada Top 10') }}</flux:heading>
-                        <flux:text>{{ __('Ranking akan muncul setelah import memiliki statistik anggota yang bernilai lebih dari nol.') }}</flux:text>
-                    </flux:card>
-                @endforelse
-            </div>
-        @else
-            <div class="space-y-4">
-                @php
-                    $personalMembers = $this->personalMemberButtons();
-                    $maxPersonalMessages = max(1, (int) $personalMembers->max('total_messages'));
-                    $selectedPersonalMemberKey = implode('-', $selectedWhatsappMemberIds);
-                @endphp
+                    @empty
+                        <div class="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/40 rounded-2xl p-8 shadow-sm space-y-3 lg:col-span-2 2xl:col-span-3 text-center">
+                            <flux:heading size="lg" class="text-zinc-900 dark:text-white font-bold">{{ __('Belum ada Top 10') }}</flux:heading>
+                            <flux:text class="text-zinc-500 dark:text-zinc-400">{{ __('Ranking akan muncul setelah import memiliki statistik anggota yang bernilai lebih dari nol.') }}</flux:text>
+                        </div>
+                    @endforelse
+                </div>
+            @else
+                <!-- Personal Statistics Tab -->
+                <div class="space-y-6">
+                    @php
+                        $personalMembers = $this->personalMemberButtons();
+                        $maxPersonalMessages = max(1, (int) $personalMembers->max('total_messages'));
+                        $selectedPersonalMemberKey = implode('-', $selectedWhatsappMemberIds);
+                    @endphp
 
-                <flux:card class="overflow-visible">
-                    <div class="grid grid-cols-2 gap-1 overflow-visible md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
-                        @foreach ($personalMembers as $memberRow)
-                            @php
-                                $isSelected = in_array($memberRow->whatsapp_member_id, $selectedWhatsappMemberIds, true);
-                            @endphp
-                            <flux:tooltip
-                                position="top"
-                                content="{{ number_format($memberRow->total_messages, 0, ',', '.') }}"
-                                wire:key="personal-member-tooltip-{{ $memberRow->whatsapp_member_id }}"
-                            >
-                                <button
-                                    type="button"
-                                    wire:click="togglePersonalMember({{ $memberRow->whatsapp_member_id }})"
-                                    class="flex h-12 w-full items-center justify-center rounded-lg border p-2 text-center text-sm font-semibold leading-none shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ktn-forest/40 sm:text-base {{ $isSelected ? 'border-orange-500 text-orange-700 ring-2 ring-orange-500 dark:text-orange-300' : 'border-zinc-200 text-zinc-900 dark:border-zinc-700 dark:text-zinc-100' }}"
-                                    style="{{ $this->personalMemberButtonStyle($memberRow, $maxPersonalMessages) }}"
+                    <!-- Member Selection Card -->
+                    <div class="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/40 rounded-2xl p-6 shadow-sm space-y-4">
+                        <div class="flex flex-col gap-1 pb-3 border-b border-zinc-200/40 dark:border-zinc-800/30">
+                            <flux:heading size="lg" class="font-display font-bold text-zinc-900 dark:text-white">{{ __('Titik Kontrol Pengamat (Anggota)') }}</flux:heading>
+                            <flux:text class="text-zinc-500 dark:text-zinc-400">{{ __('Pilih maksimal 10 anggota untuk memetakan dan membandingkan aktivitas personal mereka.') }}</flux:text>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-2 overflow-visible md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 max-h-80 overflow-y-auto p-1 scrollbar-thin">
+                            @foreach ($personalMembers as $memberRow)
+                                @php
+                                    $isSelected = in_array($memberRow->whatsapp_member_id, $selectedWhatsappMemberIds, true);
+                                @endphp
+                                <flux:tooltip
+                                    position="top"
+                                    content="{{ number_format($memberRow->total_messages, 0, ',', '.') }} pesan"
+                                    wire:key="personal-member-tooltip-{{ $memberRow->whatsapp_member_id }}"
                                 >
-                                    <span class="block w-full truncate whitespace-nowrap text-center">{{ $this->memberLabel($memberRow) }}</span>
-                                </button>
-                            </flux:tooltip>
-                        @endforeach
+                                    <button
+                                        type="button"
+                                        wire:click="togglePersonalMember({{ $memberRow->whatsapp_member_id }})"
+                                        class="relative overflow-hidden flex h-12 w-full items-center justify-between rounded-xl border p-3.5 text-left text-sm font-bold shadow-xs transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ktn-forest/40 sm:text-base border-zinc-200/65 dark:border-zinc-800/60 {{ $isSelected ? 'ring-2 ring-ktn-gold text-ktn-forest dark:text-ktn-gold-light font-extrabold bg-ktn-forest/5 dark:bg-ktn-sage/5' : 'text-zinc-700 dark:text-zinc-300' }}"
+                                        style="{{ $this->personalMemberButtonStyle($memberRow, $maxPersonalMessages) }}"
+                                    >
+                                        <span class="truncate pr-4">{{ $this->memberLabel($memberRow) }}</span>
+                                        @if ($isSelected)
+                                            <span class="inline-block size-2 rounded-full bg-ktn-gold shrink-0"></span>
+                                        @endif
+                                    </button>
+                                </flux:tooltip>
+                            @endforeach
+                        </div>
                     </div>
-                </flux:card>
 
-                <flux:card class="space-y-4">
-                    <div>
-                        <flux:heading size="lg">{{ __('Produktivitas Titik Kontrol') }}</flux:heading>
-                        <flux:text>{{ __('Mengukur seberapa aktif setiap titik kontrol berkontribusi dalam membangun jaringan percakapan grup.') }}</flux:text>
-                    </div>
-                    <div
-                        class="w-full"
-                        style="height: 32rem;"
-                        wire:key="personal-message-chart-{{ $selectedPersonalMemberKey }}"
-                        data-echarts
-                        data-echarts-option='@json($this->personalMessageChartOption())'
-                    ></div>
-                </flux:card>
-
-                <flux:card class="space-y-4">
-                    <div>
-                        <flux:heading size="lg">{{ __('Observasi Non-Verbal') }}</flux:heading>
-                        <flux:text>{{ __('Tidak semua pengamatan dilakukan dengan kata-kata. Sticker, emoji, media, dan reaksi juga meninggalkan jejak.') }}</flux:text>
-                    </div>
-                    <div
-                        class="w-full"
-                        style="height: 32rem;"
-                        wire:key="personal-system-chart-{{ $selectedPersonalMemberKey }}"
-                        data-echarts
-                        data-echarts-option='@json($this->personalSystemActivityChartOption())'
-                    ></div>
-                </flux:card>
-
-                <flux:card class="space-y-4">
-                    <div>
-                        <flux:heading size="lg">{{ __('Ephemeris Kehadiran') }}</flux:heading>
-                        <flux:text>{{ __('Pola kemunculan anggota sepanjang siklus tahunan, memperlihatkan kapan sebuah titik paling sering teramati.') }}</flux:text>
-                    </div>
-                    <div
-                        class="w-full"
-                        style="height: 32rem;"
-                        wire:key="personal-monthly-chart-{{ $selectedPersonalMemberKey }}"
-                        data-echarts
-                        data-echarts-option='@json($this->personalMonthlyActivityChartOption())'
-                    ></div>
-                </flux:card>
-
-                <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    <flux:card class="space-y-4">
-                        <div>
-                            <flux:heading size="lg">{{ __('Azimuth Aktivitas Harian') }}</flux:heading>
-                            <flux:text>{{ __('Menunjukkan arah waktu favorit seseorang untuk muncul, merespons, atau memulai percakapan.') }}</flux:text>
+                    <!-- Personal Stacked Message Chart -->
+                    <div class="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/40 rounded-2xl p-6 shadow-sm space-y-4">
+                        <div class="flex items-center gap-3.5 pb-4 border-b border-zinc-200/40 dark:border-zinc-800/30">
+                            <div class="p-2 bg-ktn-forest/10 dark:bg-ktn-forest/30 text-ktn-forest dark:text-ktn-sage-light rounded-xl">
+                                <flux:icon name="chart-bar" class="size-5" />
+                            </div>
+                            <div>
+                                <flux:heading size="lg" class="font-display font-bold text-zinc-900 dark:text-white leading-tight">{{ __('Produktivitas Titik Kontrol') }}</flux:heading>
+                                <flux:text class="text-zinc-500 dark:text-zinc-400">{{ __('Mengukur seberapa aktif setiap titik kontrol berkontribusi dalam membangun jaringan percakapan grup.') }}</flux:text>
+                            </div>
                         </div>
                         <div
-                            class="h-96 w-full"
-                            wire:key="personal-hourly-radar-{{ $selectedPersonalMemberKey }}"
+                            class="w-full"
+                            style="height: 32rem;"
+                            wire:key="personal-message-chart-{{ $selectedPersonalMemberKey }}"
                             data-echarts
-                            data-echarts-option='@json($this->personalHourlyRadarOption())'
+                            data-echarts-option='@json($this->personalMessageChartOption())'
                         ></div>
-                    </flux:card>
+                    </div>
 
-                    <flux:card class="space-y-4">
-                        <div>
-                            <flux:heading size="lg">{{ __('Jadwal Survei Sosial') }}</flux:heading>
-                            <flux:text>{{ __('Memetakan hari-hari ketika seorang anggota paling sering turun ke lapangan percakapan.') }}</flux:text>
+                    <!-- Personal Stacked System Activity Chart -->
+                    <div class="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/40 rounded-2xl p-6 shadow-sm space-y-4">
+                        <div class="flex items-center gap-3.5 pb-4 border-b border-zinc-200/40 dark:border-zinc-800/30">
+                            <div class="p-2 bg-ktn-gold/10 dark:bg-ktn-gold/30 text-ktn-gold dark:text-ktn-gold-light rounded-xl">
+                                <flux:icon name="bolt" class="size-5" />
+                            </div>
+                            <div>
+                                <flux:heading size="lg" class="font-display font-bold text-zinc-900 dark:text-white leading-tight">{{ __('Observasi Non-Verbal') }}</flux:heading>
+                                <flux:text class="text-zinc-500 dark:text-zinc-400">{{ __('Tidak semua pengamatan dilakukan dengan kata-kata. Sticker, emoji, media, dan reaksi juga meninggalkan jejak.') }}</flux:text>
+                            </div>
                         </div>
                         <div
-                            class="h-96 w-full"
-                            wire:key="personal-day-radar-{{ $selectedPersonalMemberKey }}"
+                            class="w-full"
+                            style="height: 32rem;"
+                            wire:key="personal-system-chart-{{ $selectedPersonalMemberKey }}"
                             data-echarts
-                            data-echarts-option='@json($this->personalDayRadarOption())'
+                            data-echarts-option='@json($this->personalSystemActivityChartOption())'
                         ></div>
-                    </flux:card>
+                    </div>
 
-                    <flux:card class="space-y-4">
-                        <div>
-                            <flux:heading size="lg">{{ __('Musim Pengamatan Personal') }}</flux:heading>
-                            <flux:text>{{ __('Ada yang aktif sepanjang tahun, ada yang hanya muncul ketika musim nostalgia kembali datang.') }}</flux:text>
+                    <!-- Personal Monthly Chart -->
+                    <div class="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/40 rounded-2xl p-6 shadow-sm space-y-4">
+                        <div class="flex items-center gap-3.5 pb-4 border-b border-zinc-200/40 dark:border-zinc-800/30">
+                            <div class="p-2 bg-zinc-500/10 dark:bg-zinc-500/30 text-zinc-600 dark:text-zinc-300 rounded-xl">
+                                <flux:icon name="calendar-days" class="size-5" />
+                            </div>
+                            <div>
+                                <flux:heading size="lg" class="font-display font-bold text-zinc-900 dark:text-white leading-tight">{{ __('Ephemeris Kehadiran') }}</flux:heading>
+                                <flux:text class="text-zinc-500 dark:text-zinc-400">{{ __('Pola kemunculan anggota sepanjang siklus tahunan, memperlihatkan kapan sebuah titik paling sering teramati.') }}</flux:text>
+                            </div>
                         </div>
                         <div
-                            class="h-96 w-full"
-                            wire:key="personal-month-radar-{{ $selectedPersonalMemberKey }}"
+                            class="w-full"
+                            style="height: 32rem;"
+                            wire:key="personal-monthly-chart-{{ $selectedPersonalMemberKey }}"
                             data-echarts
-                            data-echarts-option='@json($this->personalMonthRadarOption())'
+                            data-echarts-option='@json($this->personalMonthlyActivityChartOption())'
                         ></div>
-                    </flux:card>
+                    </div>
+
+                    <!-- Personal Radar Grids (3 Columns) -->
+                    <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                        <!-- Hour Radar -->
+                        <div class="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/40 rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-4">
+                            <div class="flex items-center gap-3.5 pb-3 border-b border-zinc-200/40 dark:border-zinc-800/30">
+                                <div class="p-2 bg-ktn-gold/10 dark:bg-ktn-gold/30 text-ktn-gold dark:text-ktn-gold-light rounded-xl">
+                                    <flux:icon name="clock" class="size-5" />
+                                </div>
+                                <div>
+                                    <flux:heading size="md" class="font-display font-bold text-zinc-900 dark:text-white leading-tight">{{ __('Azimuth Aktivitas Harian') }}</flux:heading>
+                                    <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Menunjukkan arah waktu favorit seseorang untuk muncul, merespons, atau memulai percakapan.') }}</flux:text>
+                                </div>
+                            </div>
+                            <div
+                                class="h-96 w-full"
+                                wire:key="personal-hourly-radar-{{ $selectedPersonalMemberKey }}"
+                                data-echarts
+                                data-echarts-option='@json($this->personalHourlyRadarOption())'
+                            ></div>
+                        </div>
+
+                        <!-- Day Radar -->
+                        <div class="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/40 rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-4">
+                            <div class="flex items-center gap-3.5 pb-3 border-b border-zinc-200/40 dark:border-zinc-800/30">
+                                <div class="p-2 bg-ktn-forest/10 dark:bg-ktn-forest/30 text-ktn-forest dark:text-ktn-sage-light rounded-xl">
+                                    <flux:icon name="calendar" class="size-5" />
+                                </div>
+                                <div>
+                                    <flux:heading size="md" class="font-display font-bold text-zinc-900 dark:text-white leading-tight">{{ __('Jadwal Survei Sosial') }}</flux:heading>
+                                    <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Memetakan hari-hari ketika seorang anggota paling sering turun ke lapangan percakapan.') }}</flux:text>
+                                </div>
+                            </div>
+                            <div
+                                class="h-96 w-full"
+                                wire:key="personal-day-radar-{{ $selectedPersonalMemberKey }}"
+                                data-echarts
+                                data-echarts-option='@json($this->personalDayRadarOption())'
+                            ></div>
+                        </div>
+
+                        <!-- Month Radar -->
+                        <div class="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/40 rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-4">
+                            <div class="flex items-center gap-3.5 pb-3 border-b border-zinc-200/40 dark:border-zinc-800/30">
+                                <div class="p-2 bg-zinc-500/10 dark:bg-zinc-500/30 text-zinc-600 dark:text-zinc-300 rounded-xl">
+                                    <flux:icon name="calendar-days" class="size-5" />
+                                </div>
+                                <div>
+                                    <flux:heading size="md" class="font-display font-bold text-zinc-900 dark:text-white leading-tight">{{ __('Musim Pengamatan Personal') }}</flux:heading>
+                                    <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Ada yang aktif sepanjang tahun, ada yang hanya muncul ketika musim nostalgia kembali datang.') }}</flux:text>
+                                </div>
+                            </div>
+                            <div
+                                class="h-96 w-full"
+                                wire:key="personal-month-radar-{{ $selectedPersonalMemberKey }}"
+                                data-echarts
+                                data-echarts-option='@json($this->personalMonthRadarOption())'
+                            ></div>
+                        </div>
+                    </div>
                 </div>
+            @endif
+        @else
+            <!-- Empty State -->
+            <div class="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/40 rounded-2xl p-8 shadow-sm space-y-3 text-center">
+                <flux:heading size="lg" class="text-zinc-900 dark:text-white font-bold">{{ __('Belum ada WhatsApp Analytics') }}</flux:heading>
+                <flux:text class="text-zinc-500 dark:text-zinc-400">{{ __('Statistik akan tersedia setelah panitia mengunggah dan memproses file export WhatsApp.') }}</flux:text>
             </div>
         @endif
-    @else
-        <flux:card class="space-y-3">
-            <flux:heading size="lg">{{ __('Belum ada WhatsApp Analytics') }}</flux:heading>
-            <flux:text>{{ __('Statistik akan tersedia setelah panitia mengunggah dan memproses file export WhatsApp.') }}</flux:text>
-        </flux:card>
+    </section>
+
+    <!-- Register Alumni Modal -->
+    @if ($showRegisterAlumniModal)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/60 backdrop-blur-xs p-4" role="dialog" aria-modal="true">
+            <div class="w-full max-w-2xl rounded-2xl border border-zinc-200/60 bg-white shadow-2xl dark:border-zinc-800/80 dark:bg-zinc-900 overflow-hidden">
+                <form wire:submit="registerAlumniAndMap" class="space-y-6 p-6">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between pb-4 border-b border-zinc-200/40 dark:border-zinc-800/30">
+                        <div class="space-y-1">
+                            <flux:heading size="lg" class="font-display font-bold text-zinc-900 dark:text-white">{{ __('Daftarkan Alumni') }}</flux:heading>
+                            <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Buat data alumni baru dan langsung petakan ke nama WhatsApp yang dipilih.') }}</flux:text>
+                        </div>
+
+                        <flux:button type="button" class="cursor-pointer" size="sm" variant="ghost" wire:click="closeRegisterAlumniModal">
+                            {{ __('Tutup') }}
+                        </flux:button>
+                    </div>
+
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <flux:input wire:model="registerFullName" :label="__('Nama lengkap')" required />
+                        <flux:input wire:model="registerNickname" :label="__('Nama panggilan')" />
+                        <flux:input wire:model="registerWhatsappNumber" :label="__('Nomor WhatsApp')" type="tel" required />
+                        <flux:input wire:model="registerStudentNumber" :label="__('NIM')" />
+                        <flux:input wire:model="registerEmail" :label="__('Email')" type="email" />
+                        <flux:select wire:model="registerAlumniStatus" :label="__('Status alumni')" required>
+                            <flux:select.option value="active">{{ __('Aktif') }}</flux:select.option>
+                            <flux:select.option value="deceased">{{ __('Wafat') }}</flux:select.option>
+                        </flux:select>
+                    </div>
+
+                    <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end pt-4 border-t border-zinc-200/40 dark:border-zinc-800/30">
+                        <flux:button type="button" class="cursor-pointer" variant="ghost" wire:click="closeRegisterAlumniModal">
+                            {{ __('Batal') }}
+                        </flux:button>
+                        <flux:button type="submit" class="cursor-pointer" variant="primary" icon="check" wire:loading.attr="disabled">
+                            {{ __('Simpan dan Mapping') }}
+                        </flux:button>
+                    </div>
+                </form>
+            </div>
+        </div>
     @endif
-</section>
+</div>
