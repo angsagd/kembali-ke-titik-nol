@@ -495,6 +495,16 @@ new #[Title('WhatsApp Analytics')] class extends Component {
                 'title' => __('Top 10 Ganti Alat'),
                 'description' => __('Instrumen boleh berganti, tetapi pengamatnya tetap sama. Statistik ini mencatat mereka yang paling sering melakukan kalibrasi digital.'),
             ],
+            [
+                'metric' => 'longest_active_streak',
+                'title' => __('Top 10 Pantang Absen'),
+                'description' => __('Hari demi hari, mereka tetap hadir. Tidak tergoda libur, tidak kenal jeda. Streak percakapan terpanjang tanpa absen.'),
+            ],
+            [
+                'metric' => 'longest_silent_streak',
+                'title' => __('Top 10 Penghilang Misterius'),
+                'description' => __('Tiba-tiba menghilang tanpa kabar. Streak terpanjang absen dari percakapan — sebelum akhirnya muncul kembali.'),
+            ],
         ];
     }
 
@@ -1203,57 +1213,40 @@ new #[Title('WhatsApp Analytics')] class extends Component {
         $averageMessagesPerDay = $totalDays > 0
             ? round($this->latestImport->total_messages / $totalDays, 1)
             : 0;
-        $eventCounts = $this->groupSystemEventCounts();
+
+        $i = $this->latestImport;
 
         $cards = [
             ['title' => __('Aktivitas Pertama'), 'value' => $this->dateValue($firstActivity), 'unit' => $this->timeUnit($firstActivity)],
             ['title' => __('Aktivitas Terakhir'), 'value' => $this->dateValue($lastActivity), 'unit' => $this->timeUnit($lastActivity)],
             ['title' => __('Total Hari'), 'value' => $this->formatNumber($totalDays), 'unit' => __('Hari')],
-            ['title' => __('Total Aktivitas'), 'value' => $this->formatNumber($this->latestImport->total_activities), 'unit' => __('Aktivitas')],
-            ['title' => __('Total Pesan'), 'value' => $this->formatNumber($this->latestImport->total_messages), 'unit' => __('Pesan')],
-            ['title' => __('Aktivitas Non-Pesan'), 'value' => $this->formatNumber($this->latestImport->total_system_events), 'unit' => __('Aktivitas')],
+            ['title' => __('Total Aktivitas'), 'value' => $this->formatNumber($i->total_activities), 'unit' => __('Aktivitas')],
+            ['title' => __('Total Pesan'), 'value' => $this->formatNumber($i->total_messages), 'unit' => __('Pesan')],
+            ['title' => __('Aktivitas Non-Pesan'), 'value' => $this->formatNumber($i->total_system_events), 'unit' => __('Aktivitas')],
             ['title' => __('Rata-rata Pesan'), 'value' => $this->formatNumber($averageMessagesPerDay), 'unit' => __('Pesan / Hari')],
-            ['title' => __('Total Kata (> 1 huruf)'), 'value' => $this->formatNumber($this->latestImport->total_words), 'unit' => __('Kata')],
-            ['title' => __('Jumlah Anggota'), 'value' => $this->formatNumber($this->latestImport->total_participants), 'unit' => __('Orang')],
-            ['title' => __('Pesan dengan Emoji'), 'value' => $this->formatNumber($this->latestImport->total_emoji_messages), 'unit' => __('Pesan')],
-            ['title' => __('Pesan dengan Media'), 'value' => $this->formatNumber($this->latestImport->total_media_messages), 'unit' => __('Pesan')],
-            ['title' => __('Pesan dengan Sticker'), 'value' => $this->formatNumber($this->latestImport->total_sticker_messages), 'unit' => __('Pesan')],
-            ['title' => __('Pesan dengan Link'), 'value' => $this->formatNumber($this->latestImport->total_link_messages), 'unit' => __('Pesan')],
-            ['title' => __('Pesan Dihapus'), 'value' => $this->formatNumber($this->latestImport->total_deleted_messages), 'unit' => __('Pesan')],
-            ['title' => __('Anggota Keluar'), 'value' => $this->formatNumber($eventCounts['member_left'] ?? 0), 'unit' => __('Kali')],
-            ['title' => __('Anggota Ditambahkan'), 'value' => $this->formatNumber($eventCounts['member_added'] ?? 0), 'unit' => __('Kali')],
-            ['title' => __('Anggota Dikeluarkan'), 'value' => $this->formatNumber($eventCounts['member_removed'] ?? 0), 'unit' => __('Kali')],
-            ['title' => __('Ganti Nomor'), 'value' => $this->formatNumber($eventCounts['phone_number_changed'] ?? 0), 'unit' => __('Kali')],
-            ['title' => __('Ganti Perangkat'), 'value' => $this->formatNumber($eventCounts['security_code_changed'] ?? 0), 'unit' => __('Kali')],
-            ['title' => __('Ganti Nama Grup'), 'value' => $this->formatNumber($eventCounts['group_name_changed'] ?? 0), 'unit' => __('Kali')],
-            ['title' => __('Ganti Deskripsi'), 'value' => $this->formatNumber($eventCounts['group_description_changed'] ?? 0), 'unit' => __('Kali')],
-            ['title' => __('Ganti Icon Grup'), 'value' => $this->formatNumber($eventCounts['group_icon_changed'] ?? 0), 'unit' => __('Kali')],
+            ['title' => __('Total Kata (> 1 huruf)'), 'value' => $this->formatNumber($i->total_words), 'unit' => __('Kata')],
+            ['title' => __('Jumlah Anggota'), 'value' => $this->formatNumber($i->total_participants), 'unit' => __('Orang')],
+            ['title' => __('Pesan dengan Emoji'), 'value' => $this->formatNumber($i->total_emoji_messages), 'unit' => __('Pesan')],
+            ['title' => __('Pesan dengan Media'), 'value' => $this->formatNumber($i->total_media_messages), 'unit' => __('Pesan')],
+            ['title' => __('Pesan dengan Sticker'), 'value' => $this->formatNumber($i->total_sticker_messages), 'unit' => __('Pesan')],
+            ['title' => __('Pesan dengan Link'), 'value' => $this->formatNumber($i->total_link_messages), 'unit' => __('Pesan')],
+            ['title' => __('Pesan Dihapus'), 'value' => $this->formatNumber($i->total_deleted_messages), 'unit' => __('Pesan')],
+            ['title' => __('Streak Percakapan Terpanjang'), 'value' => $this->formatNumber($i->longest_active_streak), 'unit' => __('Hari Berturut-turut')],
+            ['title' => __('Streak Sunyi Terpanjang'), 'value' => $this->formatNumber($i->longest_silent_streak), 'unit' => __('Hari Tanpa Pesan')],
+            ['title' => __('Anggota Keluar'), 'value' => $this->formatNumber($i->event_member_left), 'unit' => __('Kali')],
+            ['title' => __('Anggota Ditambahkan'), 'value' => $this->formatNumber($i->event_member_added), 'unit' => __('Kali')],
+            ['title' => __('Anggota Dikeluarkan'), 'value' => $this->formatNumber($i->event_member_removed), 'unit' => __('Kali')],
+            ['title' => __('Ganti Nomor'), 'value' => $this->formatNumber($i->event_phone_changed), 'unit' => __('Kali')],
+            ['title' => __('Ganti Perangkat'), 'value' => $this->formatNumber($i->event_security_code_changed), 'unit' => __('Kali')],
+            ['title' => __('Ganti Nama Grup'), 'value' => $this->formatNumber($i->event_group_name_changed), 'unit' => __('Kali')],
+            ['title' => __('Ganti Deskripsi'), 'value' => $this->formatNumber($i->event_group_description_changed), 'unit' => __('Kali')],
+            ['title' => __('Ganti Icon Grup'), 'value' => $this->formatNumber($i->event_group_icon_changed), 'unit' => __('Kali')],
         ];
 
         return array_values(array_filter(
             $cards,
             fn (array $card): bool => ! $this->isZeroCard($card),
         ));
-    }
-
-    /**
-     * @return array<string, int>
-     */
-    private function groupSystemEventCounts(): array
-    {
-        if ($this->latestImport === null) {
-            return [];
-        }
-
-        return WhatsappActivity::query()
-            ->whereBelongsTo($this->latestImport)
-            ->where('activity_type', 'system')
-            ->whereNotNull('system_event_type')
-            ->selectRaw('system_event_type, COUNT(*) as total')
-            ->groupBy('system_event_type')
-            ->pluck('total', 'system_event_type')
-            ->map(fn (mixed $total): int => (int) $total)
-            ->all();
     }
 
     private function hydrateMappingSelections(): void

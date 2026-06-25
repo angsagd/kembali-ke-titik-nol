@@ -26,6 +26,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'midnight_messages',
     'weekend_messages',
     'active_days',
+    'longest_active_streak',
+    'longest_silent_streak',
     'total_words',
     'total_characters',
     'first_message_at',

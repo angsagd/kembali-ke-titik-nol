@@ -7,6 +7,7 @@ use App\Models\WhatsappActivity;
 use App\Models\WhatsappImport;
 use App\Models\WhatsappMember;
 use App\Models\WhatsappMemberMapping;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
@@ -219,6 +220,16 @@ class WhatsappImportProcessor
             $memberActivities = $activities->filter(fn (ParsedWhatsappActivity $activity): bool => $activity->senderNormalized === $normalizedName);
             $messageActivities = $memberActivities->where('activityType', 'message');
 
+            $messageDates = $messageActivities
+                ->map(fn (ParsedWhatsappActivity $activity): string => $activity->occurredAtDisplay->toDateString())
+                ->unique()
+                ->sort()
+                ->values()
+                ->all();
+
+            $firstDate = $member->first_message_at?->toDateString();
+            $lastDate = $member->last_message_at?->toDateString();
+
             $whatsappImport->memberStats()->create([
                 'whatsapp_member_id' => $member->id,
                 'alumni_id' => $member->alumni_id,
@@ -235,7 +246,11 @@ class WhatsappImportProcessor
                 'after_work_messages' => $messageActivities->filter(fn (ParsedWhatsappActivity $activity): bool => $this->isAfterWork($activity))->count(),
                 'midnight_messages' => $messageActivities->filter(fn (ParsedWhatsappActivity $activity): bool => $this->isMidnight($activity))->count(),
                 'weekend_messages' => $messageActivities->filter(fn (ParsedWhatsappActivity $activity): bool => $activity->occurredAtDisplay->isWeekend())->count(),
-                'active_days' => $messageActivities->map(fn (ParsedWhatsappActivity $activity): string => $activity->occurredAtDisplay->toDateString())->unique()->count(),
+                'active_days' => count($messageDates),
+                'longest_active_streak' => $this->longestStreak($messageDates),
+                'longest_silent_streak' => ($firstDate && $lastDate)
+                    ? $this->longestGapStreak($firstDate, $lastDate, $messageDates)
+                    : 0,
                 'total_words' => $messageActivities->sum('wordCount'),
                 'total_characters' => $messageActivities->sum('characterCount'),
                 'first_message_at' => $member->first_message_at,
@@ -281,6 +296,19 @@ class WhatsappImportProcessor
         $firstActivity = $activities->min(fn (ParsedWhatsappActivity $activity) => $activity->occurredAtDisplay);
         $lastActivity = $activities->max(fn (ParsedWhatsappActivity $activity) => $activity->occurredAtDisplay);
 
+        // Sorted unique message dates for group streak calculation
+        $groupMessageDates = $activities
+            ->where('activityType', 'message')
+            ->map(fn (ParsedWhatsappActivity $activity): string => $activity->occurredAtDisplay->toDateString())
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        // Event counts (replaces on-the-fly groupSystemEventCounts() query)
+        $systemActivities = $activities->where('activityType', 'system');
+        $eventCounts = fn (string $type): int => $systemActivities->where('systemEventType', $type)->count();
+
         $whatsappImport->forceFill([
             'timezone_source' => 'Asia/Makassar',
             'timezone_display' => 'Asia/Jakarta',
@@ -299,9 +327,82 @@ class WhatsappImportProcessor
             'last_activity_at' => $lastActivity,
             'import_start_date' => $firstActivity?->toDateString(),
             'import_end_date' => $lastActivity?->toDateString(),
+            'longest_active_streak' => $this->longestStreak($groupMessageDates),
+            'longest_silent_streak' => ($firstActivity && $lastActivity)
+                ? $this->longestGapStreak(
+                    $firstActivity->toDateString(),
+                    $lastActivity->toDateString(),
+                    $groupMessageDates,
+                )
+                : 0,
+            'event_member_left' => $eventCounts('member_left'),
+            'event_member_added' => $eventCounts('member_added'),
+            'event_member_removed' => $eventCounts('member_removed'),
+            'event_phone_changed' => $eventCounts('phone_number_changed'),
+            'event_security_code_changed' => $eventCounts('security_code_changed'),
+            'event_group_name_changed' => $eventCounts('group_name_changed'),
+            'event_group_description_changed' => $eventCounts('group_description_changed'),
+            'event_group_icon_changed' => $eventCounts('group_icon_changed'),
             'status' => 'completed',
             'processed_at' => now(),
         ])->save();
+    }
+
+    /**
+     * Calculates the longest streak of consecutive calendar days.
+     *
+     * @param  string[]  $sortedDates  Sorted unique date strings (Y-m-d)
+     */
+    private function longestStreak(array $sortedDates): int
+    {
+        if ($sortedDates === []) {
+            return 0;
+        }
+
+        $longest = 1;
+        $current = 1;
+
+        for ($i = 1, $total = count($sortedDates); $i < $total; $i++) {
+            $prev = CarbonImmutable::parse($sortedDates[$i - 1]);
+            $curr = CarbonImmutable::parse($sortedDates[$i]);
+
+            if ($prev->addDay()->isSameDay($curr)) {
+                $current++;
+                $longest = max($longest, $current);
+            } else {
+                $current = 1;
+            }
+        }
+
+        return $longest;
+    }
+
+    /**
+     * Calculates the longest gap (consecutive days with no activity) within a date range.
+     *
+     * @param  string[]  $activeDates  Sorted unique active date strings (Y-m-d)
+     */
+    private function longestGapStreak(string $from, string $to, array $activeDates): int
+    {
+        $activeSet = array_flip($activeDates);
+        $longest = 0;
+        $current = 0;
+
+        $cursor = CarbonImmutable::parse($from);
+        $end = CarbonImmutable::parse($to);
+
+        while ($cursor->lte($end)) {
+            if (! isset($activeSet[$cursor->toDateString()])) {
+                $current++;
+                $longest = max($longest, $current);
+            } else {
+                $current = 0;
+            }
+
+            $cursor = $cursor->addDay();
+        }
+
+        return $longest;
     }
 
     private function isLocationMessage(ParsedWhatsappActivity $activity): bool
