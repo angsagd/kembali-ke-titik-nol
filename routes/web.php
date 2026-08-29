@@ -4,6 +4,7 @@ use App\Http\Controllers\Reports\ExportController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
+Route::livewire('reunion-30', 'pages::public.reunion')->name('public.reunion');
 Route::livewire('rsvp', 'pages::public.rsvp')->name('public.rsvp');
 Route::livewire('galeri', 'pages::public.gallery')->name('public.gallery');
 Route::livewire('news', 'pages::news.index')->name('news.index');
@@ -11,6 +12,9 @@ Route::livewire('news/{news:slug}', 'pages::news.show')->name('news.show');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('dashboard', 'pages::dashboard')->name('dashboard');
+    Route::livewire('reunion-30/overview', 'pages::reunion.index')
+        ->middleware('can:update-own-alumni-profile')
+        ->name('reunion.index');
 
     Route::livewire('alumni/profile', 'pages::alumni.profile')
         ->middleware('can:update-own-alumni-profile')

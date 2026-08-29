@@ -24,6 +24,7 @@ test('public navigation presents the alumni portal and safe public destinations'
         ->assertSee('data-public-mobile-menu', false)
         ->assertSee('href="'.route('news.index').'"', false)
         ->assertSee('href="'.route('public.gallery').'"', false)
+        ->assertSee('href="'.route('public.reunion').'"', false)
         ->assertDontSee('Direktori Alumni')
         ->assertDontSee('Administrasi Alumni');
 });
@@ -46,6 +47,8 @@ test('alumni navigation is alumni first and contains personal reunion destinatio
         ->assertSee('WhatsApp Analytics')
         ->assertSee('Kabar Alumni')
         ->assertSee('Reuni 30 Tahun')
+        ->assertSee('Overview')
+        ->assertSee('href="'.route('reunion.index').'"', false)
         ->assertSee('RSVP Saya')
         ->assertSee('Pembayaran Saya')
         ->assertSee('Kamar Saya')

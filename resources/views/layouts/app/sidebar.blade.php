@@ -69,6 +69,10 @@
 
                 @can('update-own-alumni-profile')
                     <flux:sidebar.group :heading="__('Reuni 30 Tahun')" class="grid">
+                        <flux:sidebar.item icon="calendar-days" :href="route('reunion.index')" :current="request()->routeIs('reunion.*')" wire:navigate>
+                            {{ __('Overview') }}
+                        </flux:sidebar.item>
+
                         <flux:sidebar.item icon="check-circle" :href="route('alumni.rsvp')" :current="request()->routeIs('alumni.rsvp')" wire:navigate>
                             {{ __('RSVP Saya') }}
                         </flux:sidebar.item>

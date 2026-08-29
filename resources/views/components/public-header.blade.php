@@ -6,7 +6,7 @@
         ['label' => __('Tentang'), 'href' => route('home').'#tentang', 'key' => 'about'],
         ['label' => __('Kabar'), 'href' => route('news.index'), 'key' => 'news'],
         ['label' => __('Dokumentasi'), 'href' => route('public.gallery'), 'key' => 'gallery'],
-        ['label' => __('Reuni 30 Tahun'), 'href' => route('home').'#rundown', 'key' => 'schedule'],
+        ['label' => __('Reuni 30 Tahun'), 'href' => route('public.reunion'), 'key' => 'reunion'],
     ];
 @endphp
 
