@@ -3,13 +3,13 @@
 ])
 
 @if($sidebar)
-    <flux:sidebar.brand name="Geodesi 96" {{ $attributes }}>
+    <flux:sidebar.brand name="Portal Alumni Geodesi 96" {{ $attributes }}>
         <x-slot name="logo" class="flex aspect-square size-8 items-center justify-center rounded-md bg-white">
             <x-app-logo-icon class="size-7" />
         </x-slot>
     </flux:sidebar.brand>
 @else
-    <flux:brand name="Geodesi 96" {{ $attributes }}>
+    <flux:brand name="Portal Alumni Geodesi 96" {{ $attributes }}>
         <x-slot name="logo" class="flex aspect-square size-8 items-center justify-center rounded-md bg-white">
             <x-app-logo-icon class="size-7" />
         </x-slot>

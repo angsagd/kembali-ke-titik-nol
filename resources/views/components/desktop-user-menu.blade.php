@@ -19,9 +19,16 @@
         </div>
         <flux:menu.separator />
         <flux:menu.radio.group>
+            @can('update-own-alumni-profile')
+                <flux:menu.item :href="route('alumni.profile')" icon="identification" wire:navigate>
+                    {{ __('Profil Saya') }}
+                </flux:menu.item>
+            @endcan
+
             <flux:menu.item :href="route('profile.edit')" icon="cog" wire:navigate>
-                {{ __('Settings') }}
+                {{ __('Pengaturan Akun') }}
             </flux:menu.item>
+
             <form method="POST" action="{{ route('logout') }}" class="w-full">
                 @csrf
                 <flux:menu.item
@@ -31,7 +38,7 @@
                     class="w-full cursor-pointer"
                     data-test="logout-button"
                 >
-                    {{ __('Log out') }}
+                    {{ __('Keluar') }}
                 </flux:menu.item>
             </form>
         </flux:menu.radio.group>

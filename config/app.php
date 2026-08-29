@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Kembali Ke Titik Nol'),
+    'name' => env('APP_NAME', 'Portal Alumni Geodesi 96'),
 
     /*
     |--------------------------------------------------------------------------
