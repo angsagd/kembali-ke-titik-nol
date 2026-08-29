@@ -107,7 +107,7 @@ test('event schedule seeder inserts the existing landing rundown once', function
     ]);
 });
 
-test('landing page displays dynamic event schedule ordered by time', function () {
+test('public reunion page displays dynamic event schedule ordered by time', function () {
     EventScheduleItem::factory()->create([
         'event_day' => 'day_one',
         'start_time' => '20:00',
@@ -124,7 +124,7 @@ test('landing page displays dynamic event schedule ordered by time', function ()
         'activity' => 'Kegiatan Hari Kedua',
     ]);
 
-    $response = $this->get(route('home'))
+    $response = $this->get(route('public.reunion'))
         ->assertOk()
         ->assertSee('Minggu, 23 Agustus')
         ->assertSee('Penginapan Joglo / Kampung Wisata Tembi')

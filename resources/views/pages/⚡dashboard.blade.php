@@ -40,6 +40,8 @@ new #[Title('Dashboard')] class extends Component {
             'active' => Alumni::query()->where('alumni_status', 'active')->count(),
             'deceased' => Alumni::query()->where('alumni_status', 'deceased')->count(),
             'completed_profiles' => Alumni::query()->where('is_profile_completed', true)->count(),
+            'cities' => Alumni::query()->whereNotNull('city')->where('city', '!=', '')->distinct()->count('city'),
+            'countries' => Alumni::query()->whereNotNull('country')->where('country', '!=', '')->distinct()->count('country'),
         ];
     }
 
@@ -191,6 +193,12 @@ new #[Title('Dashboard')] class extends Component {
             ->first();
     }
 
+    #[Computed]
+    public function latestDocumentation(): ?MediaItem
+    {
+        return MediaItem::query()->latest()->first();
+    }
+
     public function canManageAlumni(): bool
     {
         return $this->user->canManageAlumni();
@@ -295,9 +303,9 @@ new #[Title('Dashboard')] class extends Component {
 <section class="w-full space-y-6 p-6 lg:p-8">
     <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div class="space-y-2">
-            <flux:heading size="xl">{{ __('Dashboard') }}</flux:heading>
+            <flux:heading size="xl">{{ __('Dashboard Alumni') }}</flux:heading>
             <flux:text class="max-w-3xl">
-                {{ __('Ringkasan operasional Sistem Manajemen Reuni Alumni Teknik Geodesi UGM Angkatan 1996.') }}
+                {{ __('Ruang personal untuk profil, kabar, perjalanan, dan kenangan Alumni Geodesi 96.') }}
             </flux:text>
         </div>
 
@@ -317,61 +325,57 @@ new #[Title('Dashboard')] class extends Component {
     </div>
 
     @if ($this->alumni)
-        <div class="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+        <flux:card class="border-0 bg-ktn-forest text-white">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div><flux:heading size="lg" class="!text-white">{{ __('Selamat datang, :name', ['name' => $this->alumni->nickname ?: $this->alumni->full_name]) }}</flux:heading><p class="mt-1 text-sm text-ktn-sage-light">{{ __('Mari lanjutkan cerita dan paseduluran Geodesi 96.') }}</p></div>
+                <flux:badge color="{{ $this->alumni->is_profile_completed ? 'green' : 'amber' }}">{{ $this->alumni->is_profile_completed ? __('Profil Lengkap') : __('Profil Perlu Dilengkapi') }}</flux:badge>
+            </div>
+        </flux:card>
+
+        <div class="grid gap-4 lg:grid-cols-2">
             <flux:card class="space-y-5">
-                <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div class="space-y-1">
-                        <flux:heading size="lg">{{ __('Selamat datang, :name', ['name' => $this->alumni->nickname ?: $this->alumni->full_name]) }}</flux:heading>
-                        <flux:text>{{ $this->alumni->full_name }}</flux:text>
-                    </div>
+                <div class="flex items-start justify-between gap-4"><div><flux:heading size="lg">{{ __('Profil Saya') }}</flux:heading><flux:text class="mt-1">{{ $this->alumni->full_name }}</flux:text></div><div class="text-3xl font-semibold tabular-nums text-ktn-forest dark:text-ktn-sage-light">{{ $this->profileCompletion() }}%</div></div>
+                <div><div class="mb-2 flex justify-between text-sm"><span>{{ __('Kelengkapan Profil') }}</span><span>{{ $this->alumni->city ?: __('Kota belum diisi') }}</span></div><div class="h-2 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-700"><div class="h-full rounded-full bg-ktn-forest" style="width: {{ $this->profileCompletion() }}%"></div></div></div>
+                <flux:button variant="primary" :href="route('alumni.profile')" wire:navigate>{{ __('Lihat dan Perbarui Profil') }}</flux:button>
+            </flux:card>
 
-                    <flux:badge color="{{ $this->alumni->is_profile_completed ? 'green' : 'amber' }}">
-                        {{ $this->alumni->is_profile_completed ? __('Profil Lengkap') : __('Profil Perlu Dilengkapi') }}
-                    </flux:badge>
+            <flux:card class="space-y-5">
+                <div><flux:heading size="lg">{{ __('Arsip Reuni 30 Tahun') }}</flux:heading><flux:text class="mt-1">{{ __('Kembali ke Titik Nol · 23–24 Agustus 2026') }}</flux:text></div>
+                <div class="grid gap-3 sm:grid-cols-3">
+                    <div class="rounded-lg border border-zinc-200 p-3 dark:border-zinc-700"><flux:text>{{ __('RSVP') }}</flux:text><flux:badge class="mt-2" color="{{ $this->rsvpStatusColor($this->alumni->rsvp_status) }}">{{ $this->rsvpStatusLabel($this->alumni->rsvp_status) }}</flux:badge></div>
+                    <div class="rounded-lg border border-zinc-200 p-3 dark:border-zinc-700"><flux:text>{{ __('Pembayaran') }}</flux:text><flux:badge class="mt-2" color="{{ $this->paymentStatusColor($this->alumni->payment?->status) }}">{{ $this->paymentStatusLabel($this->alumni->payment?->status) }}</flux:badge></div>
+                    <div class="rounded-lg border border-zinc-200 p-3 dark:border-zinc-700"><flux:text>{{ __('Kamar') }}</flux:text><div class="mt-2 text-sm font-medium">{{ $this->alumni->roomAssignment?->room?->room_name ?: __('Belum tersedia') }}</div></div>
                 </div>
+                <flux:button variant="ghost" :href="route('reunion.index')" wire:navigate>{{ __('Buka Ringkasan Reuni') }}</flux:button>
+            </flux:card>
+        </div>
 
-                <div class="grid gap-3 sm:grid-cols-4">
-                    <div class="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
-                        <flux:text>{{ __('RSVP') }}</flux:text>
-                        <div class="mt-2">
-                            <flux:badge color="{{ $this->rsvpStatusColor($this->alumni->rsvp_status) }}">
-                                {{ $this->rsvpStatusLabel($this->alumni->rsvp_status) }}
-                            </flux:badge>
-                        </div>
-                    </div>
-
-                    <div class="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
-                        <flux:text>{{ __('Pembayaran') }}</flux:text>
-                        <div class="mt-2">
-                            <flux:badge color="{{ $this->paymentStatusColor($this->alumni->payment?->status) }}">
-                                {{ $this->paymentStatusLabel($this->alumni->payment?->status) }}
-                            </flux:badge>
-                        </div>
-                    </div>
-
-                    <div class="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
-                        <flux:text>{{ __('Kamar') }}</flux:text>
-                        <div class="mt-2 font-medium">{{ $this->alumni->roomAssignment?->room?->room_name ?: __('Belum tersedia') }}</div>
-                    </div>
-
-                    <div class="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
-                        <flux:text>{{ __('Kelengkapan Profil') }}</flux:text>
-                        <div class="mt-2 text-2xl font-semibold tabular-nums">{{ $this->profileCompletion() }}%</div>
-                    </div>
-                </div>
+        <div class="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+            <flux:card class="space-y-4">
+                <div class="flex items-center justify-between gap-4"><flux:heading size="lg">{{ __('Kabar Alumni Terbaru') }}</flux:heading><flux:button variant="ghost" size="sm" :href="route('news.index')" wire:navigate>{{ __('Semua Kabar') }}</flux:button></div>
+                @if ($this->latestNews)
+                    <div><flux:heading>{{ $this->latestNews->title }}</flux:heading><flux:text class="mt-2">{{ $this->latestNews->excerpt }}</flux:text><a href="{{ route('news.show', $this->latestNews) }}" wire:navigate class="mt-4 inline-flex text-sm font-semibold text-ktn-forest dark:text-ktn-sage-light">{{ __('Baca selengkapnya →') }}</a></div>
+                @else
+                    <flux:text>{{ __('Belum ada kabar alumni yang dipublikasikan.') }}</flux:text>
+                @endif
             </flux:card>
 
             <flux:card class="space-y-4">
-                <flux:heading size="lg">{{ __('Akses Cepat') }}</flux:heading>
-                <div class="grid gap-3">
-                    <flux:button variant="ghost" :href="route('alumni.profile')" wire:navigate>{{ __('Profil Saya') }}</flux:button>
-                    <flux:button variant="ghost" :href="route('alumni.rsvp')" wire:navigate>{{ __('Isi RSVP') }}</flux:button>
-                    <flux:button variant="ghost" :href="route('alumni.room')" wire:navigate>{{ __('Kamar Saya') }}</flux:button>
-                    <flux:button variant="ghost" :href="route('alumni.finance')" wire:navigate>{{ __('Status Pembayaran') }}</flux:button>
-                    <flux:button variant="ghost" :href="route('documentation.index')" wire:navigate>{{ __('Dokumentasi') }}</flux:button>
-                    <flux:button variant="ghost" :href="route('alumni.directory.index')" wire:navigate>{{ __('Direktori Alumni') }}</flux:button>
-                    <flux:button variant="ghost" :href="route('alumni.distribution.index')" wire:navigate>{{ __('Peta Alumni') }}</flux:button>
-                </div>
+                <flux:heading size="lg">{{ __('Perjalanan Alumni') }}</flux:heading>
+                <div class="grid grid-cols-3 gap-3 text-center"><div class="rounded-lg bg-zinc-50 p-3 dark:bg-zinc-800"><div class="text-xl font-semibold">{{ $this->alumniStats['total'] }} alumni</div></div><div class="rounded-lg bg-zinc-50 p-3 dark:bg-zinc-800"><div class="text-xl font-semibold">{{ $this->alumniStats['cities'] }} kota</div></div><div class="rounded-lg bg-zinc-50 p-3 dark:bg-zinc-800"><div class="text-xl font-semibold">{{ $this->alumniStats['countries'] }} negara</div></div></div>
+                <div class="flex flex-wrap gap-2"><flux:button variant="ghost" size="sm" :href="route('alumni.distribution.index')" wire:navigate>{{ __('Peta Alumni') }}</flux:button><flux:button variant="ghost" size="sm" :href="route('alumni.timeline.index')" wire:navigate>{{ __('Linimasa') }}</flux:button><flux:button variant="ghost" size="sm" :href="route('alumni.directory.index')" wire:navigate>{{ __('Direktori') }}</flux:button></div>
+            </flux:card>
+        </div>
+
+        <div class="grid gap-4 lg:grid-cols-2">
+            <flux:card class="space-y-4">
+                <div class="flex items-center justify-between gap-4"><flux:heading size="lg">{{ __('Dokumentasi & Kenangan') }}</flux:heading><flux:button variant="ghost" size="sm" :href="route('documentation.index')" wire:navigate>{{ __('Buka Dokumentasi') }}</flux:button></div>
+                @if ($this->latestDocumentation)<div><flux:text>{{ __('Dokumentasi terbaru') }}</flux:text><div class="mt-2 font-semibold">{{ $this->latestDocumentation->title }}</div></div>@else<flux:text>{{ __('Belum ada dokumentasi yang tersimpan.') }}</flux:text>@endif
+                <flux:button variant="ghost" :href="route('memory-book.index')" wire:navigate>{{ __('Buka Buku Kenangan') }}</flux:button>
+            </flux:card>
+
+            <flux:card class="space-y-4 bg-ktn-topo dark:bg-zinc-800">
+                <flux:heading size="lg">{{ __('Nostalgia Geodesi 96') }}</flux:heading><flux:text>{{ __('Dari ruang kuliah, praktikum, hingga perjalanan hari ini—setiap potongan cerita adalah bagian dari kita.') }}</flux:text><flux:button variant="primary" :href="route('memory-book.index')" wire:navigate>{{ __('Jelajahi Kenangan') }}</flux:button>
             </flux:card>
         </div>
     @elseif (! $this->canManageAlumni() && ! $this->canManageFinance())

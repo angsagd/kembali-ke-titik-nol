@@ -58,14 +58,13 @@ test('landing page highlights public media only', function () {
         ->assertDontSee('Foto Internal Panitia');
 });
 
-test('landing page uses dynamic countdown target for reunion date', function () {
+test('landing page presents reunion as a post-event archive without countdown', function () {
     $this->get(route('home'))
         ->assertOk()
-        ->assertSee('data-countdown-target="2026-08-23T12:00:00+07:00"', false)
-        ->assertSee('data-countdown-unit="days"', false)
-        ->assertSee('data-countdown-unit="hours"', false)
-        ->assertSee('data-countdown-unit="minutes"', false)
-        ->assertSee('data-countdown-unit="seconds"', false);
+        ->assertSee('Reuni 30 Tahun')
+        ->assertSee('Buka Halaman Reuni')
+        ->assertDontSee('data-countdown-target', false)
+        ->assertDontSee('data-countdown-unit', false);
 });
 
 test('landing page uses provided icon assets for favicon and header logo', function () {
@@ -81,17 +80,17 @@ test('landing page uses provided icon assets for favicon and header logo', funct
 });
 
 test('landing page exposes social sharing metadata', function () {
-    $title = 'Reuni 30 Tahun Geodesi 96 - Kembali ke Titik Nol';
-    $description = 'Ngalibrasi 30 Taon Paseduluran. Reuni alumni Teknik Geodesi UGM angkatan 96 untuk pulang, bertemu, mengenang, dan kembali ke titik nol bersama.';
+    $title = 'Portal Alumni Geodesi 96';
+    $description = 'Jejak, cerita, dan perjalanan alumni Teknik Geodesi UGM Angkatan 1996 yang terus terhubung.';
     $url = 'https://geodesiugm96.web.id';
-    $image = 'https://geodesiugm96.web.id/images/brand/sticker-kembali-ke-titik-nol-full.png';
+    $image = 'https://geodesiugm96.web.id/images/icon/favicon512.png';
 
     $this->get(route('home'))
         ->assertOk()
         ->assertSee("<title>{$title}</title>", false)
         ->assertSee('<meta name="description" content="'.$description.'">', false)
         ->assertSee('<link rel="canonical" href="'.$url.'">', false)
-        ->assertSee('<meta property="og:site_name" content="Kembali ke Titik Nol">', false)
+        ->assertSee('<meta property="og:site_name" content="Portal Alumni Geodesi 96">', false)
         ->assertSee('<meta property="og:title" content="'.$title.'">', false)
         ->assertSee('<meta property="og:description" content="'.$description.'">', false)
         ->assertSee('<meta property="og:url" content="'.$url.'">', false)
@@ -135,7 +134,7 @@ test('landing page highlights published news only', function () {
 
     $this->get(route('home'))
         ->assertOk()
-        ->assertSee('Berita dan Pengumuman')
+        ->assertSee('Kabar Alumni Terbaru')
         ->assertSee('Rilis Rundown Reuni')
         ->assertSee('Rundown resmi sudah tersedia.')
         ->assertDontSee('Draft Belum Publik');

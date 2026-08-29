@@ -5,19 +5,12 @@ test('public landing page is displayed', function () {
 
     $response
         ->assertOk()
+        ->assertSee('Portal Alumni Geodesi 96')
+        ->assertSee('Jejak, cerita, dan perjalanan yang terus terhubung')
+        ->assertSee('Tentang Geodesi 96')
+        ->assertSee('Kabar Alumni Terbaru')
+        ->assertSee('Dokumentasi Pilihan')
         ->assertSee('Kembali ke Titik Nol')
-        ->assertSee('Ngalibrasi 30 Taon Paseduluran')
-        ->assertSee('Rangkaian Acara')
-        ->assertSee('src="'.asset('videos/titiknol.mp4').'"', false)
-        ->assertSee('poster="'.asset('videos/titiknol-movie-poster.webp').'"', false)
-        ->assertSee('autoplay', false)
-        ->assertSee('muted', false)
-        ->assertSee('loop', false)
-        ->assertSee('playsinline', false)
-        ->assertSee('motion-reduce:hidden', false)
-        ->assertSee('motion-reduce:block', false)
+        ->assertSee('Masuk sebagai Alumni')
         ->assertSee('Kembali ke bagian atas halaman');
-
-    expect(public_path('videos/titiknol.mp4'))->toBeFile()
-        ->and(public_path('videos/titiknol-movie-poster.webp'))->toBeFile();
 });
