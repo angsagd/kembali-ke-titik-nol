@@ -2,6 +2,8 @@
 
 use App\Models\Alumni;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -17,6 +19,12 @@ new #[Title('Direktori Alumni')] class extends Component {
     #[Url]
     public string $status = 'all';
 
+    #[Url]
+    public string $city = '';
+
+    #[Url]
+    public string $country = '';
+
     public function updatedSearch(): void
     {
         $this->resetPage();
@@ -25,6 +33,28 @@ new #[Title('Direktori Alumni')] class extends Component {
     public function updatedStatus(): void
     {
         $this->resetPage();
+    }
+
+    public function updatedCity(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedCountry(): void
+    {
+        $this->resetPage();
+    }
+
+    #[Computed]
+    public function cities(): Collection
+    {
+        return Alumni::query()->whereNotNull('city')->where('city', '!=', '')->distinct()->orderBy('city')->pluck('city');
+    }
+
+    #[Computed]
+    public function countries(): Collection
+    {
+        return Alumni::query()->whereNotNull('country')->where('country', '!=', '')->distinct()->orderBy('country')->pluck('country');
     }
 
     #[Computed]
@@ -53,8 +83,17 @@ new #[Title('Direktori Alumni')] class extends Component {
             ->when(in_array($this->status, ['active', 'deceased'], true), function ($query): void {
                 $query->where('alumni_status', $this->status);
             })
+            ->when($this->city !== '', fn ($query) => $query->where('city', $this->city))
+            ->when($this->country !== '', fn ($query) => $query->where('country', $this->country))
             ->orderBy('full_name')
             ->paginate(18);
+    }
+
+    public function profilePhotoUrl(Alumni $alumni): ?string
+    {
+        $path = $alumni->current_photo_path ?: $alumni->college_photo_path;
+
+        return $path ? Storage::disk('public')->url($path) : null;
     }
 }; ?>
 
@@ -67,7 +106,7 @@ new #[Title('Direktori Alumni')] class extends Component {
             </flux:text>
         </div>
 
-        <div class="grid gap-3 sm:grid-cols-[minmax(16rem,1fr)_12rem] lg:w-[34rem]">
+        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <flux:input
                 wire:model.live.debounce.300ms="search"
                 icon="magnifying-glass"
@@ -80,12 +119,35 @@ new #[Title('Direktori Alumni')] class extends Component {
                 <flux:select.option value="active">{{ __('Aktif') }}</flux:select.option>
                 <flux:select.option value="deceased">{{ __('Memorial') }}</flux:select.option>
             </flux:select>
+
+            <flux:select wire:model.live="city" :label="__('Kota')">
+                <flux:select.option value="">{{ __('Semua kota') }}</flux:select.option>
+                @foreach ($this->cities as $cityOption)
+                    <flux:select.option wire:key="city-filter-{{ $cityOption }}" :value="$cityOption">{{ $cityOption }}</flux:select.option>
+                @endforeach
+            </flux:select>
+
+            <flux:select wire:model.live="country" :label="__('Negara')">
+                <flux:select.option value="">{{ __('Semua negara') }}</flux:select.option>
+                @foreach ($this->countries as $countryOption)
+                    <flux:select.option wire:key="country-filter-{{ $countryOption }}" :value="$countryOption">{{ $countryOption }}</flux:select.option>
+                @endforeach
+            </flux:select>
         </div>
     </div>
 
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         @forelse ($this->alumniProfiles as $profile)
             <article wire:key="alumni-profile-{{ $profile->id }}" class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
+                <div class="mb-5 aspect-[5/3] overflow-hidden rounded-lg bg-ktn-topo dark:bg-zinc-800">
+                    @if ($this->profilePhotoUrl($profile))
+                        <img src="{{ $this->profilePhotoUrl($profile) }}" alt="{{ $profile->full_name }}" class="size-full object-cover">
+                    @else
+                        <div class="flex size-full items-center justify-center bg-ktn-forest text-3xl font-semibold text-white">
+                            {{ collect(explode(' ', $profile->full_name))->filter()->map(fn (string $name): string => mb_substr($name, 0, 1))->take(2)->join('') }}
+                        </div>
+                    @endif
+                </div>
                 <div class="flex items-start justify-between gap-4">
                     <div class="min-w-0 space-y-1">
                         <flux:heading size="lg" class="truncate">{{ $profile->full_name }}</flux:heading>
@@ -95,7 +157,7 @@ new #[Title('Direktori Alumni')] class extends Component {
                     </div>
 
                     <flux:badge color="{{ $profile->alumni_status === 'active' ? 'green' : 'zinc' }}">
-                        {{ $profile->alumni_status === 'active' ? __('Aktif') : __('Memorial') }}
+                        {{ $profile->alumni_status === 'active' ? __('Aktif') : __('In Memoriam') }}
                     </flux:badge>
                 </div>
 
@@ -112,16 +174,6 @@ new #[Title('Direktori Alumni')] class extends Component {
                         <dt class="text-zinc-500 dark:text-zinc-400">{{ __('Domisili') }}</dt>
                         <dd class="font-medium">
                             {{ collect([$profile->city, $profile->country])->filter()->join(', ') ?: '-' }}
-                        </dd>
-                    </div>
-                    <div>
-                        <dt class="text-zinc-500 dark:text-zinc-400">{{ __('RSVP') }}</dt>
-                        <dd class="font-medium">
-                            {{ match ($profile->rsvp_status) {
-                                'attending' => __('Hadir'),
-                                'not_attending' => __('Tidak hadir'),
-                                default => __('Pending'),
-                            } }}
                         </dd>
                     </div>
                 </dl>

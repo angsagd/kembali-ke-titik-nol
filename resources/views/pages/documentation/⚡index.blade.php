@@ -2,9 +2,11 @@
 
 use App\Models\Alumni;
 use App\Models\AuditLog;
+use App\Models\DocumentationCategory;
 use App\Models\MediaItem;
+use App\Services\DocumentationPhotoProcessor;
 use Flux\Flux;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
@@ -33,6 +35,8 @@ new #[Title('Dokumentasi')] class extends Component {
 
     public string $visibility = 'internal';
 
+    public int|string|null $documentation_category_id = null;
+
     /** @var array<int, int|string> */
     public array $tagged_alumni_ids = [];
 
@@ -40,6 +44,15 @@ new #[Title('Dokumentasi')] class extends Component {
 
     #[Url]
     public string $view = 'all';
+
+    #[Url(as: 'year')]
+    public int|string|null $archiveYear = null;
+
+    #[Url(as: 'type')]
+    public string $archiveType = 'all';
+
+    #[Url(as: 'category')]
+    public int|string|null $archiveCategoryId = null;
 
     public function mount(): void
     {
@@ -53,21 +66,54 @@ new #[Title('Dokumentasi')] class extends Component {
     }
 
     #[Computed]
+    public function categories(): Collection
+    {
+        return DocumentationCategory::query()->where('is_active', true)->orderByRaw('sort_order is null')->orderBy('sort_order')->orderBy('name')->get();
+    }
+
+    #[Computed]
+    public function archiveYears(): Collection
+    {
+        return MediaItem::query()->select('year')->distinct()->orderByDesc('year')->pluck('year');
+    }
+
+    #[Computed]
     public function mediaItems(): Collection
     {
         $alumni = $this->currentAlumni;
 
         return MediaItem::query()
-            ->with(['uploader', 'taggedAlumni'])
+            ->with(['uploader', 'taggedAlumni', 'category'])
             ->when($this->view === 'uploaded', function ($query) use ($alumni): void {
                 $query->where('uploaded_by_alumni_id', $alumni->id);
             })
             ->when($this->view === 'tagged', function ($query) use ($alumni): void {
                 $query->whereHas('taggedAlumni', fn ($query) => $query->whereKey($alumni->id));
             })
-            ->latest()
+            ->when(filled($this->archiveYear), fn ($query) => $query->where('year', (int) $this->archiveYear))
+            ->when(in_array($this->archiveType, ['photo', 'video'], true), fn ($query) => $query->where('type', $this->archiveType))
+            ->when(filled($this->archiveCategoryId), fn ($query) => $query->where('documentation_category_id', (int) $this->archiveCategoryId))
+            ->orderByDesc('year')
+            ->orderByRaw('month is null')
+            ->orderByDesc('month')
+            ->latest('created_at')
             ->limit(24)
             ->get();
+    }
+
+    public function updatedArchiveYear(): void
+    {
+        unset($this->mediaItems);
+    }
+
+    public function updatedArchiveType(): void
+    {
+        unset($this->mediaItems);
+    }
+
+    public function updatedArchiveCategoryId(): void
+    {
+        unset($this->mediaItems);
     }
 
     public function updatedView(): void
@@ -149,7 +195,7 @@ new #[Title('Dokumentasi')] class extends Component {
         $this->resetErrorBag();
     }
 
-    public function saveMedia(): void
+    public function saveMedia(DocumentationPhotoProcessor $photoProcessor): void
     {
         $rules = [
             'type' => ['required', Rule::in(['photo', 'video'])],
@@ -158,6 +204,7 @@ new #[Title('Dokumentasi')] class extends Component {
             'month' => ['nullable', 'integer', 'between:1,12'],
             'year' => ['required', 'integer', 'min:1900', 'max:2100'],
             'visibility' => ['required', Rule::in(['internal', 'public'])],
+            'documentation_category_id' => ['nullable', Rule::exists(DocumentationCategory::class, 'id')->where('is_active', true)],
             'tagged_alumni_ids' => ['array'],
             'tagged_alumni_ids.*' => [Rule::exists(Alumni::class, 'id')],
         ];
@@ -179,16 +226,17 @@ new #[Title('Dokumentasi')] class extends Component {
         $height = null;
 
         if ($validated['type'] === 'photo' && $this->photo) {
-            $filePath = $this->photo->store('documentation/photos', 'public');
-            $fileSize = $this->photo->getSize();
-            $size = @getimagesize($this->photo->getRealPath());
-            $width = is_array($size) ? $size[0] : null;
-            $height = is_array($size) ? $size[1] : null;
+            $processedPhoto = $photoProcessor->store($this->photo);
+            $filePath = $processedPhoto['path'];
+            $fileSize = $processedPhoto['file_size'];
+            $width = $processedPhoto['width'];
+            $height = $processedPhoto['height'];
         }
 
         $mediaItem = MediaItem::query()->create([
             'type' => $validated['type'],
             'uploaded_by_alumni_id' => $uploader->id,
+            'documentation_category_id' => $validated['documentation_category_id'],
             'title' => $validated['title'],
             'description' => $validated['description'],
             'file_path' => $filePath,
@@ -220,7 +268,7 @@ new #[Title('Dokumentasi')] class extends Component {
             ]),
         );
 
-        $this->reset(['photo', 'video_url', 'title', 'description', 'month', 'tagged_alumni_ids', 'alumni_tag_search']);
+        $this->reset(['photo', 'video_url', 'title', 'description', 'month', 'documentation_category_id', 'tagged_alumni_ids', 'alumni_tag_search']);
         $this->type = 'photo';
         $this->visibility = 'internal';
         $this->year = (int) now()->year;
@@ -329,7 +377,7 @@ new #[Title('Dokumentasi')] class extends Component {
         <div class="space-y-2">
             <flux:heading size="xl">{{ __('Dokumentasi') }}</flux:heading>
             <flux:text class="max-w-3xl">
-                {{ __('Unggah foto dokumentasi atau tambahkan tautan video eksternal untuk arsip reuni.') }}
+                {{ __('Arsip foto dan video perjalanan Geodesi 96 dari masa kuliah hingga sekarang.') }}
             </flux:text>
         </div>
     </div>
@@ -370,6 +418,13 @@ new #[Title('Dokumentasi')] class extends Component {
                 <flux:select wire:model="visibility" :label="__('Visibilitas')">
                     <flux:select.option value="internal">{{ __('Internal') }}</flux:select.option>
                     <flux:select.option value="public">{{ __('Publik') }}</flux:select.option>
+                </flux:select>
+
+                <flux:select wire:model="documentation_category_id" :label="__('Kategori')">
+                    <flux:select.option value="">{{ __('Tanpa kategori') }}</flux:select.option>
+                    @foreach ($this->categories as $category)
+                        <flux:select.option wire:key="upload-category-{{ $category->id }}" :value="$category->id">{{ $category->name }}</flux:select.option>
+                    @endforeach
                 </flux:select>
 
                 <div>
@@ -424,6 +479,12 @@ new #[Title('Dokumentasi')] class extends Component {
                     {{ __('Simpan Dokumentasi') }}
                 </flux:button>
             </div>
+
+            <div class="grid gap-3 sm:grid-cols-3">
+                <flux:select wire:model.live="archiveYear" :label="__('Tahun arsip')"><flux:select.option value="">{{ __('Semua tahun') }}</flux:select.option>@foreach ($this->archiveYears as $yearOption)<flux:select.option wire:key="archive-year-{{ $yearOption }}" :value="$yearOption">{{ $yearOption }}</flux:select.option>@endforeach</flux:select>
+                <flux:select wire:model.live="archiveCategoryId" :label="__('Kategori arsip')"><flux:select.option value="">{{ __('Semua kategori') }}</flux:select.option>@foreach ($this->categories as $category)<flux:select.option wire:key="archive-category-{{ $category->id }}" :value="$category->id">{{ $category->name }}</flux:select.option>@endforeach</flux:select>
+                <flux:select wire:model.live="archiveType" :label="__('Jenis arsip')"><flux:select.option value="all">{{ __('Semua jenis') }}</flux:select.option><flux:select.option value="photo">{{ __('Foto') }}</flux:select.option><flux:select.option value="video">{{ __('Video') }}</flux:select.option></flux:select>
+            </div>
         </form>
 
         <div class="space-y-4">
@@ -477,6 +538,7 @@ new #[Title('Dokumentasi')] class extends Component {
                             <p class="mt-1 text-xs text-zinc-300">
                                 {{ collect([$this->monthName($mediaItem->month), $mediaItem->year])->filter()->join(' ') }}
                             </p>
+                            @if ($mediaItem->category)<p class="mt-1 text-xs text-ktn-gold-light">{{ $mediaItem->category->name }}</p>@endif
                         </div>
 
                         <div class="absolute bottom-2 right-2 z-20">

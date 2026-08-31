@@ -2,6 +2,7 @@
 
 use App\Models\Alumni;
 use App\Models\AuditLog;
+use App\Models\DocumentationCategory;
 use App\Models\MediaItem;
 use Flux\Flux;
 use Illuminate\Database\Eloquent\Collection;
@@ -24,6 +25,8 @@ new #[Title('Detail Dokumentasi')] class extends Component {
 
     public string $visibility = 'internal';
 
+    public int|string|null $documentation_category_id = null;
+
     /** @var array<int, int|string> */
     public array $tagged_alumni_ids = [];
 
@@ -31,7 +34,7 @@ new #[Title('Detail Dokumentasi')] class extends Component {
 
     public function mount(MediaItem $mediaItem): void
     {
-        $this->mediaItem = $mediaItem->load(['uploader', 'taggedAlumni']);
+        $this->mediaItem = $mediaItem->load(['uploader', 'taggedAlumni', 'category']);
         $this->fillForm();
     }
 
@@ -39,6 +42,12 @@ new #[Title('Detail Dokumentasi')] class extends Component {
     public function currentAlumni(): Alumni
     {
         return Auth::user()->alumni()->firstOrFail();
+    }
+
+    #[Computed]
+    public function categories(): Collection
+    {
+        return DocumentationCategory::query()->where('is_active', true)->orderByRaw('sort_order is null')->orderBy('sort_order')->orderBy('name')->get();
     }
 
     #[Computed]
@@ -119,6 +128,7 @@ new #[Title('Detail Dokumentasi')] class extends Component {
             'month' => ['nullable', 'integer', 'between:1,12'],
             'year' => ['required', 'integer', 'min:1900', 'max:2100'],
             'visibility' => ['required', Rule::in(['internal', 'public'])],
+            'documentation_category_id' => ['nullable', Rule::exists(DocumentationCategory::class, 'id')->where('is_active', true)],
             'tagged_alumni_ids' => ['array'],
             'tagged_alumni_ids.*' => [Rule::exists(Alumni::class, 'id')],
         ]);
@@ -131,6 +141,7 @@ new #[Title('Detail Dokumentasi')] class extends Component {
             'month' => $validated['month'],
             'year' => $validated['year'],
             'visibility' => $validated['visibility'],
+            'documentation_category_id' => $validated['documentation_category_id'],
         ]);
 
         $this->mediaItem->taggedAlumni()->syncWithPivotValues(
@@ -138,7 +149,7 @@ new #[Title('Detail Dokumentasi')] class extends Component {
             ['tagged_by_alumni_id' => $this->currentAlumni->id],
         );
 
-        $this->mediaItem = $this->mediaItem->fresh(['uploader', 'taggedAlumni']);
+        $this->mediaItem = $this->mediaItem->fresh(['uploader', 'taggedAlumni', 'category']);
         $this->fillForm();
 
         AuditLog::record(
@@ -216,6 +227,7 @@ new #[Title('Detail Dokumentasi')] class extends Component {
         $this->month = $this->mediaItem->month;
         $this->year = $this->mediaItem->year;
         $this->visibility = $this->mediaItem->visibility;
+        $this->documentation_category_id = $this->mediaItem->documentation_category_id;
         $this->tagged_alumni_ids = $this->mediaItem->taggedAlumni->pluck('id')->all();
         $this->alumni_tag_search = '';
 
@@ -279,6 +291,7 @@ new #[Title('Detail Dokumentasi')] class extends Component {
                         <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Waktu') }}</dt>
                         <dd class="font-medium">{{ collect([$this->monthName($mediaItem->month), $mediaItem->year])->filter()->join(' ') }}</dd>
                     </div>
+                    <div><dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Kategori') }}</dt><dd class="font-medium">{{ $mediaItem->category?->name ?: __('Tanpa kategori') }}</dd></div>
                     <div>
                         <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Tag alumni') }}</dt>
                         <dd class="font-medium">{{ $mediaItem->taggedAlumni->pluck('full_name')->join(', ') ?: '-' }}</dd>
@@ -309,6 +322,8 @@ new #[Title('Detail Dokumentasi')] class extends Component {
                             <flux:select.option value="internal">{{ __('Internal') }}</flux:select.option>
                             <flux:select.option value="public">{{ __('Publik') }}</flux:select.option>
                         </flux:select>
+
+                        <flux:select wire:model="documentation_category_id" :label="__('Kategori')"><flux:select.option value="">{{ __('Tanpa kategori') }}</flux:select.option>@foreach ($this->categories as $category)<flux:select.option wire:key="edit-category-{{ $category->id }}" :value="$category->id">{{ $category->name }}</flux:select.option>@endforeach</flux:select>
 
                         <div>
                             <div class="relative">

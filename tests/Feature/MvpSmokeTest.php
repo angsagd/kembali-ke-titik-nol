@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 test('mvp alumni journey works from login through profile rsvp room finance and documentation', function () {
-    Storage::fake('public');
+    Storage::fake('local');
 
     $alumniRole = Role::factory()->create(['name' => 'alumni']);
     $administratorRole = Role::factory()->create(['name' => 'administrator']);
@@ -120,7 +120,7 @@ test('mvp alumni journey works from login through profile rsvp room finance and 
         ->assertHasNoErrors();
 
     $mediaItem = MediaItem::query()->where('title', 'Foto UAT Reuni')->firstOrFail();
-    Storage::disk('public')->assertExists($mediaItem->file_path);
+    Storage::disk('local')->assertExists($mediaItem->file_path);
 
     $this->get(route('documentation.index'))
         ->assertOk()

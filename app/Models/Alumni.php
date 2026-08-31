@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'country',
     'latitude',
     'longitude',
+    'coordinate_source',
     'company',
     'job_title',
     'alumni_status',

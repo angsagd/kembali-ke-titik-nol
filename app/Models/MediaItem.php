@@ -9,11 +9,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Storage;
 
 #[Fillable([
     'type',
     'uploaded_by_alumni_id',
+    'documentation_category_id',
     'title',
     'description',
     'file_path',
@@ -58,6 +58,12 @@ class MediaItem extends Model
         return $this->belongsTo(Alumni::class, 'uploaded_by_alumni_id');
     }
 
+    /** @return BelongsTo<DocumentationCategory, $this> */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(DocumentationCategory::class, 'documentation_category_id');
+    }
+
     /**
      * Get alumni tagged in this media item.
      *
@@ -78,7 +84,7 @@ class MediaItem extends Model
     public function displayUrl(): ?string
     {
         if ($this->isPhoto()) {
-            return $this->file_path ? Storage::disk('public')->url($this->file_path) : null;
+            return $this->file_path ? route('media.file', $this) : null;
         }
 
         return $this->video_url;

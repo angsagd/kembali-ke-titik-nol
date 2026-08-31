@@ -241,6 +241,10 @@ function initializeDistributionMaps() {
             L.marker([city.latitude, city.longitude], { icon: markerIcon(city) })
                 .bindPopup(`<strong>${city.name}</strong><br>${city.country}<br>${city.count} alumni`)
                 .on('click', () => {
+                    if (element.hasAttribute('data-static')) {
+                        return;
+                    }
+
                     const component = componentFor(element);
 
                     if (component) {
@@ -782,6 +786,7 @@ document.addEventListener('livewire:init', () => {
     window.Livewire.interceptMessage(({ onSuccess }) => {
         onSuccess(({ onRender }) => {
             onRender(() => {
+                initializeDistributionMaps();
                 initializeCityAutocompletes();
                 initializeRichTextEditors();
                 initializeEchartsAfterRender();

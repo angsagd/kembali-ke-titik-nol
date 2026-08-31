@@ -2,6 +2,7 @@
 
 use App\Models\Alumni;
 use App\Models\AlumniTimeline;
+use App\Services\HistoricalLocationResolver;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -11,6 +12,9 @@ use Livewire\Component;
 new #[Title('Persebaran Alumni')] class extends Component {
     #[Url(as: 'city')]
     public ?string $selectedCityId = null;
+
+    #[Url(as: 'year')]
+    public int|string|null $selectedYear = null;
 
     #[Computed]
     public function summary(): array
@@ -133,6 +137,37 @@ new #[Title('Persebaran Alumni')] class extends Component {
     }
 
     #[Computed]
+    public function historicalYears(): Collection
+    {
+        $firstYear = AlumniTimeline::query()->min('year');
+
+        if ($firstYear === null) {
+            return collect();
+        }
+
+        return collect(range((int) now()->year, (int) $firstYear));
+    }
+
+    #[Computed]
+    public function historicalLocations(): Collection
+    {
+        if (! filled($this->selectedYear)) {
+            return collect();
+        }
+
+        return app(HistoricalLocationResolver::class)->resolve((int) $this->selectedYear);
+    }
+
+    public function updatedSelectedYear(): void
+    {
+        if (filled($this->selectedYear) && ! $this->historicalYears->contains((int) $this->selectedYear)) {
+            $this->selectedYear = null;
+        }
+
+        unset($this->historicalLocations);
+    }
+
+    #[Computed]
     public function unlocatedCount(): int
     {
         return Alumni::query()
@@ -185,6 +220,24 @@ new #[Title('Persebaran Alumni')] class extends Component {
             ->all();
     }
 
+    /**
+     * @return list<array{id: string, name: string, country: string, count: int, latitude: float, longitude: float, selected: bool}>
+     */
+    public function historicalLeafletMarkers(): array
+    {
+        return $this->historicalLocations
+            ->map(fn (array $location): array => [
+                'id' => $location['id'],
+                'name' => $location['city'],
+                'country' => $location['country'] ?: __('Negara belum diisi'),
+                'count' => $location['alumni_count'],
+                'latitude' => $location['latitude'],
+                'longitude' => $location['longitude'],
+                'selected' => false,
+            ])
+            ->all();
+    }
+
     private function locationKey(?string $city, ?string $country): string
     {
         return implode('::', [$city, $country]);
@@ -196,7 +249,7 @@ new #[Title('Persebaran Alumni')] class extends Component {
         <div class="space-y-2">
             <flux:heading size="xl">{{ __('Persebaran Alumni') }}</flux:heading>
             <flux:text class="max-w-3xl">
-                {{ __('Ringkasan awal persebaran alumni berdasarkan domisili saat ini, status RSVP, dan kelengkapan profil.') }}
+                {{ __('Jelajahi domisili alumni saat ini dan perjalanan Geodesi 96 dari tahun ke tahun.') }}
             </flux:text>
         </div>
 
@@ -296,6 +349,75 @@ new #[Title('Persebaran Alumni')] class extends Component {
                 </div>
             @endif
         </div>
+    </div>
+
+    <div class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <flux:heading size="lg">{{ __('Peta Perjalanan Historis') }}</flux:heading>
+                <flux:text>{{ __('Pilih tahun untuk melihat lokasi terakhir yang telah tercatat bagi setiap alumni hingga tahun tersebut.') }}</flux:text>
+            </div>
+
+            <div class="w-full sm:w-48">
+                <flux:select wire:model.live="selectedYear" :label="__('Tahun perjalanan')">
+                    <flux:select.option value="">{{ __('Pilih tahun') }}</flux:select.option>
+                    @foreach ($this->historicalYears as $year)
+                        <flux:select.option :value="$year">{{ $year }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+            </div>
+        </div>
+
+        @if (filled($selectedYear))
+            <div class="mt-5 grid gap-6 xl:grid-cols-[1fr_24rem]">
+                <div class="relative aspect-[16/9] overflow-hidden rounded-lg border border-ktn-instrument bg-ktn-topo">
+                    @if ($this->historicalLocations->isNotEmpty())
+                        <div
+                            wire:key="historical-map-{{ $selectedYear }}"
+                            wire:ignore
+                            data-leaflet-distribution-map
+                            data-static
+                            data-markers='@json($this->historicalLeafletMarkers())'
+                            class="size-full"
+                        ></div>
+                    @else
+                        <div class="absolute inset-0 flex items-center justify-center p-6 text-center">
+                            <flux:text>{{ __('Belum ada riwayat lokasi yang berlaku pada tahun :year.', ['year' => $selectedYear]) }}</flux:text>
+                        </div>
+                    @endif
+                </div>
+
+                <div class="max-h-[32rem] space-y-3 overflow-y-auto pr-1">
+                    @forelse ($this->historicalLocations as $location)
+                        <div wire:key="historical-location-{{ $selectedYear }}-{{ $location['id'] }}" class="rounded-md border border-zinc-200 p-4 dark:border-zinc-700">
+                            <div class="flex items-center justify-between gap-3">
+                                <div>
+                                    <div class="font-semibold">{{ $location['city'] }}</div>
+                                    <flux:text>{{ $location['country'] ?: __('Negara belum diisi') }}</flux:text>
+                                </div>
+                                <flux:badge>{{ $location['alumni_count'] }}</flux:badge>
+                            </div>
+
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                @foreach ($location['alumni'] as $profile)
+                                    <a href="{{ route('alumni.directory.show', $profile) }}" wire:navigate class="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700">
+                                        {{ $profile->full_name }}
+                                    </a>
+                                @endforeach
+                            </div>
+                        </div>
+                    @empty
+                        <div class="rounded-md border border-dashed border-zinc-300 p-6 text-center dark:border-zinc-700">
+                            <flux:text>{{ __('Tidak ada alumni yang ditempatkan berdasarkan asumsi.') }}</flux:text>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+        @else
+            <div class="mt-5 rounded-md border border-dashed border-zinc-300 p-8 text-center dark:border-zinc-700">
+                <flux:text>{{ __('Pilih satu tahun untuk mulai menjelajahi perjalanan alumni.') }}</flux:text>
+            </div>
+        @endif
     </div>
 
     <div class="grid gap-6 xl:grid-cols-[1fr_1fr]">

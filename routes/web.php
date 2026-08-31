@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\MediaFileController;
 use App\Http\Controllers\PublicHomeController;
 use App\Http\Controllers\Reports\ExportController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', PublicHomeController::class)->name('home');
+Route::get('media/{mediaItem}/file', MediaFileController::class)->name('media.file');
 Route::livewire('reunion-30', 'pages::public.reunion')->name('public.reunion');
 Route::livewire('rsvp', 'pages::public.rsvp')->name('public.rsvp');
 Route::livewire('galeri', 'pages::public.gallery')->name('public.gallery');
@@ -58,6 +60,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('can:view-alumni-directory')->group(function () {
         Route::livewire('alumni/directory', 'pages::alumni.directory.index')->name('alumni.directory.index');
         Route::livewire('alumni/directory/{alumni}', 'pages::alumni.directory.show')->name('alumni.directory.show');
+        Route::livewire('alumni/then-now', 'pages::alumni.then-now.index')->name('alumni.then-now.index');
         Route::livewire('alumni/distribution', 'pages::alumni.distribution.index')->name('alumni.distribution.index');
     });
 
@@ -67,6 +70,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::livewire('admin/rsvp', 'pages::admin.rsvp.index')->name('admin.rsvp.index');
         Route::livewire('admin/rooming', 'pages::admin.rooming.index')->name('admin.rooming.index');
         Route::livewire('admin/documentation', 'pages::admin.documentation.index')->name('admin.documentation.index');
+        Route::livewire('admin/documentation-categories', 'pages::admin.documentation-categories.index')->name('admin.documentation-categories.index');
         Route::livewire('admin/news', 'pages::admin.news.index')->name('admin.news.index');
         Route::livewire('admin/event-schedule', 'pages::admin.event-schedule.index')->name('admin.event-schedule.index');
         Route::livewire('admin/whatsapp', 'pages::admin.whatsapp.index')

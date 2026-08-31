@@ -127,6 +127,10 @@ new #[Title('Profil Alumni')] class extends Component {
                 && filled($validated['rsvp_status'])
                 && (filled($validated['short_story']) || filled($validated['memorable_story']) || filled($validated['message_to_friends']));
 
+            $locationChanged = $validated['city'] !== $this->alumni->city
+                || $validated['country'] !== $this->alumni->country;
+            $coordinatesAreManuallyLocked = $this->alumni->coordinate_source === 'manual';
+
             $this->alumni->update([
                 'full_name' => $validated['full_name'],
                 'nickname' => $validated['nickname'],
@@ -137,8 +141,11 @@ new #[Title('Profil Alumni')] class extends Component {
                 'job_title' => $validated['job_title'],
                 'city' => $validated['city'],
                 'country' => $validated['country'],
-                'latitude' => $validated['latitude'],
-                'longitude' => $validated['longitude'],
+                'latitude' => $coordinatesAreManuallyLocked ? $this->alumni->latitude : $validated['latitude'],
+                'longitude' => $coordinatesAreManuallyLocked ? $this->alumni->longitude : $validated['longitude'],
+                'coordinate_source' => $coordinatesAreManuallyLocked
+                    ? 'manual'
+                    : ($locationChanged && filled($validated['latitude']) && filled($validated['longitude']) ? 'geocoded' : $this->alumni->coordinate_source),
                 'short_story' => $validated['short_story'],
                 'memorable_story' => $validated['memorable_story'],
                 'message_to_friends' => $validated['message_to_friends'],

@@ -52,6 +52,8 @@ new #[Title('Detail Alumni')] class extends Component {
 
     public float|string|null $longitude = null;
 
+    public ?string $coordinate_source = null;
+
     public string $location_search = '';
 
     public ?string $special_notes = null;
@@ -85,6 +87,7 @@ new #[Title('Detail Alumni')] class extends Component {
         $this->country = $this->alumni->country;
         $this->latitude = $this->alumni->latitude;
         $this->longitude = $this->alumni->longitude;
+        $this->coordinate_source = $this->alumni->coordinate_source;
         $this->location_search = collect([$this->city, $this->country])->filter()->join(', ');
         $this->special_notes = $this->alumni->special_notes;
         $this->is_profile_completed = $this->alumni->is_profile_completed;
@@ -168,6 +171,7 @@ new #[Title('Detail Alumni')] class extends Component {
             'country' => ['nullable', 'required_with:location_search', 'string', 'max:100'],
             'latitude' => ['nullable', 'required_with:location_search', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'required_with:location_search', 'numeric', 'between:-180,180'],
+            'coordinate_source' => ['nullable', Rule::in(['geocoded', 'manual'])],
             'special_notes' => ['nullable', 'string', 'max:5000'],
             'is_profile_completed' => ['boolean'],
         ]);
@@ -186,6 +190,9 @@ new #[Title('Detail Alumni')] class extends Component {
                 'country' => $validated['country'],
                 'latitude' => $validated['latitude'],
                 'longitude' => $validated['longitude'],
+                'coordinate_source' => filled($validated['latitude']) && filled($validated['longitude'])
+                    ? ($validated['coordinate_source'] ?: 'geocoded')
+                    : null,
                 'special_notes' => $validated['special_notes'],
                 'is_profile_completed' => $validated['is_profile_completed'],
             ]);
@@ -194,6 +201,7 @@ new #[Title('Detail Alumni')] class extends Component {
                 'name' => $validated['full_name'],
                 'whatsapp_number' => $validated['whatsapp_number'],
                 'email' => $validated['email'] ?: $this->alumni->user->email,
+                ...($validated['alumni_status'] === 'deceased' ? ['is_active' => false] : []),
             ])->save();
         });
 
@@ -454,6 +462,15 @@ new #[Title('Detail Alumni')] class extends Component {
                         :city="$city"
                         :country="$country"
                     />
+
+                    <flux:select wire:model="coordinate_source" :label="__('Sumber koordinat')">
+                        <flux:select.option value="">{{ __('Legacy / belum diketahui') }}</flux:select.option>
+                        <flux:select.option value="geocoded">{{ __('Hasil pencarian kota') }}</flux:select.option>
+                        <flux:select.option value="manual">{{ __('Override manual') }}</flux:select.option>
+                    </flux:select>
+
+                    <flux:input wire:model="latitude" :label="__('Latitude')" type="number" step="0.0000001" />
+                    <flux:input wire:model="longitude" :label="__('Longitude')" type="number" step="0.0000001" />
 
                     <flux:select wire:model="alumni_status" :label="__('Status alumni')">
                         <flux:select.option value="active">{{ __('Aktif') }}</flux:select.option>

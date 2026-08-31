@@ -109,7 +109,7 @@ test('alumni users can search add and remove documentation tags', function () {
 });
 
 test('alumni users can upload photo documentation', function () {
-    Storage::fake('public');
+    Storage::fake('local');
 
     $profile = Alumni::factory()->create(['full_name' => 'Ade Chandra']);
     $tagged = Alumni::factory()->create(['full_name' => 'Budi Santoso']);
@@ -144,7 +144,7 @@ test('alumni users can upload photo documentation', function () {
     expect($auditLog->entity_type)->toBe($mediaItem->getMorphClass());
     expect($auditLog->entity_id)->toBe($mediaItem->id);
 
-    Storage::disk('public')->assertExists($mediaItem->file_path);
+    Storage::disk('local')->assertExists($mediaItem->file_path);
 });
 
 test('alumni users can add video documentation url', function () {

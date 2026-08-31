@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\Alumni;
+use App\Models\MediaItem;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -20,6 +22,33 @@ new #[Title('Profil Alumni')] class extends Component {
         return $this->alumni
             ->timelines()
             ->get();
+    }
+
+    #[Computed]
+    public function uploadedMediaItems(): Collection
+    {
+        return MediaItem::query()
+            ->with('uploader')
+            ->where('uploaded_by_alumni_id', $this->alumni->id)
+            ->latest()
+            ->limit(9)
+            ->get();
+    }
+
+    #[Computed]
+    public function taggedMediaItems(): Collection
+    {
+        return MediaItem::query()
+            ->with('uploader')
+            ->whereHas('taggedAlumni', fn ($query) => $query->whereKey($this->alumni->id))
+            ->latest()
+            ->limit(9)
+            ->get();
+    }
+
+    public function profilePhotoUrl(?string $path): ?string
+    {
+        return $path ? Storage::disk('public')->url($path) : null;
     }
 
     public function monthName(?int $month): ?string
@@ -59,7 +88,7 @@ new #[Title('Profil Alumni')] class extends Component {
 
         <div class="flex flex-wrap gap-2">
             <flux:badge color="{{ $alumni->alumni_status === 'active' ? 'green' : 'zinc' }}">
-                {{ $alumni->alumni_status === 'active' ? __('Aktif') : __('Memorial') }}
+                {{ $alumni->alumni_status === 'active' ? __('Aktif') : __('In Memoriam') }}
             </flux:badge>
             <flux:badge color="{{ $alumni->is_profile_completed ? 'green' : 'amber' }}">
                 {{ $alumni->is_profile_completed ? __('Profil Lengkap') : __('Profil Awal') }}
@@ -67,8 +96,30 @@ new #[Title('Profil Alumni')] class extends Component {
         </div>
     </div>
 
+    @if ($alumni->alumni_status === 'deceased')
+        <flux:callout icon="heart" color="zinc">
+            <flux:callout.heading>{{ __('In Memoriam') }}</flux:callout.heading>
+            <flux:callout.text>{{ __('Profil ini dirawat sebagai bagian dari sejarah dan kenangan bersama Alumni Geodesi 96.') }}</flux:callout.text>
+        </flux:callout>
+    @endif
+
     <div class="grid gap-6 xl:grid-cols-[1fr_22rem]">
         <div class="space-y-6">
+            <div class="grid gap-4 sm:grid-cols-2">
+                @foreach ([['label' => __('Masa Kuliah'), 'path' => $alumni->college_photo_path], ['label' => __('Saat Ini'), 'path' => $alumni->current_photo_path]] as $photo)
+                    <div class="overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+                        <div class="aspect-[4/5] bg-ktn-topo">
+                            @if ($this->profilePhotoUrl($photo['path']))
+                                <img src="{{ $this->profilePhotoUrl($photo['path']) }}" alt="{{ $photo['label'] }} {{ $alumni->full_name }}" class="size-full object-cover">
+                            @else
+                                <div class="flex size-full items-center justify-center p-6 text-center text-sm text-ktn-muted">{{ __('Foto belum tersedia') }}</div>
+                            @endif
+                        </div>
+                        <div class="p-4 font-semibold">{{ $photo['label'] }}</div>
+                    </div>
+                @endforeach
+            </div>
+
             <div class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
                 <flux:heading size="lg">{{ __('Cerita Alumni') }}</flux:heading>
 
@@ -119,6 +170,22 @@ new #[Title('Profil Alumni')] class extends Component {
                     @endforelse
                 </div>
             </div>
+
+            @foreach ([['heading' => __('Dokumentasi yang Diunggah'), 'items' => $this->uploadedMediaItems], ['heading' => __('Dokumentasi yang Menandai Alumni'), 'items' => $this->taggedMediaItems]] as $gallery)
+                <div class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
+                    <div class="flex items-center justify-between gap-3"><flux:heading size="lg">{{ $gallery['heading'] }}</flux:heading><flux:badge>{{ $gallery['items']->count() }}</flux:badge></div>
+                    <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        @forelse ($gallery['items'] as $mediaItem)
+                            <a wire:key="profile-media-{{ $gallery['heading'] }}-{{ $mediaItem->id }}" href="{{ route('documentation.show', $mediaItem) }}" wire:navigate class="rounded-md border border-zinc-200 p-3 transition hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800">
+                                <div class="font-medium">{{ $mediaItem->title ?: __('Tanpa judul') }}</div>
+                                <div class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ $mediaItem->type === 'video' ? __('Video') : __('Foto') }} · {{ $mediaItem->year }}</div>
+                            </a>
+                        @empty
+                            <flux:text class="sm:col-span-2 lg:col-span-3">{{ __('Belum ada dokumentasi pada bagian ini.') }}</flux:text>
+                        @endforelse
+                    </div>
+                </div>
+            @endforeach
         </div>
 
         <aside class="space-y-6">
@@ -134,14 +201,10 @@ new #[Title('Profil Alumni')] class extends Component {
                         <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('NIM') }}</dt>
                         <dd class="font-medium">{{ $alumni->student_number ?: '-' }}</dd>
                     </div>
-                    <div>
-                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Email') }}</dt>
-                        <dd class="font-medium">{{ $alumni->email ?: '-' }}</dd>
-                    </div>
-                    <div>
-                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('WhatsApp') }}</dt>
-                        <dd class="font-medium">{{ $alumni->user?->whatsapp_number ?: '-' }}</dd>
-                    </div>
+                    @if ($alumni->alumni_status === 'active')
+                        <div><dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Email') }}</dt><dd class="font-medium">{{ $alumni->email ?: '-' }}</dd></div>
+                        <div><dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('WhatsApp') }}</dt><dd class="font-medium">{{ $alumni->user?->whatsapp_number ?: '-' }}</dd></div>
+                    @endif
                     <div>
                         <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Instansi / Perusahaan') }}</dt>
                         <dd class="font-medium">{{ $alumni->company ?: '-' }}</dd>

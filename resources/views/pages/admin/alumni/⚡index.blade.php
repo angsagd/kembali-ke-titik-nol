@@ -132,7 +132,7 @@ new #[Title('Manajemen Alumni')] class extends Component {
                 'email' => $validated['email'] ?: "{$validated['whatsapp_number']}@geodesi96.local",
                 'whatsapp_number' => $validated['whatsapp_number'],
                 'password' => $password,
-                'is_active' => true,
+                'is_active' => $validated['alumni_status'] !== 'deceased',
             ]);
 
             $alumni = Alumni::query()->create([

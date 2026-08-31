@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             SuperadminSeeder::class,
             AlumniContactSeeder::class,
+            DocumentationCategorySeeder::class,
             EventScheduleItemSeeder::class,
         ]);
     }

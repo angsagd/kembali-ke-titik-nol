@@ -26,6 +26,10 @@
                         <flux:sidebar.item icon="users" :href="route('alumni.directory.index')" :current="request()->routeIs('alumni.directory.*')" wire:navigate>
                             {{ __('Direktori Alumni') }}
                         </flux:sidebar.item>
+
+                        <flux:sidebar.item icon="photo" :href="route('alumni.then-now.index')" :current="request()->routeIs('alumni.then-now.*')" wire:navigate>
+                            {{ __('Dulu & Sekarang') }}
+                        </flux:sidebar.item>
                     </flux:sidebar.group>
 
                     <flux:sidebar.group :heading="__('Perjalanan')" class="grid">
@@ -97,6 +101,10 @@
                     <flux:sidebar.group :heading="__('Administrasi Konten')" class="grid">
                         <flux:sidebar.item icon="photo" :href="route('admin.documentation.index')" :current="request()->routeIs('admin.documentation.*')" wire:navigate>
                             {{ __('Kelola Dokumentasi') }}
+                        </flux:sidebar.item>
+
+                        <flux:sidebar.item icon="tag" :href="route('admin.documentation-categories.index')" :current="request()->routeIs('admin.documentation-categories.*')" wire:navigate>
+                            {{ __('Kategori Dokumentasi') }}
                         </flux:sidebar.item>
 
                         <flux:sidebar.item icon="newspaper" :href="route('admin.news.index')" :current="request()->routeIs('admin.news.*')" wire:navigate>
